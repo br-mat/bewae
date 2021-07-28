@@ -1,0 +1,46 @@
+Bewässerung V3
+Allgemein:
+Bewässern der Pflanzen
+Stromversurgung über Powerbank /Bleiakku
+Basis:
+- 1 Bewässern nach Zeitplan
+ -- Pumpe
+ -- Ventile
+  -- Zeitabläufe und Dauer
+   - steuern mit 74hc595 shift register
+- 2 Messung von Temperatur und Luftfeuchte und Zeit
+ -- Ansteuerung der Sensoren (BMP/E280), RTC
+  -- Sammeln von Daten, handlen der verschiedenen Sensoren
+   - BMP
+   - RTC
+   - Photoresistor
+   - (Moist über mux)
+- 3 Speichern von Daten auf SD karte
+ -- Verwalten der Daten und Speicherung
+- 4 Wakeup circle (powerbank)
+ -- Passiv läuft wenn schalter umgelegt (arduino nicht involviert)
+Erweitert:
+- 1.1 Bewässern nach Sensorenmessung
+- 2.1 Messung von Daten von Bodensensoren
+- 3.1 Kommunikation mit Raspberry Pi/speichern von Daten Visualisierung mit grafana
+
+Funktionen:
+Pflicht:
+a- Zeit und Datumsabfrage an RTC
+(name)
+
+b- Steuerung shift register 74hc595
+shifter
+
+c- Speichern von Daten (&erfassen über mux)
+(name)
+
+d- Gießfunktion unter nutzung von shifter
+(name)
+
+Extra:
+e- verwertung der daten
+
+f- Sleep funktion?
+
+g- kommunikation mit pi oder 2. arduino (esp)

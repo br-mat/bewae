@@ -1,0 +1,8 @@
+- copper fill sperrfelder etwas vergrößern über gazen arduino chip und suply ausweiten
+- micro usb port einfügen
+- mosfet switch als verbraucher ground schalter einfügen
+- reverse voltage protection
+- high side switch mosfets
+- 100nF von Aref zu GND um noise an messungen zu reduzieren (pin eventuell entfernen es sollte nichts damit verbunden werden)
+- esp01 hinzufügen
+- 12v vin/out
