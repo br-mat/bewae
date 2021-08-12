@@ -1,4 +1,4 @@
-# Bewae - Bewässerungsprojekt v3.0
+# Bewae - Bewässerungsprojekt v3.X
 
 bew_entwurf_v2_7 Hauptplatine
 Platine_01 als Erweiterung mit esp01, Buckconverter etc.
