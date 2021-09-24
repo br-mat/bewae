@@ -122,22 +122,27 @@ uint8_t vent_count=6;
 
 //limitations & watering & other
 //group limits and watering (some hardcoded stuff)                          
-//          type                  amount of plant/brushes    estimated water amount in liter per day (average hot +30*C)
+//          type                  amount of plant/brushes    water amount in liter for a day (30*)
 //group 1 - große tom             5 brushes                  ~8l
-//group 2 - Chilli, Paprika       5 brushes                  ~1.5l
+//group 2 - Chilli, Paprika       5 brushes                  ~2.5l
 //group 3 - Kräuter (trocken)     4 brushes                  ~0.2l
-//group 4 - Hochbeet2             10 brushes                 ~4l
-//group 5 - kleine tom            4 brushes                  ~3.5l
-//group 6 - leer 4 brushes +3 small?        ~0.5l
+//group 4 - Hochbeet2             10 brushes                 ~5l
+//group 5 - kleine tom            4 brushes                  ~4l
+//group 6 - Kräuter (mittel-nass) 4 brushes +3 small?        ~0.6l
 
-int group_st_time[6]={120,10,5,30,60,0};//{180, 60, 5, 0, 120, 0} depending on assigned plants to the valve-pipe system
-                                        //standard watering time per day and valve (about 0.7-1l/min)
+//int group_limlow[6]={400,410,425,420,445,405}; //old automatic handling
+//int group_limhigh[6]={440,450,465,450,490,450};
+//uint8_t group_reduce_low[6]={3,4,5,4,3,3}; //factor to devide = value/factor
+//uint8_t group_enhance_high[6]={3,4,2,4,3,3};  //factor to enhance = value+value/factor
+int group_st_time[6]={120,10,5,30,60,0};//{180, 60, 5, 0, 120, 0}; //{630/3, 200/2, 18/3, 400/2, 320/2, 0 };
+                                         //standard watering time per day (about 0.7l/min)
+//int group_st_time[6]={2,0,0,5,5,0};
+//OLD! standart watering time per day (1.5 l per min - shared too all brushes!! {330, 80, 80, 120, 8, 24}) (new PUMP 2-3l per min;
 int watering_base[6]={0}; //placeholder array to handle watering time over more than one loop period
                           //watering should pause when exceeding the measurement period
 
-//moisture sensors
 //int low_lim = 300;  //lower limitations, values lower are not realistic
-//int high_lim = 600; //high limitation, values passed that threshold are not realistic
+//int high_lim = 600; //dry 650 - high limitation, values passed that threshold are not realistic
 
 //important global variables
 byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_;
@@ -145,14 +150,14 @@ unsigned long up_time = 0;    //general estimated uptime
 unsigned long last_activation = 0; //timemark variable
 bool thirsty = false; //marks if a watering cycle is finished
 bool config = false;  //handle wireless configuration
-bool config_bewae_sw = true; //switch watering on off
-bool config_watering_sw = true; //switch default and custom values, default in group_st_time and custom sent via mqtt
+bool config_bewae_sw = true;
+bool config_watering_sw = true;
 
 //wireless config array to switch on/off functions
 // watering time of specific group; binary values;
-const int raspi_config_size = max_groups+2; //6 groups + 2 binary
-int raspi_config[raspi_config_size]={0};
-byte esp_status = 0; //indicating data recieved from esp01, set true in request event
+const int raspi_confige_size = max_groups+2; //6 groups + 2 binary
+int raspi_config[raspi_confige_size]={0};
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //             functions
@@ -633,78 +638,6 @@ unsigned int readVcc(void) {
   return result; // Vcc in millivolts
 }
 
-//FIND OUT WHILE 1 or 0 < blabla ??
-//interrupt funciton for receiving data on iic bus, keep in mind that it can get stuck from time to time
-//esp as 2nd master is allowed to send only at specific times!
-void receiveEvent(int bytes){
-  //collect transmitted bytes
-  Serial.print("bytes recieve: ");Serial.println(bytes);
-  byte barr[bytes]={0};
-  int i = 0;
-  barr[i]=Wire.read(); //thorw away first byte
-  while(1<Wire.available()){
-    barr[i]=Wire.read();
-    i++;
-  }
-  byte status_sign = Wire.read();
-  Serial.print("Status byte: "); Serial.println(status_sign);
-  int size=(float)bytes/2.0+0.5;
-  int data[size] = {0};
-  i = 0;
-  //transform byte array to int data array
-  for(int j=0; j<bytes; j=j+2){
-    data[i]=barr[j] | barr[j+1] << 8;
-    #ifdef DEBUG
-    Serial.print("ESP sent: ");
-    Serial.println(barr[i]);
-    #endif
-    i++;
-  }
-  switch((int)status_sign) {
-    case 111: //111 all good reporting process finished
-      //check controll byte indicating a correct transmission & passing to predefined static array
-      for(unsigned int i=0;i<raspi_config_size;i++){
-        if(i<sizeof(data)/2){
-          raspi_config[i]=data[i];
-        }
-        else{
-          raspi_config[i]=0;
-        }
-      }
-      Serial.println("111 triggered");
-      esp_status=(byte)1;
-      break;
-
-    case 112: //112 all good but process could not be finished;
-      esp_status=(byte)2; // NOT IMPLEMENTED YET this should allow signaling Nano to not shutdown ESP because it needs extra time
-      break;
-
-    default :
-      esp_status=(byte)3;
-   }
-}
-/*
-  if(barr[bytes-1] == (byte)111){ //111 all good reporting process finished
-    //check controll byte indicating a correct transmission & passing to predefined static array
-    for(unsigned int i=0;i<raspi_config_size;i++){
-      if(i<sizeof(data)/2){
-        raspi_config[i]=data[i];
-      }
-      else{
-        raspi_config[i]=0;
-      }
-    }
-    esp_status=(byte)1;
-  }
-  else if(barr[bytes-1] == (byte)112){ //112 all good but process could not be finished;
-    esp_status=(byte)2;                // NOT IMPLEMENTED YET this should allow signaling Nano to not shutdown ESP because it needs extra time
-  }
-  else{ //value not 111 or 112 indicating an error in transmission
-    esp_status=(byte)3;
-  }
-*/
-
-
 #define twbr_global 230
 void setup() {
   // SETUP AND INITALIZE
@@ -715,15 +648,13 @@ void setup() {
   #ifdef DEBUG
   Serial.print(F("Hello, World!"));
   #endif
-  Wire.begin(nano_adr); //join iic, to avoid problems with serial comms we run the bus with multiple masters (2)
-                        //ESP01 seems to have trouble on working as a slave device
-  //TWBR = 78;   //78 --> 25 kHz ; 158 --> 12,5 kHz
-  TWBR=twbr_global; //lower clock speed of SCL so esp01 can read the message it is neccessary to set controller speed at 160Hz
+  Wire.begin(); //join iic as Master
+  //TWBR = 78;   //78 --> 25 kHz
+  TWBR = twbr_global;  //158 --> 12,5 kHz
   //TWBR = 250;    //formula: freq = clock / (16 + (2 * TWBR * prescaler))
   //TWSR |= bit (TWPS0);  // change prescaler did not work for me, default 1
   //prescaler description
   //https://www.arnabkumardas.com/arduino-tutorial/i2c-register-description/
-  Wire.onReceive(receiveEvent);
   #ifdef DEBUG
   Serial.println(F("Wiresetup debug 0"));
   #endif
@@ -888,14 +819,13 @@ void loop() {
       copy(group_st_time, watering_base, 6); //fill watering placeholder array
     }
   }
-  unsigned long actual_time = (unsigned long)up_time+(unsigned long)sec1*1000+(unsigned long)min1*60000UL; //time in ms, comming from rtc module
-                                                                                                 //give acurate values despide temperature changes
+  unsigned long actual_time = (unsigned long)up_time+(unsigned long)sec1*1000+(unsigned long)min1*60000UL;
 
   if((esp_busy) & (esp_time+esp_timeout < actual_time)){
-    esp_busy = false;
+    esp_busy = false; //get set true when transmission was a success
     digitalWrite(esp_pdown, LOW); //turn down esp
     #ifdef DEBUG
-    Serial.println(F("shutdown ESP-01"));
+    Serial.println(F("Swithing off Esp"));
     #endif
   }
 
@@ -917,20 +847,21 @@ void loop() {
   //if(true)
   {
     last_activation = actual_time; //first action refresh the time
-    TWBR=twbr_global; //make sure that IIC clock speed is low enough for esp01
     
     esp_busy = true;
     esp_time = actual_time;
-    esp_status=(byte)0; //
-    digitalWrite(esp_pdown,HIGH); //turn up esp
+    
+    digitalWrite(esp_pdown,HIGH); //turn up esp    
     delay(500);
+    TWBR=twbr_global; //make sure that IIC clock speed is low enough for esp01
+    delay(500); //give some time to esp01 on iic bus
     signalesp01((byte)2); //esp should update config (mqtt --> raspberrypi)
     #ifdef DEBUG
     Serial.print(F("Signaled esp to update data"));
     #endif
-    delay(10000); //give esp enought time for the request NEEDED?!????????????????????????????????
+    delay(10000); //give esp enought time for the request
     
-    delay(100);
+    delay(500);
     #ifdef DEBUG
     Serial.println(F("enter datalog phase"));
     #endif
@@ -1016,56 +947,89 @@ void loop() {
   //expecting i2c to send all values as int (2 bytes) with max 32 bytes due to i2c limitation
   //the bool values can be optimized if needed because 2 bytes for true or false is a big waste
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if(esp_busy){
-    signalesp01((byte)3); //permit esp01 to takeover iic bus as master
-    byte count = 0;
-    while(esp_status == 0){
-      //wait for esp to finish processing, it is important to wait for esp to finish iic messaging
-      //  recieve event is triggered by interupt and can randomly halt and so freeze arduino from time to time
-      //  this MUST NOT happen during the watering procedure
+  //if(config){
+  if(false){
+    //byte barr[32]; //max size 32!
+    Serial.println("config true");
+    int i = 0;
+    //delay(10);
+    //TWBR=78;
+    delay(100);
+    //Wire.requestFrom(8, 16);
+    byte barr[32];
+    int bytes = 32;
+    Wire.requestFrom(8, 16);    // request 32 bytes from slave device #8
+    //delay(1);
+    //int bytes = Wire.available();
+    //delay(1);
+    
+    //Serial.print("temp bytes available: ");
+    //Serial.println(bytes);
+    while (0<Wire.available()) { // slave may send less than requested
+      Serial.println(Wire.available());
+      barr[i] = Wire.read();
       
-      //FINISH HANDLING OF ERROR CODES LATER
-      //4 should probably shut down esp or set thirsty false to avoid conflict
-      //probably skipp thisty for a while then?
-      if(count>(byte)60){
-        esp_status = (byte)4; //4 indicating an error, no answer from esp after about 1 min
-      }
-      count++;
-      delay(1000);
-    }
-    if((esp_status == (byte)1) & (config)){
-      config = false;
-      config_bewae_sw=(bool)raspi_config[max_groups];
-      config_watering_sw=(bool)raspi_config[max_groups+1];
-      if(config_watering_sw){
-        watering_base[0]=raspi_config[0];
-        watering_base[1]=raspi_config[1];
-        watering_base[2]=raspi_config[2];
-        watering_base[3]=raspi_config[3];
-        watering_base[4]=raspi_config[4];
-        watering_base[5]=raspi_config[5];
-      }
-      if(config_bewae_sw){
-        thirsty = false;
-      }
-      esp_busy = false;
-      digitalWrite(esp_pdown, LOW); //turn down esp
       #ifdef DEBUG
-      Serial.println(F("shutdown ESP-01"));
+      Serial.print(F("i2c raw byte: "));
+      Serial.println(barr[i]);
+      Serial.println(i);
       #endif
-
-      delay(1000);
+      
+      i++;
     }
+    delay(3000);
+    int iarr[(int)(bytes/2)];
+    int j=0;
+    for(int i=0; i<bytes; i=i+2){
+      iarr[j] = barr[i] | barr [i+1] << 8;
+      #ifdef DEBUG
+      Serial.print(F("Recieved Datapoint int:"));
+      Serial.println(iarr[j]);
+      #endif
+      j++;
+    }
+
+    //storing data in custom configuration array
+    raspi_config[0]=iarr[0]; //group 0
+    raspi_config[1]=iarr[1]; //group 1
+    raspi_config[2]=iarr[2]; //group 2
+    raspi_config[3]=iarr[3]; //group 3
+    raspi_config[4]=iarr[4]; //group 4
+    raspi_config[5]=iarr[5]; //group 5
+    raspi_config[6]=iarr[6]; //bewae general switch
+    raspi_config[7]=iarr[7]; //value override switch
+    //update base stats
+
+//!!!!!!!!!!!!!!!! alternative [max_groups] , [max_groups+1] --> 6 , 7
+    config_bewae_sw=(bool)iarr[max_groups]; //
+    config_watering_sw=(bool)iarr[max_groups+1];
+    if(config_watering_sw){
+      watering_base[0]=iarr[0];
+      watering_base[1]=iarr[1];
+      watering_base[2]=iarr[2];
+      watering_base[3]=iarr[3];
+      watering_base[4]=iarr[4];
+      watering_base[5]=iarr[5];
+    }
+
+    if(config_bewae_sw){
+      thirsty = false;
+    }
+    delay(10);
+    Wire.setClock(12500L);
+    delay(10);
+    delay(1000);
+    config = false;
   }
-  //test   test   test   test   test   test   test   test   test   test   test   test   test   test   test   test   
+  /*
   Serial.println("test values raspi");
   for(int i=0; i < 8; i++){
     Serial.println(raspi_config[i]);
   }
-  
+  */
   // --- watering phase ---
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //thirsty = false;  //uncomment if not wanted
+  thirsty = false;  //uncomment if not wanted
   if(thirsty){
     #ifdef DEBUG
     Serial.println(F("start watering phase"));
