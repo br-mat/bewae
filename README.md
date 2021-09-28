@@ -6,9 +6,10 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 ## Systemdiagramm
 ![System](/Systemdiagramm.png "Systemdiagramm")
 
-bew_entwurf_v2_7 Hauptplatine
-Platine_01 als Erweiterung mit esp01, Buckconverter etc.
 ## Mainboard (bew_entwurf_v2_7)
+**bew_entwurf_v2_7.fzz** Hauptplatine
+**Platine_01.fzz** als Erweiterung mit esp01, Buckconverter etc.
+Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen.
 ![Main PCB](/bewae_v3_1.png "Main board")
 
 ## Ziel:
