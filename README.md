@@ -8,7 +8,7 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 
 ## Mainboard (bew_entwurf_v2_7)
 **bew_entwurf_v2_7.fzz** Hauptplatine
-**Platine_01.fzz** als Erweiterung mit esp01, Buckconverter etc.
+**Platine_01.fzz** als Erweiterung mit esp01, Buckconverter etc. <br>
 Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen.
 ![Main PCB](/bewae_v3_1.png "Main board")
 
