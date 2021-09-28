@@ -514,11 +514,11 @@ byte signalesp01(byte payload){
 
 //NEW transmitt
 //Testing
-byte transmitt(int data[]){
+byte transmitt(int data[], int len){
   delay(3000);
   // data - FIXED SIZE 28: int array should be packed in max [28]; less values will send zeros from esp01 to influxdb
   byte rstatus = 0;
-  if(sizeof(data) < 28 * sizeof(int) +1){ //changed
+  if(len/2 < (int)(28 * sizeof(int) +1)){ //changed
     //int tsize = sizeof data;
     //Serial.println(tsize);
     #ifdef DEBUG
@@ -671,7 +671,7 @@ void receiveEvent(int bytes){
           raspi_config[i]=0;
         }
       }
-      Serial.println("111 triggered");
+      Serial.println("Data received, transmission correct");
       esp_status=(byte)1;
       break;
 
@@ -681,6 +681,9 @@ void receiveEvent(int bytes){
 
     default :
       esp_status=(byte)3;
+      #ifdef DEBUG
+      Serial.print(F("Error: data transmission went wrong signing byte incorrect"));
+      #endif
    }
 }
 /*
@@ -861,7 +864,7 @@ void loop() {
     #ifdef DEBUG
     Serial.println(F("Error: rtc device not available!"));
     #endif
-    while(rtc_status != 0);{
+    while(rtc_status != 0){
       //loop as long as the rtc module is unavailable!
       #ifdef DEBUG
       Serial.print(F(" . "));
@@ -881,6 +884,7 @@ void loop() {
   if(hour_ != hour1){
   //if(true){
     up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); //refresh the up_time every hour, no need for extra function or lib to calculate the up time
+    //if(1){
     if((hour1 == 11) | (hour1 == 19)){
       config = true; //only activate once per cycle
       thirsty = true;
@@ -928,7 +932,7 @@ void loop() {
     #ifdef DEBUG
     Serial.print(F("Signaled esp to update data"));
     #endif
-    delay(10000); //give esp enought time for the request NEEDED?!????????????????????????????????
+    //delay(10000); //give esp enought time for the request NEEDED?!????????????????????????????????
     
     delay(100);
     #ifdef DEBUG
@@ -955,7 +959,7 @@ void loop() {
     data2[2] = (float)bme280.getTemperature() * (float)100+0;
     data2[3] = readVcc();
     //data2[4] = battery_indicator; //measurement is done early without stressed supply voltage
-    //data2[5] = 0;                 //reserved value
+    //data2[5] = 0;                 //vcc
     //data2[22]=0;
     //data2[23]=0;
     //data2[24]=0;
@@ -987,13 +991,12 @@ void loop() {
     Serial.println(data);
     #endif
     data=""; //clear string
-
     // --- sending data to esp01 & log to INFLUXDB ---
     delay(5000); //was 5000
     TWBR=twbr_global; //make sure that IIC clock speed is low enough for esp01
     delay(500); //give some time to esp01 on iic bus
     //int tsize = sizeof data2;
-    byte stat = transmitt(data2);
+    byte stat = transmitt(data2, sizeof(data2));
     if(stat != 0x00)
     {
       #ifdef DEBUG
@@ -1027,7 +1030,7 @@ void loop() {
       //FINISH HANDLING OF ERROR CODES LATER
       //4 should probably shut down esp or set thirsty false to avoid conflict
       //probably skipp thisty for a while then?
-      if(count>(byte)60){
+      if(count>(byte)120){
         esp_status = (byte)4; //4 indicating an error, no answer from esp after about 1 min
       }
       count++;
@@ -1037,24 +1040,29 @@ void loop() {
       config = false;
       config_bewae_sw=(bool)raspi_config[max_groups];
       config_watering_sw=(bool)raspi_config[max_groups+1];
+      #ifdef DEBUG
+      Serial.print(F("config triggered, bool values: ")); Serial.print(config_bewae_sw);
+      Serial.print(F(" ")); Serial.println(config_watering_sw);
+      #endif
       if(config_watering_sw){
-        watering_base[0]=raspi_config[0];
-        watering_base[1]=raspi_config[1];
-        watering_base[2]=raspi_config[2];
-        watering_base[3]=raspi_config[3];
-        watering_base[4]=raspi_config[4];
-        watering_base[5]=raspi_config[5];
+        copy(raspi_config, watering_base, max_groups);
+        for(int i=0; i<max_groups; i++){
+          watering_base[i]=raspi_config[i];
+        }
       }
-      if(config_bewae_sw){
+      if(!config_bewae_sw){
         thirsty = false;
+        int zeros[max_groups]={0};
+        copy(raspi_config, zeros, max_groups);
       }
+      //delay(1000);
+    }
+    if(esp_status == (byte)1){
       esp_busy = false;
       digitalWrite(esp_pdown, LOW); //turn down esp
       #ifdef DEBUG
       Serial.println(F("shutdown ESP-01"));
       #endif
-
-      delay(1000);
     }
   }
   //test   test   test   test   test   test   test   test   test   test   test   test   test   test   test   test   
@@ -1106,7 +1114,7 @@ void loop() {
           Serial.println(F("watering group finished"));
           #endif
         }
-        else if((watering_base[i]<60) & (watering_base[i]>0)){
+        else if(watering_base[i]<60){
           water_timer=watering_base[i];
           watering_base[i]=watering_base[i]-water_timer;
         }
@@ -1131,10 +1139,11 @@ void loop() {
           watering(s0_mux_1, s2_mux_1, s1_mux_1, water_timer, group, pump1, q4_npn_ensh, vent_pwm);
           //Serial.print(F("cooldown time: ")); Serial.println(1000UL * water_timer / 2+10000);
           //delay(1000UL * water_timer / 2+10000); //cooldown pump (OLD)
-
-          //new attempt: sleep keep brown our detection (BOD) on in case of problems, so the system can reset
-          //             and end possibly harming situations
-          unsigned long sleeptime = 1000UL * water_timer / 2+10000;
+          
+          //While doing nothing put arduino to sleep when it waits to cooldown
+          //sleep keep brown out detection (BOD) on in case of problems, so the system can reset
+          //and end possibly harming situations
+          unsigned long sleeptime = 1000UL * water_timer / 2+8000; //let it rest for half of active time + 8sec
           unsigned int sleep8 = sleeptime/8000;
           for(unsigned int i = 0; i<sleep8; i++){
             LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_ON); 
