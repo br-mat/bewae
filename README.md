@@ -9,7 +9,7 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 bew_entwurf_v2_7 Hauptplatine
 Platine_01 als Erweiterung mit esp01, Buckconverter etc.
 ## Mainboard (bew_entwurf_v2_7)
-![Main PCB](/bewae_v3_0.png "Main board")
+![Main PCB](/bewae_v3_1.png "Main board")
 
 ## Ziel:
 Automatisierte bewässerung der Balkonpflanzen. Zusätzlich speichern von Sensordaten.
