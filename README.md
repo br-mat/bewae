@@ -3,9 +3,13 @@ Momentan ist diese Version eher als Testversion zu sehen. Neu hinzugefügt und g
 
 In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana dashboard. Die Konfiguration des Raspberrypi fehlt noch, die verwendete Datenbank ist Influxdb. (Die Scripts befinden sich am Pi im ordner py_scripts und werden automatisiert gestartet mit cron als su)
 
+## Systemdiagramm
+![System](/Systemdiagramm.png "Systemdiagramm")
 
 bew_entwurf_v2_7 Hauptplatine
 Platine_01 als Erweiterung mit esp01, Buckconverter etc.
+## Mainboard (bew_entwurf_v2_7)
+![Main PCB](/bewae_v3_0.png "Main board")
 
 ## Ziel:
 Automatisierte bewässerung der Balkonpflanzen. Zusätzlich speichern von Sensordaten.
