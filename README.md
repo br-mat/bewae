@@ -29,6 +29,29 @@ Im fall dieses Projektes spielt die Kommunikationn der beiden Mikrocontroller ei
 (beschreibung ergänzen)
 (alle relevanten Topics sind auf den controllern zu finden hier folgt eine auflistung:)
 
-## MAIN Code (Arduino nano):
+## Code Arduino nano:
 
-## Code (ESP-01):
+## Code ESP8266-01:
+### Allgemein:
+Dieser $/mu C$ wwird verwendet um dem System Zugang zum Lokalen Netzwerk zu verschaffen. Die Kommunikation erfolgt Seriel mit i2c. Den ESP-01 als slave des Nanos zu verwenden bringt einige Probleme mit sich. Die CPU frequenz des ESP-01 muss auf $160MHz$ statt den standardmäßigen $80MHz$ angehoben werden und am Nano muss die Frequenz des Buses reduziert werden. Damit auch der ESP-01 dem Arduino zuverläßig Daten senden kann wird der Bus mit 2 Master also Multimasterbetrieb betrieben. <br>Nach all diesen Anpassungen funktioniert die Kommunikation sehr stabil, sehr selten kommt es zu kleinen Fehlern in der Übertragung deshalb wird am Schluss einer Übertragung als letztes Byte eine festgelegte Zahl, die der Zuordnung und Kontrolle zum ausschluss von fehlern dient, gesendet.
+### Details: Programmierung mit Arduino IDE
+Um die CPU frequenz des ESP beim programmieren mit der Arduino IDE zu ändern muss man beim Menüpunkt 'File' --> 'Preferences' und unter 'Additional Boards Manager URLs:' folgende ergänzt werden $'https://dl.espressif.com/dl/package_esp32_index.json, http://arduino.esp8266.com/stable/package_esp8266com_index.json'$ <br>
+Nun kann man unter dem Menüpunkt 'Tools' --> 'Board' nach 'Generic ESP8266 Module' wählen. Nachdem die restlichen einstellugnen wie im aus dem Bild zu entnehmen vorgenommen wurden ist die IDE bereit für den Upload eventuell fehlende librarys müssen gegebenenfalls noch Installiert werden, dies ist einfach über den library manager möglich.
+![ESP01 upload configuration](/esp01upload.png "Upload configuration")
+
+## Raspberrypi
+### Allgemein:
+Persöhnlich verwende ich gerade einen RaspberryPi 4 mit 4GB Ram auf dem auch ein VPN (wireguard) und Pihole installiert sind. Durch den VPN kann ich auch von Unterwegs auf die Daten zugreifen oder gegebenenfalls in die Bewässerung eingreifen, auf die Installation gehe ich nicht weiter ein sie ist aber relativ einfach und in zahlreichen Tutorials gut beschrieben. <br>Für den Betrieb genügt auch die verfügbarkeit im lokalen Netzwerk, hierbei notwendig sind:
+- SSid (Netzwerkname): BeispielNetzwerkXY
+- Passwort:            BeispielpasswortXY
+- IP oder hostname des RaspberryPi (IP statisch vergeben)
+Für die erleichterte Konfiguration entweder Bildschirm, ssh, teamviewer, vnc viewer ... am Raspberrypi auch auf diese Punkte gehe ich nicht weiter ein da anderswo gut zu finden. <br>
+### InfluxDB:
+```
+if(1){
+    blabla;
+}
+```
+### Grafana:
+
+### MQTT&Python:
