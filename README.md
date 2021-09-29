@@ -1,5 +1,5 @@
 # Bewae - Bewässerungsprojekt v3.1
-Diese Version ist eher als Testversion zu sehen. Neu hinzugefügt und getestet wird nun die steuerbarkeit über MQTT.<br>
+Diese Version ist eher als Testversion zu sehen. Bei der bisherigen Aufarbeitung handelt es sich nicht um eine Step-by-step anleitung es ist ein wenig grundwissen vorrausgesetzt. Neu hinzugefügt und getestet wird nun die steuerbarkeit über MQTT.<br>
 
 In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana dashboard. Die Konfiguration des Raspberrypi fehlt noch, die verwendete Datenbank ist Influxdb. (Die Scripts befinden sich am Pi im ordner py_scripts und werden automatisiert gestartet mit cron als su)
 
