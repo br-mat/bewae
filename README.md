@@ -39,7 +39,7 @@ Im fall dieses Projektes spielt die Kommunikationn der beiden Mikrocontroller ei
 ### Allgemein:
 Der Code wird mit Visual Studio Code und der Platformio extension aufgespielt, VS code bietet eine Umfangreichere IDE als die Arduino IDE und ist damit für das deutlich Umfangreichere Programm einfach besser geeignet. <br>
 
-Wichtig zu erwähnen ist um die fehlerfreie kommunikation zum ESP als "slave" zu ermöglichen setze ich im register TWBR manuel wie in der Setup funktion ersichtlich, dies ermöglicht eine präzise steuerung des I²C Bus taktes über SCL. Durch Trial and error bin ich zu dem Wert TWBR=230 gekommen grundsätzlich hat aber auch höher funktioniert, es gibt auch noch eine zweite möglichkeit die frequenz zu ändern mit **Wire.setClock(clockFrequency)** dies hatte jedoch leider öfter zu fehlern geführt (nicht nur in der Kommunikation).
+Wichtig zu erwähnen ist um die fehlerfreie kommunikation zum ESP als "slave" zu ermöglichen setze ich im register TWBR manuel wie in der Setup funktion ersichtlich, dies ermöglicht eine präzise steuerung des I²C Bus taktes über SCL. Durch Trial and error bin ich zu dem Wert **TWBR=230** gekommen grundsätzlich hat aber auch höher funktioniert, es gibt auch noch eine zweite möglichkeit die frequenz zu ändern mit **Wire.setClock(clockFrequency)** dies hatte jedoch leider öfter zu fehlern geführt (nicht nur in der Kommunikation).
 ```
 #Formula:
 freq = clock / (16 + (2 * TWBR * prescaler)) #für den fall TWBR=230 --> 8.62 kHz
