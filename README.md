@@ -10,7 +10,7 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 **bew_entwurf_v2_7.fzz** Hauptplatine
 **Platine_01.fzz** als Erweiterung mit esp01, Buckconverter etc. <br>
 
-Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen.
+Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen.<br>
 ![Main PCB](/bewae_v3_1.png "Main board")
 
 ## Ziele:
@@ -34,14 +34,18 @@ Im fall dieses Projektes spielt die Kommunikationn der beiden Mikrocontroller ei
 (alle relevanten Topics sind auf den controllern zu finden hier folgt eine auflistung:)
 
 ## Code Arduino nano:
+[Arduino-Nano Code](/bewae_main_nano/bewae_v3_nano/src/main.cpp)
 
 ## Code ESP8266-01:
+[ESP8266-01 Code](/bewae_esp01/esp01_bewae_reporterv3_4.ino)
+
 ### Allgemein:
 Dieser Mikrocontroller wwird verwendet um dem System Zugang zum Lokalen Netzwerk zu verschaffen. Die Kommunikation erfolgt Seriel mit i2c. Den ESP-01 als slave des Nanos zu verwenden bringt einige Probleme mit sich. Die CPU frequenz des ESP-01 muss auf *160MHz* statt den standardmäßigen *80MHz* angehoben werden und am Nano muss die Frequenz des Buses reduziert werden. Damit auch der ESP-01 dem Arduino zuverläßig Daten senden kann wird der Bus mit 2 Master also Multimasterbetrieb betrieben. <br>Nach all diesen Anpassungen funktioniert die Kommunikation sehr stabil, sehr selten kommt es zu kleinen Fehlern in der Übertragung deshalb wird am Schluss einer Übertragung als letztes Byte eine festgelegte Zahl, die der Zuordnung und Kontrolle zum ausschluss von fehlern dient, gesendet.
 ### Details: Programmierung mit Arduino IDE
 Um die CPU frequenz des ESP beim programmieren mit der Arduino IDE zu ändern muss man beim Menüpunkt 'File' --> 'Preferences' und unter 'Additional Boards Manager URLs:' folgende ergänzt werden *https://dl.espressif.com/dl/package_esp32_index.json*, *http://arduino.esp8266.com/stable/package_esp8266com_index.json* <br>
 Nun kann man unter dem Menüpunkt 'Tools' --> 'Board' nach 'Generic ESP8266 Module' wählen. Nachdem die restlichen einstellugnen wie im aus dem Bild zu entnehmen vorgenommen wurden ist die IDE bereit für den Upload eventuell fehlende librarys müssen gegebenenfalls noch Installiert werden, dies ist einfach über den library manager möglich.
-![ESP01 upload configuration](/esp01upload.png "Upload configuration")
+![ESP01 upload configuration](/esp01upload.png "Upload configuration") <br>
+
 
 ## Raspberrypi
 ### Allgemein:
