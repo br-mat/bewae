@@ -35,14 +35,18 @@ Im fall dieses Projektes spielt die Kommunikationn der beiden Mikrocontroller ei
 
 ## Code Arduino nano:
 [Arduino-Nano Code](/bewae_main_nano/bewae_v3_nano/src/main.cpp)
+<br>
+### Allgemein:
+Der Code wird mit Visual Studio Code und der Platformio extension aufgespielt, VS code bietet eine Umfangreichere IDE als die Arduino IDE und ist damit für das deutlich Umfangreichere Programm einfach besser geeignet.
 
 ## Code ESP8266-01:
 [ESP8266-01 Code](/bewae_esp01/esp01_bewae_reporterv3_4.ino)
+<br>
 
 ### Allgemein:
 Dieser Mikrocontroller wwird verwendet um dem System Zugang zum Lokalen Netzwerk zu verschaffen. Die Kommunikation erfolgt Seriel mit i2c. Den ESP-01 als slave des Nanos zu verwenden bringt einige Probleme mit sich. Die CPU frequenz des ESP-01 muss auf *160MHz* statt den standardmäßigen *80MHz* angehoben werden und am Nano muss die Frequenz des Buses reduziert werden. Damit auch der ESP-01 dem Arduino zuverläßig Daten senden kann wird der Bus mit 2 Master also Multimasterbetrieb betrieben. <br>Nach all diesen Anpassungen funktioniert die Kommunikation sehr stabil, sehr selten kommt es zu kleinen Fehlern in der Übertragung deshalb wird am Schluss einer Übertragung als letztes Byte eine festgelegte Zahl, die der Zuordnung und Kontrolle zum ausschluss von fehlern dient, gesendet.
 ### Details: Programmierung mit Arduino IDE
-Um die CPU frequenz des ESP beim programmieren mit der Arduino IDE zu ändern muss man beim Menüpunkt 'File' --> 'Preferences' und unter 'Additional Boards Manager URLs:' folgende ergänzt werden *https://dl.espressif.com/dl/package_esp32_index.json*, *http://arduino.esp8266.com/stable/package_esp8266com_index.json* <br>
+Um die CPU frequenz des ESP beim programmieren mit der Arduino IDE zu ändern muss man beim Menüpunkt 'File' --> 'Preferences' und unter 'Additional Boards Manager URLs:' folgenden ergänzt werden (mehrere URLs einfach mit Kommas trennen) *http://arduino.esp8266.com/stable/package_esp8266com_index.json* <br>
 Nun kann man unter dem Menüpunkt 'Tools' --> 'Board' nach 'Generic ESP8266 Module' wählen. Nachdem die restlichen einstellugnen wie im aus dem Bild zu entnehmen vorgenommen wurden ist die IDE bereit für den Upload eventuell fehlende librarys müssen gegebenenfalls noch Installiert werden, dies ist einfach über den library manager möglich.
 ![ESP01 upload configuration](/esp01upload.png "Upload configuration") <br>
 
@@ -56,9 +60,29 @@ Persöhnlich verwende ich gerade einen RaspberryPi 4 mit 4GB Ram auf dem auch ei
 Für die erleichterte Konfiguration entweder Bildschirm, ssh, teamviewer, vnc viewer ... am Raspberrypi auch auf diese Punkte gehe ich nicht weiter ein da anderswo gut zu finden. <br>
 ### InfluxDB:
 Falls influx noch nicht installiert wurde gibt es nach kurzer suche jede menge brauchabre Anleitungen z.B: [(pimylifeup)](https://pimylifeup.com/raspberry-pi-influxdb/).
-```
+<br>
 
+Für Einrichtung der Datenbank beginnen wir erstmal mit dem Erstellen eines users. Dafür wird InfluxDB gestartet indem man in das Terminal folgende Zeile eingiebt.
 ```
+influx
+```
+Influx sollte nun gestartet haben, nun weiter in das Interface eingeben:
+```
+CREATE USER "username" WITH PASSWORD "password"
+CREATE DATABASE "database"
+GRANT ALL ON "username" TO "database"
+```
+Diesen ***username*** sowie ***password*** und die ***database*** müssen im Code der Mikrocontroller ausgefüllt werden.
+
 ### Grafana:
+Auch hier gibt es sehr gute [Tutorials](https://grafana.com/tutorials/install-grafana-on-raspberry-pi/) auf die man zurückgreifen kann daher gehe ich nicht genauer auf den Installationsprozess ein. <br>
+
+Sobald Grafana Installiert ist kann das [.json](/Pi Monitor bewae Copy-1632943050742.json) export über das Webinterface importieren. <br>
+
+Unter 'Configuration' muss man nun die 'Datasources' eintragen. Hierbei muss man nun darauf achten die Gleichen Datenbanken zu verwenden die man erstellt und in der dei Daten abgespeichert werden in meinem fall wäre das z.B ***main*** für alle daten der Bewässerung. Sowie ***pidb*** für die CPU Temperatur am RaspberryPi die im Import mit dabei ist, jedoch rein optional. <br>
+
+![Datasource configuration](/datasources.png "Datasource configuration example") <br>
 
 ### MQTT&Python:
+#### Raspi status Daten (optional)
+Ein sehr einfaches script für dei aufzeichnung und speicherung der CPU Temperatur und Ram auslastung am RaspberryPi. WO WIE WAS?
