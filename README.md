@@ -27,7 +27,7 @@ Automatisiert bewässert wird momentan 2 mal Täglich morgends und abends, theor
 ### I2C:
 I²C (Inter-Integrated Circuit) ein Serieller Datenbus der von Philips Semiconductors entwickelt wurde und hauptsächlich für sehr kurze strecken (gerätintern) vorgesehen ist. <br>
 
-Im fall dieses Projektes spielt die Kommunikationn der beiden Mikrocontroller eine tragende Rolle. Grundsätzlich ist ein Multi-master betrieb möglich wenn auch oft nicht empfohlen. Für die fehlerfreie kommunikation in beide Richtungen müssen leider beide controller als Master dem Bus beitreten. Hauptsächlich als Master verwende ich den Arduino Nano der dem ESP-01 signalisiert wann er als Master die Kommunikationn übernehmen darf um komplikationen zu vermeiden. In den weiteren Iterrationen des Programms möchte ich diese Eigenschaft noch mehr besser herausarbeiten.
+Im fall dieses Projektes spielt die Kommunikationn der beiden Mikrocontroller eine tragende Rolle. Grundsätzlich ist ein Multi-master betrieb möglich wenn auch oft nicht empfohlen. Für die fehlerfreie kommunikation in beide Richtungen müssen leider beide controller als Master dem Bus beitreten. Hauptsächlich als Master verwende ich den Arduino Nano der dem ESP-01 signalisiert wann er als Master die Kommunikationn übernehmen darf um komplikationen zu vermeiden.
 
 ### MQTT:
 (beschreibung ergänzen)
@@ -37,18 +37,25 @@ Im fall dieses Projektes spielt die Kommunikationn der beiden Mikrocontroller ei
 [Arduino-Nano Code](/bewae_main_nano/bewae_v3_nano/src/main.cpp)
 <br>
 ### Allgemein:
-Der Code wird mit Visual Studio Code und der Platformio extension aufgespielt, VS code bietet eine Umfangreichere IDE als die Arduino IDE und ist damit für das deutlich Umfangreichere Programm einfach besser geeignet.
+Der Code wird mit Visual Studio Code und der Platformio extension aufgespielt, VS code bietet eine Umfangreichere IDE als die Arduino IDE und ist damit für das deutlich Umfangreichere Programm einfach besser geeignet. <br>
+
+Wichtig zu erwähnen ist um die fehlerfreie kommunikation zum ESP als "slave" zu ermöglichen setze ich im register TWBR manuel wie in der Setup funktion ersichtlich, dies ermöglicht eine präzise steuerung des I²C Bus taktes über SCL. Durch Trial and error bin ich zu dem Wert TWBR=230 gekommen grundsätzlich hat aber auch höher funktioniert, es gibt auch noch eine zweite möglichkeit die frequenz zu ändern mit **Wire.setClock(clockFrequency)** dies hatte jedoch leider öfter zu fehlern geführt (nicht nur in der Kommunikation).
+```
+#Formula:
+freq = clock / (16 + (2 * TWBR * prescaler)) #für den fall TWBR=230 --> 8.62 kHz
+```
 
 ## Code ESP8266-01:
 [ESP8266-01 Code](/bewae_esp01/esp01_bewae_reporterv3_4.ino)
 <br>
 
 ### Allgemein:
-Dieser Mikrocontroller wwird verwendet um dem System Zugang zum Lokalen Netzwerk zu verschaffen. Die Kommunikation erfolgt Seriel mit i2c. Den ESP-01 als slave des Nanos zu verwenden bringt einige Probleme mit sich. Die CPU frequenz des ESP-01 muss auf *160MHz* statt den standardmäßigen *80MHz* angehoben werden und am Nano muss die Frequenz des Buses reduziert werden. Damit auch der ESP-01 dem Arduino zuverläßig Daten senden kann wird der Bus mit 2 Master also Multimasterbetrieb betrieben. <br>Nach all diesen Anpassungen funktioniert die Kommunikation sehr stabil, sehr selten kommt es zu kleinen Fehlern in der Übertragung deshalb wird am Schluss einer Übertragung als letztes Byte eine festgelegte Zahl, die der Zuordnung und Kontrolle zum ausschluss von fehlern dient, gesendet.
+Dieser Mikrocontroller wwird verwendet um dem System Zugang zum Lokalen Netzwerk zu verschaffen. Die Kommunikation erfolgt Seriel mit i2c. Den ESP-01 als slave des Nanos zu verwenden bringt einige Probleme mit sich. Die CPU frequenz des ESP-01 muss auf *160MHz* statt den standardmäßigen *80MHz* angehoben werden und am Nano muss die Frequenz des Buses reduziert werden indem . Damit auch der ESP-01 dem Arduino zuverläßig Daten senden kann wird der Bus mit 2 Master also Multimasterbetrieb betrieben. <br>Nach all diesen Anpassungen funktioniert die Kommunikation sehr stabil, sehr selten kommt es zu kleinen Fehlern in der Übertragung deshalb wird am Schluss einer Übertragung als letztes Byte eine festgelegte Zahl, die der Zuordnung und Kontrolle zum ausschluss von fehlern dient, gesendet.
 ### Details: Programmierung mit Arduino IDE
 Um die CPU frequenz des ESP beim programmieren mit der Arduino IDE zu ändern muss man beim Menüpunkt 'File' --> 'Preferences' und unter 'Additional Boards Manager URLs:' folgenden ergänzt werden (mehrere URLs einfach mit Kommas trennen) *http://arduino.esp8266.com/stable/package_esp8266com_index.json* <br>
-Nun kann man unter dem Menüpunkt 'Tools' --> 'Board' nach 'Generic ESP8266 Module' wählen. Nachdem die restlichen einstellugnen wie im aus dem Bild zu entnehmen vorgenommen wurden ist die IDE bereit für den Upload eventuell fehlende librarys müssen gegebenenfalls noch Installiert werden, dies ist einfach über den library manager möglich.
-![ESP01 upload configuration](/esp01upload.png "Upload configuration") <br>
+Nun kann man unter dem Menüpunkt 'Tools' --> 'Board' nach 'Generic ESP8266 Module' wählen. Nachdem die restlichen einstellugnen wie im aus dem Bild zu entnehmen vorgenommen wurden ist die IDE bereit für den Upload eventuell fehlende librarys müssen gegebenenfalls noch Installiert werden, dies ist einfach über den library manager möglich. <br>
+
+![ESP01 upload configuration](/esp01upload.png "Upload configuration")
 
 
 ## Raspberrypi
