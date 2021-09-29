@@ -52,6 +52,7 @@ freq = clock / (16 + (2 * TWBR * prescaler)) #für den fall TWBR=230 --> 8.62 kH
 ### Allgemein:
 Dieser Mikrocontroller wwird verwendet um dem System Zugang zum Lokalen Netzwerk zu verschaffen. Die Kommunikation erfolgt Seriel mit i2c. Den ESP-01 als slave des Nanos zu verwenden bringt einige Probleme mit sich. Die CPU frequenz des ESP-01 muss auf *160MHz* statt den standardmäßigen *80MHz* angehoben werden und am Nano muss die Frequenz des Buses reduziert werden indem . Damit auch der ESP-01 dem Arduino zuverläßig Daten senden kann wird der Bus mit 2 Master also Multimasterbetrieb betrieben. <br>Nach all diesen Anpassungen funktioniert die Kommunikation sehr stabil, sehr selten kommt es zu kleinen Fehlern in der Übertragung deshalb wird am Schluss einer Übertragung als letztes Byte eine festgelegte Zahl, die der Zuordnung und Kontrolle zum ausschluss von fehlern dient, gesendet.
 ### Details: Programmierung mit Arduino IDE
+Für die Programmierung des ESP8266-01 empfiehlt es sich Programier Module zu verwenden. Ich verwende ein Modul auf basis CH340, hierzu muss man die Treiber im vorhinein installieren (LINK!!!!!). Wichtig ist dabei auf die Spannung zu achten je nach Modul kann es Notwendig sein den Output erst auf **3.3V** zu regulieren. <br>
 Um die CPU frequenz des ESP beim programmieren mit der Arduino IDE zu ändern muss man beim Menüpunkt 'File' --> 'Preferences' und unter 'Additional Boards Manager URLs:' folgenden ergänzt werden (mehrere URLs einfach mit Kommas trennen) *http://arduino.esp8266.com/stable/package_esp8266com_index.json* <br>
 Nun kann man unter dem Menüpunkt 'Tools' --> 'Board' nach 'Generic ESP8266 Module' wählen. Nachdem die restlichen einstellugnen wie im aus dem Bild zu entnehmen vorgenommen wurden ist die IDE bereit für den Upload eventuell fehlende librarys müssen gegebenenfalls noch Installiert werden, dies ist einfach über den library manager möglich. <br>
 
@@ -80,6 +81,11 @@ CREATE DATABASE "database"
 GRANT ALL ON "username" TO "database"
 ```
 Diesen ***username*** sowie ***password*** und die ***database*** müssen im Code der Mikrocontroller ausgefüllt werden.
+<br>
+Um aus diesem "interface" wieder herrauszukommen muss man einfach den befehl exit eingeben und man befinden sich wieder im terminal.
+```
+exit
+```
 
 ### Grafana:
 Auch hier gibt es sehr gute [Tutorials](https://grafana.com/tutorials/install-grafana-on-raspberry-pi/) auf die man zurückgreifen kann daher gehe ich nicht genauer auf den Installationsprozess ein. <br>
