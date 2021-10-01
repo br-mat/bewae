@@ -15,7 +15,7 @@ Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürli
 - RaspberryPi 4 B (*4GB*)
 - *6* Ventile *12V*
 - *2* Pumpen (aktuell nur eine *12V* im Betrieb)
-- *16* Analoge/Digitale Sensoren
+- *16* Analoge/Digitale Sensoren (Bodenfeuchte, Temperatur, Luftfeuchtigkeit, etc.)
 - Bewässerung Kit Schläuche, Sprinkler, etc.
 - *10W 12V* Solar Panel
 - *7.2 Ah* *12V* Bleiakku
@@ -28,7 +28,7 @@ Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürli
 
 ### Beschreibung:
 Schaltungsaufbau grob übersichtlich im beigefügten **Systemdiagramm.png** als Blockschaltbild. Die Daten werden via **ESP01** über **MQTT** an den RaspberryPi gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt.
-Automatisiert bewässert wird momentan *2* mal Täglich morgends und abends, theoretisch sind bis zu *6* Ventile und *2* Pumpen schalt und steuerbar (erweiterbar). Mit einem **MQTT** messaging client ist möglich in die bewässerung einzugreifen und gespeicherte Werte zu verändern sowie die Messdaten über Grafana im Auge zu behalten.
+Automatisiert bewässert wird momentan *2* mal Täglich morgends und abends, theoretisch sind bis zu *6* Ventile und *2* Pumpen schalt und steuerbar (erweiterbar). Die Bewässerung passt sich in der aktuellen Version nicht mehr an die Messdaten aus den Feuchtigkeitssensoren im Boden an, wird in neueren überatbeiteten Versionen wieder eingeführt. Mit einem **MQTT** messaging client ist möglich in die bewässerung einzugreifen und gespeicherte Werte zu verändern sowie die Messdaten über Grafana im Auge zu behalten.
 In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard. Die Konfiguration des RaspberryPi fehlt noch, die verwendete Datenbank ist Influxdb. (Die Scripts befinden sich am Pi im ordner pi_scripts und werden automatisiert gestartet mit cron als su)
 
 ## Systemdiagramm
@@ -115,7 +115,9 @@ exit
 ```
 
 ### Grafana:
-Auch hier gibt es sehr gute [Tutorials](https://grafana.com/tutorials/install-grafana-on-raspberry-pi/) auf die man zurückgreifen kann, daher gehe ich nicht genauer auf den Installationsprozess ein. <br>
+![grafana dashboard example](/pictures/grafanarainyday.png "Grafana rainy day") <br>
+
+Auch hier gibt es sehr gute [Tutorials](https://grafana.com/tutorials/install-grafana-on-raspberry-pi/) auf die man zurückgreifen kann, daher gehe ich nicht genauer auf den Installationsprozess ein. Grafana kann genutzt werden um die gesammelten Daten in schönen plots darzustellen. Somit ist eine überwachung der Feuchtigkeitswerte der Pflanzen sehr leicht möglich. <br>
 
 Sobald Grafana installiert ist kann das [json](/grafana_dashboard/bewaeMonitor.json) export über das Webinterface importiert werden. <br>
 
@@ -138,6 +140,7 @@ Auf mein **Android** Smartphone habe ich dei app mqttdash geladen. Diese ist seh
 #topic:
 exampletopic=home/location/measurement
 ```
+Ein Beispiel Screenshot aus der App, die Zahlen stehen für die Zeit (s) in der das jeweilige Ventil geöffnet ist und Wasser gepumpt wird (ca. 0.7l/min):
 ![mqttdash app](/pictures/mqttdash.jpg) <br>
 
 ## Bilder:
