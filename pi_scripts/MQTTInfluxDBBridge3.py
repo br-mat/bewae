@@ -4,14 +4,14 @@ from typing import NamedTuple
 import paho.mqtt.client as mqtt
 from influxdb import InfluxDBClient
 
-INFLUXDB_ADDRESS = 'raspberrypi'
-INFLUXDB_USER = 'grafana'
-INFLUXDB_PASSWORD = 'wdsaibuii'
+INFLUXDB_ADDRESS = 'raspberrypi' #hostname or IP
+INFLUXDB_USER = '*********'
+INFLUXDB_PASSWORD = '*********'
 INFLUXDB_DATABASE = 'main'
 
-MQTT_ADDRESS = 'raspberrypi'
-MQTT_USER = 'mbraun'
-MQTT_PASSWORD = 'wdsaibuii123'
+MQTT_ADDRESS = 'raspberrypi' #hostname or IP
+MQTT_USER = '*********'
+MQTT_PASSWORD = '*********'
 MQTT_TOPIC = 'home/+/+'
 MQTT_REGEX = 'home/([^/]+)/([^/]+)'
 MQTT_CLIENT_ID = 'MQTTInfluxDBBridge'

@@ -18,15 +18,15 @@
 
 
 // WiFi
-const char* ssid = "A1-08e52c";         // Your personal network SSID
-const char* wifi_password = "mabritck"; // Your personal network password
+const char* ssid = "*********";         // Your personal network SSID
+const char* wifi_password = "*********"; // Your personal network password
 
 // MQTT
-const char* mqtt_server = "10.0.0.18";  // IP of the MQTT broker
+const char* mqtt_server = "*********";  // IP of the MQTT broker
 //const char* topic_prefix_original="home/test/temperature";
 String topic_prefix = "home/sens3/z";
-const char* mqtt_username = "mbraun"; // MQTT username
-const char* mqtt_password = "wdsaibuii123"; // MQTT password
+const char* mqtt_username = "*********"; // MQTT username
+const char* mqtt_password = "*********"; // MQTT password
 const char* clientID = "client_test2"; // MQTT client ID
 const char* humidity_topic_sens2 = "home/sens2/humidity";
 const char* temperature_topic_sens2 = "home/sens2/temperature";
