@@ -40,11 +40,11 @@ Auf die verkabelung wird nicht weiter eingegangen, jedoch ein paar hinweise:
 - A4/A5 (SDA/SCL) richtig mit Platine_01 verbinden (reihenfolg im Code beachten)
 - Da Platine_01 einen micro USB anschluss besitzt empfiehlt es sich diesen zu verwenden und von dort die Hauptplatine über jumper zu versorgen <br>
 
-**bew_entwurf_v2_7.fzz** Hauptplatine als PCB <br>
+### **bew_entwurf_v2_7.fzz** Hauptplatine (PCB) <br>
 Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle relevanten Sensoren und Module sowie Steuerungen auf diese Platine zusammengeführt. Für den Offline betrieb alleine würde diese Platine ausreichen. Ürsprünglich sollte das System über Powerbanks versorgt werden. Um zu verhindern, dass die Powerbank abschaltet ist ein **NE555**-Schaltung eingeplant die, richtig Dimensioniert, den Schutzmechanismus der Powerbank umgeht. Im momentanen aufbau werden jedoch keine Powerbanks verwendet daher ist dieser Teil der Platine obsolet. Die gesammelten Daten werden auf eine SD Karte gespeichert. Diese ist nach aktuellem stand Notwendig durch anpassungen im [Code](/bewae_main_nano/bewae_v3_nano/src/main.cpp) könnte man sie aber auch weglassen. <br>
 ![Main PCB](/pictures/bewae_v3_1.png "Main board")
 
-**Platine_01.fzz** als Erweiterung mit Esp01, Buckconverter etc. selbst gelötet <br>
+### **Platine_01.fzz** als Erweiterung mit Esp01, Buckconverter etc. (lochrasterboard) <br>
 Sie ist als erweiterung gedacht um eine Anbindung an das Netzwerk zu ermöglichen sowie größere Spannungen (*12V*) Schalten zu können. Auch die Spannung der Bleibaterie soll über den Spannungsteiler abgegriffen werden können. Außerdem besitzt sie einen microUSB anschluss und kann damit gut per USB kabel vom Solarladeregler versorgt werden. So wird kein extra Spannungswandler von *12* auf *5* Vold benötigt. Von hier aus kann auch die Hauptplatine versorgt werden. Der **ESP** kann bei richtiger verkabelung über I²C mit dem **Nano** kommunizieren sowie überden *'enable Pin'* ein und ausgeschalten werden um Strom zu sparen.
 <br>
 
@@ -141,7 +141,7 @@ exampletopic=home/location/measurement
 ![mqttdash app](/pictures/mqttdash.jpg) <br>
 
 ## Bilder:
-
+Kleine Sammlung von Fotos über mehrere Versionen des Projekts, die über die Zeit entstanden sind.
 ### V1
 
 ![Bild](/pictures/bewaeV1(2).jpg) <br>
