@@ -1,7 +1,12 @@
 # Bewae - Bewässerungsprojekt v3.1
-## Einleitung:
+
+## Introduction: (EN)
+This version is more of a test version. The controllability via **MQTT** is now added and tested. <br>
+This is **not** a step-by-step guide - a little basic knowledge in dealing with Linux and microcontrollers is required. It should only be given an insight into the project and make it easier for me to rebuild in spring or at new locations. That's why I decided to use German, but I would like to add an English version later. <br>
+
+## Einleitung: (DE)
 Diese Version ist eher als Testversion zu sehen.  Neu hinzugefügt und getestet wird nun die Steuerbarkeit über **MQTT**. <br>
-Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorrausgesetzt. <br>
+Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorrausgesetzt. Es soll lediglich ein Einblick in das Projekt gegeben werden und mir den wiederaufbau im Frühjahr oder an neuen Standorten erleichtern. Deshalb habe ich mich auch für Deutsch entschieden, möchte jedoch noch eine Englische Version ergänzen. <br>
 Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürlich einfacher einen **ESP-32** zu verwenden anstatt einem **Nano** mit einem **ESP-01** ein "Upgrade" zu verpassen. Da die Platine aber schon bestellt wurde habe ich mich dagegen entschieden, es war ein Mehraufwand der nicht notwendig aber lehrreich gewesen ist. <br>
 
 ### aktueller Aufbau:
@@ -30,14 +35,18 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 ![System](/pictures/Systemdiagramm.png "Systemdiagramm")
 
 ## Platinen
-**bew_entwurf_v2_7.fzz** Hauptplatine als PCB
-**Platine_01.fzz** als Erweiterung mit Esp01, Buckconverter etc. selbst gelötet <br>
+Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen. Ab einer gewissen größe des Projekts ist fritzing allerdings nicht mehr ideal. <br>
 Auf die verkabelung wird nicht weiter eingegangen, jedoch ein paar hinweise:
 - A4/A5 (SDA/SCL) richtig mit Platine_01 verbinden (reihenfolg im Code beachten)
-- Da Platine_01 einen micro USB anschluss besitzt empfiehlt es sich diesen zu verwenden und von dort die Hauptplatine über jumper zu versorgen
+- Da Platine_01 einen micro USB anschluss besitzt empfiehlt es sich diesen zu verwenden und von dort die Hauptplatine über jumper zu versorgen <br>
 
-Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen. Ab einer gewissen größe des Projekts ist fritzing allerdings nicht mehr ganz ideal. <br>
-![Main PCB](/pictures/pictures/bewae_v3_1.png "Main board")
+**bew_entwurf_v2_7.fzz** Hauptplatine als PCB <br>
+Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle relevanten Sensoren und Module sowie Steuerungen auf diese Platine zusammengeführt. Für den Offline betrieb alleine würde diese Platine ausreichen. Ürsprünglich sollte das System über Powerbanks versorgt werden. Um zu verhindern, dass die Powerbank abschaltet ist ein **NE555**-Schaltung eingeplant die, richtig Dimensioniert, den Schutzmechanismus der Powerbank umgeht. Im momentanen aufbau werden jedoch keine Powerbanks verwendet daher ist dieser Teil der Platine obsolet. Die gesammelten Daten werden auf eine SD Karte gespeichert. Diese ist nach aktuellem stand Notwendig durch anpassungen im [Code](/bewae_main_nano/bewae_v3_nano/src/main.cpp) könnte man sie aber auch weglassen. <br>
+![Main PCB](/pictures/bewae_v3_1.png "Main board")
+
+**Platine_01.fzz** als Erweiterung mit Esp01, Buckconverter etc. selbst gelötet <br>
+Sie ist als erweiterung gedacht um eine Anbindung an das Netzwerk zu ermöglichen sowie größere Spannungen (*12V*) Schalten zu können. Auch die Spannung der Bleibaterie soll über den Spannungsteiler abgegriffen werden können. Außerdem besitzt sie einen microUSB anschluss und kann damit gut per USB kabel vom Solarladeregler versorgt werden. So wird kein extra Spannungswandler von *12* auf *5* Vold benötigt. Von hier aus kann auch die Hauptplatine versorgt werden. Der **ESP** kann bei richtiger verkabelung über I²C mit dem **Nano** kommunizieren sowie überden *'enable Pin'* ein und ausgeschalten werden um Strom zu sparen.
+<br>
 
 ## Details:
 ## Kommunikation:
@@ -64,7 +73,7 @@ freq = clock / (16 + (2 * TWBR * prescaler)) #für den fall TWBR=230 --> 8.62 kH
 ```
 
 ## Code ESP8266-01:
-[ESP8266-01 Code](/esp01_bewae_reporterv3_4.ino/esp01_bewae_reporterv3_4.ino)
+[ESP8266-01 Code](/esp01_bewae_reporterv3_4/esp01_bewae_reporterv3_4.ino)
 <br>
 
 ### Allgemein:
@@ -110,21 +119,41 @@ Auch hier gibt es sehr gute [Tutorials](https://grafana.com/tutorials/install-gr
 
 Sobald Grafana installiert ist kann das [json](/grafana_dashboard/bewaeMonitor.json) export über das Webinterface importiert werden. <br>
 
-Unter 'Configuration' muss man nun die 'Datasources' eintragen. Hierbei muss man nun darauf achten die gleichen Datenbanken zu verwenden die man erstellt und in der die Daten abgespeichert werden. In meinem Fall wäre das z.B ***main*** für alle Daten der Bewässerung. Sowie ***pidb*** für die CPU Temperatur am RaspberryPi die im Import mit dabei ist, jedoch rein optional. <br>
+Unter 'Configuration' muss man nun die 'Datasources' eintragen. Hierbei muss man nun darauf achten die gleichen Datenbanken zu verwenden die man erstellt und in der die Daten abgespeichert werden. In meinem Fall wäre das z.B ***main*** für alle Daten der Bewässerung. Sowie ***pidb*** für die CPU Temperatur am RaspberryPi die im Import mit dabei ist, da dies rein optional und nichts mit der Bewässerung zu tun hat werde ich nicht weiter darauf eingehen. Die Panels wenn sie nicht genutzt werden kann man einfach entfernen. <br>
 
 ![Datasource configuration](/pictures/datasources.png "Datasource configuration example") <br>
 
 ### MQTT&Python:
+#### Installation: 
+Auch hier gibt es einen [link](https://pimylifeup.com/raspberry-pi-mosquitto-mqtt-server/).
+Benutzername und Passwort müssen im Code wieder an allen Stellen angepasst werden.
+
+#### Python:
 Um am die über **MQTT** gesedeten Daten nun in die Datenbank schreiben oder lesen zu können wird das Python script [MQTTInfluxDBBridge3.py](/pi_scripts/MQTTInfluxDBBridge3.py) verwendet. Der Python code kann mit dem shell script [launcher1.sh](/pi_scripts/launcher1.sh) automatisiert mit crontab bei jedem Bootvorgang mitgestartet werden. Da der Pi beim Hochfahren eine gewisse Zeit benötigt um alles fehlerfrei zu starten, verzögere ich den Start des scripts um *20* Sekunden. <br>
 Um Fehler zu vermeiden sollten über **MQTT** nur **int** Werte verschickt werden (*2* **byte**), der Datentyp **int** ist am **Arduino Nano** *2* **byte** groß.
 
-#### Raspi status Daten (optional)
-Ein sehr einfaches script für die Aufzeichnung und Speicherung der CPU Temperatur und Ram Auslastung am RaspberryPi. WO WIE WAS?
+#### mqttdash app (optional)
+Auf mein **Android** Smartphone habe ich dei app mqttdash geladen. Diese ist sehr einfach und intuitiv zu verwenden man muss Adresse Nutzer und Passwort die oben angelegt wurden eintragen und kann dann die Topics konfigurieren. Wichtig ist das nur **int** werte gesendet werden können. Bei mehr als *6* Gruppen muss man die Variable max_groups ebenfalls wieder an jeder Stelle in allen Programmen anpassen. Alle topics die über **MQTT** gesendet werden und als *'measurement'* *'water_time'* eingetragen haben werden an den **ESP** weitergeleitet und in die Datenbank eingetragen. Über den eintrag *'location'* können sie unterschieden werden deshalb empfiehlt es sich gleichen Namen und eine Nummerierung zu verwenden da die *'locations'* sortiert und in aufsteigender Reihenfolge vom **ESP** an den **Nano** gesendet werden.
+```
+#topic:
+exampletopic=home/location/measurement
+```
+![mqttdash app](/pictures/mqttdash.jpg) <br>
 
 ## Bilder:
 
+### V1
+
 ![Bild](/pictures/bewaeV1(2).jpg) <br>
 ![Bild](/pictures/bewaeV1.jpg) <br>
+
+### V2
+
 ![Bild](/pictures/bewaeV2.jpg) <br>
-![Bild](/pictures/bewaeV3.jpg) <br>
+
+### V3
+
+![Bild](/pictures/bewaeV3(Sommer).jpg) <br>
+![Bild](/pictures/bewaeV3(Herbst).jpg) <br>
+![Bild](/pictures/bewaeV3(Box).jpg) <br>
 ![Bild](/pictures/MainPCB.jpg) <br>
