@@ -25,13 +25,13 @@ Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürli
 - Solarladeregler
 
 ### Ziele:
-- Automatisierte Bewässerung der Balkonpflanzen
+- Sensorgesteuerte Automatisierte Bewässerung der Balkonpflanzen
 - Speichern von Sensordaten & cool graphs
 - Überwachung & Steuerung von unterwegs
 
 ### Beschreibung:
 Übersicht des Schaltungsaufbau im beigefügten **Systemdiagramm.png** als Blockschaltbild. Die Daten werden via **ESP01** über **MQTT** an den RaspberryPi gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt.
-Automatisiert bewässert wird momentan *2* mal Täglich morgends und abends, theoretisch sind bis zu *6* Ventile und *2* Pumpen schalt und steuerbar (erweiterbar). Die Bewässerung passt sich in der aktuellen Version nicht mehr an die Messdaten aus den Feuchtigkeitssensoren im Boden an, wird in neueren überatbeiteten Versionen wieder eingeführt. Mit einem **MQTT** messaging client ist möglich in die bewässerung einzugreifen und gespeicherte Werte zu verändern sowie die Messdaten über Grafana im Auge zu behalten.
+Automatisiert bewässert wird momentan *2* mal Täglich morgends und abends, theoretisch sind bis zu *6* Ventile und *2* Pumpen schalt und steuerbar (erweiterbar). Die Bewässerung passt sich in der aktuellen Version nicht mehr an die Messdaten aus den Feuchtigkeitssensoren im Boden an, um die Steuerung über die **mqttdash** App zu testen, wird aber später wieder hinzugefügt. Mit einem **MQTT** messaging client ist möglich in die Bewässerung einzugreifen und gespeicherte Werte zu verändern. Die Messdaten können über Grafana im Auge zu behalten werden, so kann man mit eingerichtetem VPN auch von unterwegs seine Pflanzen im Auge behalten und Notfalls eingreifen.
 In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard und die Python scripts zur Verarbeitung der **MQTT** messages. Die verwendete Datenbank ist **InfluxDB** in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang.
 
 ## Systemdiagramm
