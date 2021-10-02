@@ -29,7 +29,7 @@ Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürli
 ### Beschreibung:
 Schaltungsaufbau grob übersichtlich im beigefügten **Systemdiagramm.png** als Blockschaltbild. Die Daten werden via **ESP01** über **MQTT** an den RaspberryPi gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt.
 Automatisiert bewässert wird momentan *2* mal Täglich morgends und abends, theoretisch sind bis zu *6* Ventile und *2* Pumpen schalt und steuerbar (erweiterbar). Die Bewässerung passt sich in der aktuellen Version nicht mehr an die Messdaten aus den Feuchtigkeitssensoren im Boden an, wird in neueren überatbeiteten Versionen wieder eingeführt. Mit einem **MQTT** messaging client ist möglich in die bewässerung einzugreifen und gespeicherte Werte zu verändern sowie die Messdaten über Grafana im Auge zu behalten.
-In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard. Die Konfiguration des RaspberryPi fehlt noch, die verwendete Datenbank ist Influxdb. (Die Scripts befinden sich am Pi im ordner pi_scripts und werden automatisiert gestartet mit cron als su)
+In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard und die Python scripts zur Verarbeitung der **MQTT** messages. Die verwendete Datenbank ist **InfluxDB** in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang.
 
 ## Systemdiagramm
 ![System](/pictures/Systemdiagramm.png "Systemdiagramm")
@@ -167,7 +167,15 @@ Benutzername und Passwort müssen im Code wieder an allen Stellen angepasst werd
 
 #### Python:
 Um am die über **MQTT** gesedeten Daten nun in die Datenbank schreiben oder lesen zu können wird das Python script [MQTTInfluxDBBridge3.py](/pi_scripts/MQTTInfluxDBBridge3.py) verwendet. Der Python code kann mit dem shell script [launcher1.sh](/pi_scripts/launcher1.sh) automatisiert mit crontab bei jedem Bootvorgang mitgestartet werden. Da der Pi beim Hochfahren eine gewisse Zeit benötigt um alles fehlerfrei zu starten, verzögere ich den Start des scripts um *20* Sekunden. <br>
-Um Fehler zu vermeiden sollten über **MQTT** nur **int** Werte verschickt werden (*2* **byte**), der Datentyp **int** ist am **Arduino Nano** *2* **byte** groß.
+Um Fehler zu vermeiden sollten über **MQTT** nur **int** Werte verschickt werden (*2* **byte**), der Datentyp **int** ist am **Arduino Nano** *2* **byte** groß. <br>
+```
+sudo crontab -e
+```
+Öffnet cron mit einem beliebigen editor um nun die gewünschten Programme einzutragen:
+```
+@reboot /path/file.sh
+```
+Zusätzliche [Informationen](https://pimylifeup.com/cron-jobs-and-crontab/) zu cron.
 
 #### mqttdash app (optional)
 Auf mein **Android** Smartphone habe ich dei app mqttdash geladen. Diese ist sehr einfach und intuitiv zu verwenden man muss Adresse Nutzer und Passwort die oben angelegt wurden eintragen und kann dann die Topics konfigurieren. Wichtig ist das nur **int** werte gesendet werden können. Bei mehr als *6* Gruppen muss man die Variable max_groups ebenfalls wieder an jeder Stelle in allen Programmen anpassen. Alle topics die über **MQTT** gesendet werden und als *'measurement'* *'water_time'* eingetragen haben werden an den **ESP** weitergeleitet und in die Datenbank eingetragen. Über den eintrag *'location'* können sie unterschieden werden deshalb empfiehlt es sich gleichen Namen und eine Nummerierung zu verwenden da die *'locations'* sortiert und in aufsteigender Reihenfolge vom **ESP** an den **Nano** gesendet werden.
