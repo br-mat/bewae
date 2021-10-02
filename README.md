@@ -49,15 +49,6 @@ Sie ist als erweiterung gedacht um eine Anbindung an das Netzwerk zu ermögliche
 <br>
 
 ## Details:
-## Kommunikation:
-### I²C:
-I²C (Inter-Integrated Circuit) ein serieller Datenbus der von Philips Semiconductors entwickelt wurde und hauptsächlich für sehr kurze Strecken (gerätintern) vorgesehen ist. <br>
-
-Im Fall dieses Projekts spielt die Kommunikation der beiden Mikrocontroller eine tragende Rolle. Grundsätzlich ist ein Multi-master Betrieb möglich wenn auch oft nicht empfohlen. Für die fehlerfreie Kommunikation in beide Richtungen müssen leider beide Controller als Master dem Bus beitreten. Hauptsächlich als Master verwende ich den **Arduino Nano** der dem **ESP-01** signalisiert wann er als Master die Kommunikation übernehmen darf um Komplikationen zu vermeiden.
-
-### MQTT:
-(beschreibung ergänzen)
-(alle relevanten Topics sind auf den controllern zu finden hier folgt eine auflistung:)
 
 ## Code Arduino Nano:
 [Arduino-Nano Code](/bewae_main_nano/bewae_v3_nano/src/main.cpp)
@@ -71,6 +62,12 @@ Der Code wird mit Visual Studio Code und der Platformio extension aufgespielt, V
 #Formula:
 freq = clock / (16 + (2 * TWBR * prescaler)) #für den fall TWBR=230 --> 8.62 kHz
 ```
+
+### I²C:
+I²C (Inter-Integrated Circuit) ein serieller Datenbus der von Philips Semiconductors entwickelt wurde und hauptsächlich für sehr kurze Strecken (gerätintern) vorgesehen ist. <br>
+
+Im Fall dieses Projekts spielt die Kommunikation der beiden Mikrocontroller eine tragende Rolle. Grundsätzlich ist ein Multi-master Betrieb möglich wenn auch oft nicht empfohlen. Für die fehlerfreie Kommunikation in beide Richtungen müssen leider beide Controller als Master dem Bus beitreten. Hauptsächlich als Master verwende ich den **Arduino Nano** der dem **ESP-01** signalisiert wann er als Master die Kommunikation übernehmen darf um Komplikationen zu vermeiden.
+
 
 ## Code ESP8266-01:
 [ESP8266-01 Code](/esp01_bewae_reporterv3_4/esp01_bewae_reporterv3_4.ino)
@@ -126,6 +123,44 @@ Unter 'Configuration' muss man nun die 'Datasources' eintragen. Hierbei muss man
 ![Datasource configuration](/pictures/datasources.png "Datasource configuration example") <br>
 
 ### MQTT&Python:
+
+#### MQTT:
+**MQTT** (Message Queuing Telemetry Transport) Ist ein offenes Netzwerkprotokoll für Machine-to-Machine-Kommunikation (M2M), das die Übertragung von Telemetriedaten in Form von Nachrichten zwischen Geräten ermöglicht. Wie es funktioniert [(link)](http://www.steves-internet-guide.com/mqtt-works/). <br>
+Die versendeten Messages setzen sich aus topic und payload zusammen. Topics dienen der einfachen Zuordnung und haben in meinem Fall einene fixe Struktur:
+```
+#topic:
+exampletopic=home/location/measurement
+```
+Zusätzlich zu diesem topic werden im Payload dei Daten angehängt, der Inhalt als String. Auflistung relevanter topics:
+```
+#example topics to publish data on
+  topic_prefix = "home/sens3/z";
+  #send multiple measurments from nano to raspberry pi unter fortlaufender nummer die angehängt wird
+
+  humidity_topic_sens2 = "home/sens2/humidity";
+  #bme280 sensor read
+
+  temperature_topic_sens2 = "home/sens2/temperature";
+  #bme280 sensor read
+
+  pressure_topic_sens2 = "home/sens2/pressure";
+  #bme280 sensor read
+
+  config_status = "home/bewae/config_status";
+  #signaling RaspberryPi to repost relevant data so ESP can receive it
+
+#subsciption topics to receive data
+  watering_topic = "home/bewae/config";
+  #bewae config recive watering instructions (as csv)
+
+  bewae_sw = "home/nano/bewae_sw";
+  #switching watering no/off
+
+  watering_sw = "home/nano/watering_sw";
+  #switching value override on/off (off - using default values on nano)
+
+```
+
 #### Installation: 
 Auch hier gibt es einen [link](https://pimylifeup.com/raspberry-pi-mosquitto-mqtt-server/).
 Benutzername und Passwort müssen im Code wieder an allen Stellen angepasst werden.
@@ -136,10 +171,7 @@ Um Fehler zu vermeiden sollten über **MQTT** nur **int** Werte verschickt werde
 
 #### mqttdash app (optional)
 Auf mein **Android** Smartphone habe ich dei app mqttdash geladen. Diese ist sehr einfach und intuitiv zu verwenden man muss Adresse Nutzer und Passwort die oben angelegt wurden eintragen und kann dann die Topics konfigurieren. Wichtig ist das nur **int** werte gesendet werden können. Bei mehr als *6* Gruppen muss man die Variable max_groups ebenfalls wieder an jeder Stelle in allen Programmen anpassen. Alle topics die über **MQTT** gesendet werden und als *'measurement'* *'water_time'* eingetragen haben werden an den **ESP** weitergeleitet und in die Datenbank eingetragen. Über den eintrag *'location'* können sie unterschieden werden deshalb empfiehlt es sich gleichen Namen und eine Nummerierung zu verwenden da die *'locations'* sortiert und in aufsteigender Reihenfolge vom **ESP** an den **Nano** gesendet werden.
-```
-#topic:
-exampletopic=home/location/measurement
-```
+
 Ein Beispiel Screenshot aus der App, die Zahlen stehen für die Zeit (s) in der das jeweilige Ventil geöffnet ist und Wasser gepumpt wird (ca. 0.7l/min):
 ![mqttdash app](/pictures/mqttdash.jpg) <br>
 
