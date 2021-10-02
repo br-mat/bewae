@@ -30,12 +30,14 @@ Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürli
 - Überwachung & Steuerung von unterwegs
 
 ### Beschreibung:
-Schaltungsaufbau grob übersichtlich im beigefügten **Systemdiagramm.png** als Blockschaltbild. Die Daten werden via **ESP01** über **MQTT** an den RaspberryPi gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt.
+Übersicht des Schaltungsaufbau im beigefügten **Systemdiagramm.png** als Blockschaltbild. Die Daten werden via **ESP01** über **MQTT** an den RaspberryPi gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt.
 Automatisiert bewässert wird momentan *2* mal Täglich morgends und abends, theoretisch sind bis zu *6* Ventile und *2* Pumpen schalt und steuerbar (erweiterbar). Die Bewässerung passt sich in der aktuellen Version nicht mehr an die Messdaten aus den Feuchtigkeitssensoren im Boden an, wird in neueren überatbeiteten Versionen wieder eingeführt. Mit einem **MQTT** messaging client ist möglich in die bewässerung einzugreifen und gespeicherte Werte zu verändern sowie die Messdaten über Grafana im Auge zu behalten.
 In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard und die Python scripts zur Verarbeitung der **MQTT** messages. Die verwendete Datenbank ist **InfluxDB** in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang.
 
 ## Systemdiagramm
 ![System](/pictures/Systemdiagramm.png "Systemdiagramm")
+
+# Details:
 
 ## Platinen
 Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen. Ab einer gewissen größe des Projekts ist fritzing allerdings nicht mehr ideal. <br>
@@ -53,8 +55,6 @@ Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle re
 ### **Platine_01.fzz** als Erweiterung mit Esp01, Buckconverter etc. (Lochrasterboard)
 Sie ist als erweiterung gedacht um eine Anbindung an das Netzwerk zu ermöglichen sowie größere Spannungen (*12V*) Schalten zu können. Auch die Spannung der Bleibaterie soll über den Spannungsteiler abgegriffen werden können. Außerdem besitzt sie einen microUSB anschluss und kann damit gut per USB kabel vom Solarladeregler versorgt werden. So wird kein extra Spannungswandler von *12* auf *5* Vold benötigt. Von hier aus kann auch die Hauptplatine versorgt werden. Der **ESP** kann bei richtiger verkabelung über I²C mit dem **Nano** kommunizieren sowie überden *'enable Pin'* ein und ausgeschalten werden um Strom zu sparen.
 <br>
-
-## Details:
 
 ## Code Arduino Nano:
 [Arduino-Nano Code](/bewae_main_nano/bewae_v3_nano/src/main.cpp)
