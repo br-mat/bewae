@@ -1,4 +1,13 @@
 # Bewae - Bewässerungsprojekt v3.1
+Inhalt: <br>
+- [Introduction (EN)](#-introduction:-(de))
+- [Einleitung (DE)](#-einleitung:-(de))
+- [Details](#details)
+  * [Platinen](#platinen:)
+  * [Code Arduino Nano](#code-arduino-nano:)
+  * [Code ESP8266-01](#code-esp8266-01:)
+  * [RaspberryPi](#raspberrypi:)
+- [Bilder](#bilder)
 
 ## Introduction: (EN)
 This version is more of a test version. The controllability via **MQTT** is now added and tested. <br>
@@ -39,7 +48,7 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 
 # Details:
 
-## Platinen
+## Platinen:
 Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen. Ab einer gewissen größe des Projekts ist fritzing allerdings nicht mehr ideal. <br>
 Auf die verkabelung wird nicht weiter eingegangen, jedoch ein paar hinweise:
 - A4/A5 (SDA/SCL) richtig mit Platine_01 verbinden (reihenfolg im Code beachten)
@@ -75,7 +84,7 @@ I²C (Inter-Integrated Circuit) ein serieller Datenbus der von Philips Semicondu
 Im Fall dieses Projekts spielt die Kommunikation der beiden Mikrocontroller eine tragende Rolle. Grundsätzlich ist ein Multi-master Betrieb möglich wenn auch oft nicht empfohlen. Für die fehlerfreie Kommunikation in beide Richtungen müssen leider beide Controller als Master dem Bus beitreten. Hauptsächlich als Master verwende ich den **Arduino Nano** der dem **ESP-01** signalisiert wann er als Master die Kommunikation übernehmen darf um Komplikationen zu vermeiden.
 
 
-## Code ESP8266-01:
+## Code ESP8266 01:
 [ESP8266-01 Code](/esp01_bewae_reporterv3_4/esp01_bewae_reporterv3_4.ino)
 <br>
 
@@ -88,7 +97,7 @@ Um die CPU Frequenz des **ESP** beim Programmieren mit der Arduino IDE zu änder
 Nun kann man unter dem Menüpunkt 'Tools' --> 'Board' nach 'Generic ESP8266 Module' wählen. Nachdem die restlichen Einstellungen - wie aus dem Bild zu entnehmen - vorgenommen wurden, ist die IDE bereit für den Upload. Eventuell fehlende librarys müssen gegebenenfalls noch installiert werden, dies ist einfach über den library Manager möglich. <br>
 ![ESP01 upload configuration](/pictures/esp01upload.png "Upload configuration")
 
-## Raspberrypi
+## Raspberrypi:
 ### Allgemein:
 Persönlich verwende ich gerade einen RaspberryPi 4 mit 4GB Ram auf dem auch ein VPN (wireguard) und Pihole installiert sind. Durch den VPN kann ich auch von unterwegs auf die Daten zugreifen oder gegebenenfalls in die Bewässerung eingreifen. Auf die Installation gehe ich nicht weiter ein, sie ist aber relativ einfach und in zahlreichen Tutorials gut beschrieben. <br>Für den Betrieb genügt auch die Verfügbarkeit im lokalen Netzwerk, hierbei notwendig sind:
 - SSid (Netzwerkname): BeispielNetzwerkXY
