@@ -15,7 +15,10 @@ Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürli
 - RaspberryPi 4 B (*4GB*)
 - *6* Ventile *12V*
 - *2* Pumpen (aktuell nur eine *12V* im Betrieb)
-- *16* Analoge/Digitale Sensoren (Bodenfeuchte, Temperatur, Luftfeuchtigkeit, etc.)
+- *16* Analoge/Digitale Pins für Sensoren & andere Messungen (Bodenfeuchte, Photoresistor, etc.)
+- BME280 Temperatur/Luftfeuchtigkeit/Druck Sensor
+- RTC DS3231 Real Time Clock
+- micro SD module & micro SD Karte
 - Bewässerung Kit Schläuche, Sprinkler, etc.
 - *10W 12V* Solar Panel
 - *7.2 Ah* *12V* Bleiakku
