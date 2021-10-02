@@ -171,7 +171,7 @@ Um Fehler zu vermeiden sollten über **MQTT** nur **int** Werte verschickt werde
 ```
 sudo crontab -e
 ```
-Öffnet cron mit einem beliebigen editor um nun die gewünschten Programme einzutragen:
+Öffnet cron mit einem beliebigen editor um nun die gewünschten Programme einzutragen. Als Beispiel:
 ```
 @reboot /path/file.sh
 ```
