@@ -1,7 +1,7 @@
 # Bewae - Bewässerungsprojekt v3.1
 Inhalt: <br>
-- [Introduction (EN)](#-introduction:-(de))
-- [Einleitung (DE)](#-einleitung:-(de))
+- [Introduction (EN)](#introduction:-(de))
+- [Einleitung (DE)](#einleitung:-(de))
 - [Details](#details)
   * [Platinen](#platinen:)
   * [Code Arduino Nano](#code-arduino-nano:)
