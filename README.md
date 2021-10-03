@@ -18,6 +18,11 @@ Diese Version ist eher als Testversion zu sehen.  Neu hinzugefügt und getestet 
 Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorrausgesetzt. Es soll lediglich ein Einblick in das Projekt gegeben werden und mir den wiederaufbau im Frühjahr oder an neuen Standorten erleichtern. Deshalb habe ich mich auch für Deutsch entschieden, möchte jedoch noch eine Englische Version ergänzen. <br>
 Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürlich einfacher einen **ESP-32** zu verwenden anstatt einem **Nano** mit einem **ESP-01** ein "Upgrade" zu verpassen. Da die Platine aber schon bestellt wurde habe ich mich dagegen entschieden, es war ein Mehraufwand der nicht notwendig aber lehrreich gewesen ist. <br>
 
+### Ziele
+- Sensorgesteuerte Automatisierte Bewässerung der Balkonpflanzen
+- Speichern von Sensordaten & cool graphs
+- Überwachung & Steuerung von unterwegs
+
 ### aktueller Aufbau
 - Arduino Nano
 - ESP-8266 01
@@ -32,11 +37,6 @@ Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürli
 - *10W 12V* Solar Panel
 - *7.2 Ah* *12V* Bleiakku
 - Solarladeregler
-
-### Ziele
-- Sensorgesteuerte Automatisierte Bewässerung der Balkonpflanzen
-- Speichern von Sensordaten & cool graphs
-- Überwachung & Steuerung von unterwegs
 
 ### Beschreibung
 Übersicht des Schaltungsaufbau im beigefügten **Systemdiagramm.png** als Blockschaltbild. Sensoren und Module zeichnen jede Menge Daten auf, dazu zählen Bodenfeuchtigkeits Sensoren, Temperatur-, Luftfeuchte- und Luftdruckdaten sowie Sonnenscheindauer. Die Daten werden via **ESP01** über **MQTT** an den RaspberryPi gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt.
@@ -91,7 +91,7 @@ Im Fall dieses Projekts spielt die Kommunikation der beiden Mikrocontroller eine
 ### Allgemein
 Dieser Mikrocontroller wird verwendet um dem System den Zugang zum Lokalen Netzwerk zu verschaffen. Dabei stellt der **ESP8266-01** die Verbindung ins WLAN-Netz her und die Kommunikation mit dem **Nano** erfolgt seriell mit I²C. Den **ESP-01** als "slave" des **Nano** zu verwenden bringt einige Probleme mit sich daher tritt auch dieser Mikrocontroller dem Bus als Master bei. Für eine fehlerfreie Funktion müssen die CPU Frequenz des **ESP-01** muss auf *160MHz* statt den standardmäßigen *80MHz* angehoben werden und am **Nano** die Frequenz des Buses reduziert werden ([siehe TWBR](#code-arduino-nano)). Damit auch der **ESP-01** dem Arduino zuverlässig Daten senden kann wird der Bus nun mit *2* Master also Multimasterbetrieb betrieben. <br>Nach all diesen Anpassungen funktioniert die Kommunikation sehr stabil. Sehr selten kommt es zu kleinen Fehlern in der Übertragung, deshalb wird am Schluss einer Übertragung als letztes Byte eine festgelegte Zahl gesendet, die der Zuordnung und Kontrolle zum Ausschluss von Fehlern dient.
 
-### Details Programmierung mit Arduino IDE
+### Programmierung mit Arduino IDE
 Für die Programmierung des **ESP8266-01** empfiehlt es sich Programier-Module zu verwenden. Ich verwende ein Modul auf Basis CH340, hierzu muss man die Treiber im vorhinein [installieren](https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers/all). Wichtig ist auf die Spannung zu achten je nach Modul kann es notwendig sein den Output erst auf **3.3V** zu schalten. <br>
 Um die CPU Frequenz des **ESP** beim Programmieren mit der Arduino IDE zu ändern muss man beim Menüpunkt 'File' --> 'Preferences' und unter 'Additional Boards Manager URLs:' Folgendes ergänzt werden (mehrere URLs einfach mit Kommas trennen) *http://arduino.esp8266.com/stable/package_esp8266com_index.json* <br>
 Nun kann man unter dem Menüpunkt 'Tools' --> 'Board' nach 'Generic ESP8266 Module' wählen. Nachdem die restlichen Einstellungen - wie aus dem Bild zu entnehmen - vorgenommen wurden, ist die IDE bereit für den Upload. Eventuell fehlende librarys müssen gegebenenfalls noch installiert werden, dies ist einfach über den library Manager möglich. <br>
