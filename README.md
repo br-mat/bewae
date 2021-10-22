@@ -22,10 +22,10 @@ Diese Version ist eher als Testversion zu sehen.  Neu hinzugefügt und getestet 
 Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorausgesetzt. Es soll lediglich ein Einblick in das Projekt gegeben werden und mir den Wiederaufbau im Frühjahr oder an neuen Standorten erleichtern. Deshalb habe ich mich auch für Deutsch entschieden, möchte jedoch noch eine Englische Version ergänzen. <br>
 <br>
 **Entstehung:** <br>
-Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balkonpflanzen ohne Versorgung gewesen wären. Das grün sollte mit einem Bewässerungsset, Schläuche und ein paar Düsen und einer Pumpe am Leben gehalten werden. Eine Reguläre Bewässerung wie bei einer Zeitschaltuhr kam mir jedoch zu langweilig vor und mein Interesse an einem kleinen Bastelprojekt war geweckt. Kapazitive Bodenfeuchte Sensoren und 4 kleine *12V* Ventile waren schnell bestellt, Arduinos hatte ich genug zu Hause, so kam es innerhalb einer Woche zu [Version 1](#v1) und das Überleben der Pflanzen war gesichert. So entstand aus der Not ein Projekt das mich eine Weile Beschäftigt hat, kontinuierlich erweitert und verbessert erfüllt es nach momentanem Stand weit mehr als zuerst geplant. <br>
+Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balkonpflanzen ohne Versorgung gewesen wären. Das grün sollte mit einem Bewässerungsset, Schläuche und ein paar Düsen und einer Pumpe am Leben gehalten werden. Eine Reguläre Bewässerung wie bei einer Zeitschaltuhr kam mir jedoch zu langweilig vor und mein Interesse an einem kleinen Bastelprojekt war geweckt. Kapazitive Bodenfeuchte Sensoren und 4 kleine *12V* Ventile waren schnell bestellt, Arduinos hatte ich genug zu Hause, so kam es innerhalb einer Woche zu [Version 1](#v1) und das Überleben der Pflanzen war gesichert. Es entstand aus der Not ein Projekt das mich eine Weile Beschäftigt hat, kontinuierlich erweitert und verbessert erfüllt es nach momentanem Stand weit mehr als zuerst geplant. <br>
 <br>
 **Stand jetzt:** <br>
-**Technik:** Für die einfachere Handhabung wurde mit [fritzing](https://fritzing.org/) ein Plan für ein [PCB](#platinen) erstellt und gedruckt. Sensordaten von diversen Sensoren (Bodenfeuchte, Temperatur etc.) werden an einen RaspberryPi gesendet und dort in eine Datenbank gespeichert. Die Steuerung der Bewässerung funktioniert entweder automatisiert Sensorgesteuert oder über eine MQTT-messaging App über das Smartphone. Dank [VPN](https://www.pivpn.io/) sind auch von unterwegs Steuerung und Beobachtung möglich. <br>
+**Technik:** Für die einfachere Handhabung wurde mit [fritzing](https://fritzing.org/) ein Plan für ein [PCB](#platinen) erstellt und gedruckt. Sensordaten von diversen Sensoren (Bodenfeuchte, Temperatur etc.) werden an einen [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet und dort in eine Datenbank gespeichert. Die Steuerung der Bewässerung funktioniert entweder automatisiert Sensorgesteuert oder über eine [MQTT-messaging App](#mqttdash-app-optional) über das Smartphone. Dank [VPN](https://www.pivpn.io/) sind auch von unterwegs Steuerung und Beobachtung möglich. <br>
 **Versorgung:** Mittlerweile wurde daraus ein autonom funktionierendes System, ausgestattet mit einem kleinen PV Modul einem Blei Akku und einem kleinen *100l* Wassertank. Je nach Temperatur muss nun nur noch einmal pro Woche daran gedacht werden den Tank zu füllen. <br>
 
 
@@ -51,14 +51,14 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
 - Solarladeregler
 
 ### Beschreibung
-Übersicht des Schaltungsaufbaus im beigefügten [*Systemdiagramm.png*](#systemdiagramm) als Blockschaltbild. Sensoren und Module zeichnen jede Menge Daten auf, dazu zählen Bodenfeuchtigkeits Sensoren, Temperatur-, Luftfeuchte- und Luftdruckdaten sowie Sonnenscheindauer. Die Daten werden via [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) an den RaspberryPi gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt.
+Übersicht des Schaltungsaufbaus im beigefügten [*Systemdiagramm.png*](#systemdiagramm) als Blockschaltbild. Sensoren und Module zeichnen jede Menge Daten auf, dazu zählen Bodenfeuchtigkeits Sensoren, Temperatur-, Luftfeuchte- und Luftdruckdaten sowie Sonnenscheindauer. Die Daten werden via [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) an den [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt.
 Automatisiert bewässert wird momentan *2* mal Täglich morgens und abends, aktuell sind bis zu *6* Ventile und *2* Pumpen schalt und steuerbar (erweiterbar). Die Bewässerung passt sich in der aktuellen Version nicht mehr an die Messdaten aus den Feuchtigkeitssensoren im Boden an, um die Steuerung über die [*mqttdash*](https://play.google.com/store/apps/details?id=net.routix.mqttdash&hl=en&gl=US) App zu testen, wird aber später wieder hinzugefügt. Mit einem [*MQTT*](#mqtt) messaging client ist möglich in die Bewässerung einzugreifen und gespeicherte Werte zu verändern. Die Messdaten können über Grafana im Auge zu behalten werden, so kann man mit eingerichtetem [*VPN*](https://www.pivpn.io/) auch von unterwegs seine Pflanzen im Auge behalten und Notfalls eingreifen.
 In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard und die Python scripts zur Verarbeitung der [*MQTT*](#mqtt) messages. Die verwendete Datenbank ist [*InfluxDB*](#influxdb) in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang. <br>
 Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürlich einfacher einen [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) zu verwenden anstatt einem [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) mit einem [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) ein "Upgrade" zu verpassen. Da die Platine für einen Arduino Nano konzipiert und schon bestellt wurde habe ich mich für die zweite Variante entschieden, ein Mehraufwand der nicht notwendig aber lehrreich gewesen ist. <br>
 
 
 ## Systemdiagramm
-![System](/pictures/Systemdiagramm.png "Systemdiagramm")
+![System](/docs/pictures/Systemdiagramm.png "Systemdiagramm")
 
 # Details
 
@@ -69,9 +69,9 @@ Auf die Verkabelung wird nicht weiter eingegangen, jedoch ein paar hinweise:
 - Da Platine_01 einen micro USB Anschluss besitzt empfiehlt es sich diesen zu verwenden und von dort die Hauptplatine über jumper zu versorgen <br>
 
 ### **bew_entwurf_v2_7.fzz** Hauptplatine (PCB)
-Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle relevanten Sensoren und Module sowie Steuerungen auf diese Platine zusammengeführt und von einem [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) verarbeitet. Für den Offline betrieb alleine würde diese Platine ausreichen. Ursprünglich sollte das System über Powerbanks versorgt werden. Um zu verhindern, dass die Powerbank abschaltet ist ein *NE555*-Schaltung eingeplant die, richtig Dimensioniert, den Schutzmechanismus der Powerbank bei geringer last umgeht. Im momentanen Aufbau werden jedoch keine Powerbanks verwendet daher ist dieser Teil der Platine obsolet. Die gesammelten Daten werden auf eine SD Karte gespeichert. Diese ist nach aktuellem stand Notwendig durch Anpassungen im [Code](/bewae_main_nano/bewae_v3_nano/src/main.cpp) könnte man sie aber auch weglassen. <br>
+Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle relevanten Sensoren und Module sowie Steuerungen auf diese Platine zusammengeführt und von einem [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) verarbeitet. Für den Offline betrieb alleine würde diese Platine ausreichen. Ursprünglich sollte das System über Powerbanks versorgt werden. Um zu verhindern, dass die Powerbank abschaltet ist ein *NE555*-Schaltung eingeplant die, richtig Dimensioniert, den Schutzmechanismus der Powerbank bei geringer last umgeht. Im momentanen Aufbau werden jedoch keine Powerbanks verwendet daher ist dieser Teil der Platine obsolet. Die gesammelten Daten werden auf eine SD Karte gespeichert. Diese ist nach aktuellem stand Notwendig durch Anpassungen im [Code](/code/bewae_main_nano/bewae_v3_nano/src/main.cpp) könnte man sie aber auch weglassen. <br>
 
-![Main PCB](/pictures/bewae_v3_1.png "Main board")
+![Main PCB](/docs/pictures/bewae_v3_1.png "Main board")
 
 <br>
 
@@ -80,7 +80,7 @@ Sie ist als Erweiterung gedacht um eine Anbindung an das Netzwerk zu ermögliche
 <br>
 
 ## Code Arduino Nano
-[Arduino-Nano Code](/bewae_main_nano/bewae_v3_nano/src/main.cpp)
+[Arduino-Nano Code](/code/bewae_main_nano/bewae_v3_nano/src/main.cpp)
 <br>
 ### Allgemein
 Der Code wird mit Visual Studio Code und der Platformio extension aufgespielt, VS code bietet eine umfangreichere IDE als die Arduino IDE und ist damit für das deutlich umfangreichere Programm einfach besser geeignet. <br>
@@ -99,7 +99,7 @@ Im Fall dieses Projekts spielt die Kommunikation der beiden Mikrocontroller eine
 
 
 ## Code ESP8266 01
-[ESP8266-01 Code](/esp01_bewae_reporterv3_4/esp01_bewae_reporterv3_4.ino)
+[ESP8266-01 Code](/code/esp01_bewae_reporterv3_5_beta/esp01_bewae_reporterv3_5_beta.ino)
 <br>
 
 ### Allgemein
@@ -109,11 +109,11 @@ Dieser Mikrocontroller wird verwendet um dem System den Zugang zum Lokalen Netzw
 Für die Programmierung des [*ESP8266-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) empfiehlt es sich Programmier-Module zu verwenden. Ich verwende ein Modul auf Basis CH340, hierzu muss man die Treiber im Vorhinein [installieren](https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers/all). Wichtig ist auf die Spannung zu achten je nach Modul kann es notwendig sein den Output erst auf *3.3V* zu schalten. <br>
 Um die CPU Frequenz des [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) beim Programmieren mit der Arduino IDE zu ändern muss man beim Menüpunkt 'File' --> 'Preferences' und unter 'Additional Boards Manager URLs:' Folgendes ergänzt werden (mehrere URLs einfach mit Kommas trennen) *http://arduino.esp8266.com/stable/package_esp8266com_index.json* <br>
 Nun kann man unter dem Menüpunkt 'Tools' --> 'Board' nach 'Generic ESP8266 Module' wählen. Nachdem die restlichen Einstellungen - wie aus dem Bild zu entnehmen - vorgenommen wurden, ist die IDE bereit für den Upload. Eventuell fehlende librarys müssen gegebenenfalls noch installiert werden, dies ist einfach über den library Manager möglich. <br>
-![ESP01 upload configuration](/pictures/esp01upload.png "Upload configuration")
+![ESP01 upload configuration](/docs/pictures/esp01upload.png "Upload configuration")
 
 ## Raspberrypi
 ### Allgemein
-Persönlich verwende ich gerade einen **RaspberryPi 4B** mit *4GB* Ram auf dem auch ein [*VPN*](https://www.pivpn.io/) (**wireguard**) und [*Pihole*](https://pi-hole.net/) installiert sind. Durch den [*VPN*](https://www.pivpn.io/) kann ich auch von unterwegs auf die Daten zugreifen oder gegebenenfalls in die Bewässerung eingreifen. Auf die Installation gehe ich nicht weiter ein, sie ist aber relativ einfach und in zahlreichen Tutorials gut beschrieben. <br>Für den Betrieb genügt auch die Verfügbarkeit im lokalen Netzwerk, hierbei notwendig sind:
+Persönlich verwende ich gerade einen [**RaspberryPi 4B**](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) mit *4GB* Ram auf dem auch ein [*VPN*](https://www.pivpn.io/) (**wireguard**) und [*Pihole*](https://pi-hole.net/) installiert sind. Durch den [*VPN*](https://www.pivpn.io/) kann ich auch von unterwegs auf die Daten zugreifen oder gegebenenfalls in die Bewässerung eingreifen. Auf die Installation gehe ich nicht weiter ein, sie ist aber relativ einfach und in zahlreichen Tutorials gut beschrieben. <br>Für den Betrieb genügt auch die Verfügbarkeit im lokalen Netzwerk, hierbei notwendig sind:
 - SSid (Netzwerkname): BeispielNetzwerkXY
 - Passwort:            BeispielpasswortXY
 - IP oder hostname des RaspberryPi (IP statisch vergeben)
@@ -141,7 +141,7 @@ exit
 ```
 
 ### Grafana
-![grafana dashboard example](/pictures/grafanarainyday.png "Grafana rainy day") <br>
+![grafana dashboard example](/docs/pictures/grafanarainyday.png "Grafana rainy day") <br>
 
 Auch hier gibt es sehr gute [Tutorials](https://grafana.com/tutorials/install-grafana-on-raspberry-pi/) auf die man zurückgreifen kann, daher gehe ich nicht genauer auf den Installationsprozess ein. Grafana kann genutzt werden um die gesammelten Daten in schönen plots darzustellen. Somit ist eine Überwachung der Feuchtigkeitswerte der Pflanzen sehr leicht möglich. <br>
 
@@ -149,7 +149,7 @@ Sobald Grafana installiert ist kann das [json](/grafana_dashboard/bewaeMonitor.j
 
 Unter 'Configuration' muss man nun die 'Datasources' eintragen. Hierbei muss man nun darauf achten die gleichen Datenbanken zu verwenden die man erstellt und in der die Daten abgespeichert werden. In meinem Fall wäre das z.B ***main*** für alle Daten der Bewässerung. Sowie ***pidb*** für die CPU Temperatur am RaspberryPi die im Import mit dabei ist, da dies rein optional und nichts mit der Bewässerung zu tun hat werde ich nicht weiter darauf eingehen. Die Panels wenn sie nicht genutzt werden kann man einfach entfernen. <br>
 
-![Datasource configuration](/pictures/datasources.png "Datasource configuration example") <br>
+![Datasource configuration](/docs/pictures/datasources.png "Datasource configuration example") <br>
 
 ### MQTT&Python
 
@@ -195,7 +195,7 @@ Auch hier gibt es einen [link](https://pimylifeup.com/raspberry-pi-mosquitto-mqt
 Benutzername und Passwort müssen im Code wieder an allen Stellen angepasst werden.
 
 #### Python
-Um an die über [*MQTT*](#mqtt) gesendeten Daten nun in die Datenbank schreiben oder lesen zu können wird das Python script [MQTTInfluxDBBridge3.py](/pi_scripts/MQTTInfluxDBBridge3.py) verwendet. Das script selbst stammt aus einem [Tutorial](https://diyi0t.com/visualize-mqtt-data-with-influxdb-and-grafana/) und wurde adaptiert um es an die Anforderungen in meinem Projekt anzupassen. Der Python code kann mit dem shell script [launcher1.sh](/pi_scripts/launcher1.sh) automatisiert mit crontab bei jedem Bootvorgang mitgestartet werden. Da der Pi beim Hochfahren eine gewisse Zeit benötigt um alles fehlerfrei zu starten, verzögere ich den Start des scripts um *20* Sekunden. <br>
+Um an die über [*MQTT*](#mqtt) gesendeten Daten nun in die Datenbank schreiben oder lesen zu können wird das Python script [MQTTInfluxDBBridge3.py](/code/pi_scripts/MQTTInfluxDBBridge3.py) verwendet. Das script selbst stammt aus einem [Tutorial](https://diyi0t.com/visualize-mqtt-data-with-influxdb-and-grafana/) und wurde adaptiert um es an die Anforderungen in meinem Projekt anzupassen. Der Python code kann mit dem shell script [launcher1.sh](/code/pi_scripts/launcher1.sh) automatisiert mit crontab bei jedem Bootvorgang mitgestartet werden. Da der Pi beim Hochfahren eine gewisse Zeit benötigt um alles fehlerfrei zu starten, verzögere ich den Start des scripts um *20* Sekunden. <br>
 Um Fehler zu vermeiden sollten über [*MQTT*](#mqtt) nur **int** Werte verschickt werden (*2* **byte**), der Datentyp **int** ist am [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) *2* **byte** groß. <br>
 ```
 sudo crontab -e
@@ -207,25 +207,25 @@ sudo crontab -e
 Zusätzliche [Informationen](https://pimylifeup.com/cron-jobs-and-crontab/) zu cron.
 
 #### mqttdash app (optional)
-Auf mein **Android** Smartphone habe ich die app mqttdash geladen. Diese ist sehr einfach und intuitiv zu verwenden man muss Adresse Nutzer und Passwort die oben angelegt wurden eintragen und kann dann die Topics konfigurieren. Wichtig ist das nur **int** werte gesendet werden können. Bei mehr als *6* Gruppen muss man die Variable max_groups ebenfalls wieder an jeder Stelle in allen Programmen anpassen. Alle topics die über [*MQTT*](#mqtt) gesendet werden und als *'measurement'* *'water_time'* eingetragen haben werden an den [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) weitergeleitet und in die Datenbank eingetragen. Über den eintrag *'location'* können sie unterschieden werden deshalb empfiehlt es sich gleichen Namen und eine Nummerierung zu verwenden da die *'locations'* sortiert und in aufsteigender Reihenfolge vom [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) an den [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) gesendet werden.
+Auf mein **Android** Smartphone habe ich die App [mqttdash](https://play.google.com/store/apps/details?id=net.routix.mqttdash&hl=de_AT&gl=US) geladen. Diese ist sehr einfach und intuitiv zu verwenden man muss Adresse Nutzer und Passwort die oben angelegt wurden eintragen und kann dann die Topics konfigurieren. Wichtig ist das nur **int** werte gesendet werden können. Bei mehr als *6* Gruppen muss man die Variable max_groups ebenfalls wieder an jeder Stelle in allen Programmen anpassen. Alle topics die über [*MQTT*](#mqtt) gesendet werden und als *'measurement'* *'water_time'* eingetragen haben werden an den [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) weitergeleitet und in die Datenbank eingetragen. Über den eintrag *'location'* können sie unterschieden werden deshalb empfiehlt es sich gleichen Namen und eine Nummerierung zu verwenden da die *'locations'* sortiert und in aufsteigender Reihenfolge vom [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) an den [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) gesendet werden.
 
 Ein Beispiel Screenshot aus der App, die Zahlen stehen für die Zeit (s) in der das jeweilige Ventil geöffnet ist und Wasser gepumpt wird (ca. 0.7l/min):
-![mqttdash app](/pictures/mqttdash.jpg) <br>
+![mqttdash app](/docs/pictures/mqttdash.jpg) <br>
 
 ## Bilder
 Kleine Sammlung von Fotos über mehrere Versionen des Projekts, die über die Zeit entstanden sind.
 ### V1
 
-![Bild](/pictures/bewaeV1(2).jpg) <br>
-![Bild](/pictures/bewaeV1.jpg) <br>
+![Bild](/docs/pictures/bewaeV1(2).jpg) <br>
+![Bild](/docs/pictures/bewaeV1.jpg) <br>
 
 ### V2
 
-![Bild](/pictures/bewaeV2.jpg) <br>
+![Bild](/docs/pictures/bewaeV2.jpg) <br>
 
 ### V3
 
-![Bild](/pictures/bewaeV3(Sommer).jpg) <br>
-![Bild](/pictures/bewaeV3(Herbst).jpg) <br>
-![Bild](/pictures/bewaeV3(Box).jpg) <br>
-![Bild](/pictures/MainPCB.jpg) <br>
+![Bild](/docs/pictures/bewaeV3(Sommer).jpg) <br>
+![Bild](/docs/pictures/bewaeV3(Herbst).jpg) <br>
+![Bild](/docs/pictures/bewaeV3(Box).jpg) <br>
+![Bild](/docs/pictures/MainPCB.jpg) <br>
