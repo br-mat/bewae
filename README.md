@@ -20,8 +20,8 @@ This is **not** a step-by-step guide - a little basic knowledge in dealing with 
 ## Einleitung (DE)
 Diese Version ist eher als Testversion zu sehen.  Neu hinzugefügt und getestet wird nun die Steuerbarkeit über [*MQTT*](#mqtt). <br>
 Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorausgesetzt. Es soll lediglich ein Einblick in das Projekt gegeben werden und mir den Wiederaufbau im Frühjahr oder an neuen Standorten erleichtern. Deshalb habe ich mich auch für Deutsch entschieden, möchte jedoch noch eine Englische Version ergänzen. <br>
-**Entstehung:** <br>
 <br>
+**Entstehung:** <br>
 Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balkonpflanzen ohne Versorgung gewesen wären. Das grün sollte mit einem Bewässerungsset, Schläuche und ein paar Düsen und einer Pumpe am Leben gehalten werden. Eine Reguläre Bewässerung wie bei einer Zeitschaltuhr kam mir jedoch zu langweilig vor und mein Interesse an einem kleinen Bastelprojekt war geweckt. Kapazitive Bodenfeuchte Sensoren und 4 kleine *12V* Ventile waren schnell bestellt, Arduinos hatte ich genug zu Hause, so kam es innerhalb einer Woche zu [Version 1](#v1) und das Überleben der Pflanzen war gesichert. So entstand aus der Not ein Projekt das mich eine Weile Beschäftigt hat, kontinuierlich erweitert und verbessert erfüllt es nach momentanem Stand weit mehr als zuerst geplant. <br>
 <br>
 **Stand jetzt:** <br>
