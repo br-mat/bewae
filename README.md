@@ -31,6 +31,7 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
 - Sensorgesteuerte Automatisierte Bewässerung der Balkonpflanzen
 - Speichern & Darstellung von Sensordaten
 - Überwachung & Steuerung von unterwegs
+- (Zukünftig) Abfrage von Wetterdaten & Bewässerung mit Machine Learning
 
 ### aktueller Aufbau
 - Arduino Nano
