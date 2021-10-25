@@ -1,11 +1,16 @@
+//#########################################################################################################################
+//  br-mat (c) 2021
+//#########################################################################################################################
+//  Author:                             Matthias Braun
+//  email:                        matthiasbraun@gmx.at
+//#########################################################################################################################
+
 //todo:
 // - shift register ground switched away!
-// - flow sensor not used
-// - make sure shiftvalue8b function works and performes action even when shift reg is switched off
+// - flow sensor not integrated yet
 // - 74hc595 ground transistor remove completely or find solution (high side switch maybee)
 //#########################################################################################################################
 //  INCLUDE
-// auslagern in header.h ???
 //#########################################################################################################################
 // arduino standard libs
 #include <Arduino.h>
@@ -16,7 +21,6 @@
 #include "Seeed_BME280.h"
 #include <LowPower.h>
 #include <TimerOne.h>
-//#include <SoftwareSerial.h>
 //#########################################################################################################################
 
 #define DEBUG
@@ -64,7 +68,7 @@ BME280 bme280;
 #define slave_adr 0x08 //adress of slave esp for wifi
 #define max_groups 6 //number of plant groups
 #define measure_intervall 600000UL // value/1000 ==> seconds
-
+#define twbr_global 230 //set TWBR value for i2c frequency
 
 const uint8_t chip_select=10; //SPI cs pin
 
@@ -562,58 +566,7 @@ byte transmitt(int data[], int len){
   }
   return rstatus;
 }
-/*
-//NEW transmitt
-//Testing
-byte transmitt(int data[]){
-  delay(3000);
-  // data - FIXED SIZE 28: int array should be packed in max [28]; less values will send zeros from esp01 to influxdb
-  byte rstatus = 0;
-  if(sizeof data < 28 * sizeof (int) +1){
-    //int tsize = sizeof data;
-    //Serial.println(tsize);
-    #ifdef DEBUG
-    Serial.println(F("Debugstatement inside if positive"));
-    #endif
-    int tsize = 14 * sizeof (int);
-    byte bdata[tsize+2]={0}; //+2 because 1 transmission byte and the last byte cannot be read correctly sometimes (WHY?!)
-    memcpy(bdata, data, tsize);
-    bdata[tsize] = 0; //transmission part value
-    for(unsigned int i=0; i<sizeof bdata-1; i=i+2){
-      #ifdef DEBUG
-      Serial.print(F("value: "));
-      Serial.println(bdata[i] | bdata [i+1] << 8);
-      #endif
-    }
-    #ifdef DEBUG
-    Serial.print(F("transmissionbyte"));
-    Serial.println((byte)bdata[tsize]);
-    #endif
-    Wire.beginTransmission(0x08);
-    Wire.write(bdata, tsize+2);
-    //Wire.write(0);
-    //Wire.endTransmission();
-    rstatus += Wire.endTransmission();
-    delay(3000); //was 2000
-    memcpy(bdata, data +14, tsize);
-    bdata[tsize] = 1; //transmission part value
-    #ifdef DEBUG
-    for(unsigned int i=0; i<sizeof bdata-1; i=i+2){
-      Serial.print(F("value: "));
-      Serial.println(bdata[i] | bdata [i+1] << 8);
-    }
-    Serial.print(F("last byte: "));
-    Serial.println((byte)bdata[tsize]);
-    #endif
-    Wire.beginTransmission(0x08);
-    Wire.write(bdata, tsize+2);
-    //Wire.write(1);
-    //Wire.endTransmission();
-    rstatus += Wire.endTransmission();
-  }
-  return rstatus;
-}
-*/
+
 
 unsigned int readVcc(void) {
   /*
@@ -686,29 +639,8 @@ void receiveEvent(int bytes){
       #endif
    }
 }
-/*
-  if(barr[bytes-1] == (byte)111){ //111 all good reporting process finished
-    //check controll byte indicating a correct transmission & passing to predefined static array
-    for(unsigned int i=0;i<raspi_config_size;i++){
-      if(i<sizeof(data)/2){
-        raspi_config[i]=data[i];
-      }
-      else{
-        raspi_config[i]=0;
-      }
-    }
-    esp_status=(byte)1;
-  }
-  else if(barr[bytes-1] == (byte)112){ //112 all good but process could not be finished;
-    esp_status=(byte)2;                // NOT IMPLEMENTED YET this should allow signaling Nano to not shutdown ESP because it needs extra time
-  }
-  else{ //value not 111 or 112 indicating an error in transmission
-    esp_status=(byte)3;
-  }
-*/
 
 
-#define twbr_global 230
 void setup() {
   // SETUP AND INITALIZE
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -770,9 +702,6 @@ void setup() {
   digitalWrite(s3_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
   //controll_mux(mux, mux_channel, reset_ff_vent, sig_mux_1, en_mux_1, String("set_low"), &value);
   //controll_mux(mux, mux_channel, reset_ff_pump, sig_mux_1, en_mux_1, String("set_low"), &value);
-  #ifdef DEBUG
-  Serial.println(F("debug statement"));
-  #endif
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //init timer1 lib -- solenoids produce anoying beep sound wenn pulsed
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -782,9 +711,6 @@ void setup() {
   //for activate the PWM
   //  //Timer1.pwm(9, 512) gives 50% on pin D9
   //  Timer1.pwm(9, 830);
-  #ifdef DEBUG
-  Serial.println(F("debug statement"));
-  #endif
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //initialize bme280
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -830,22 +756,7 @@ void setup() {
 // NO INTERUPTS! while watering they can cause massive problems!
 // solution would be to turn them off - for testing reasons i keep the step by step way
 
-
-/*
-unsigned long uptime(unsigned long uptime){
-  byte sec, min, hour, day_w, day_m, mon , y;
-  read_time(&sec, &min, &hour, &day_w, &day_m, &mon, &y);
-  return 0L;
-}
-*/
-
 void loop() {
-  /*
-  if(millis()< 20000UL){
-    //delay(20000);
-    read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
-  }
-  */
   // --- main loop ---
   // put your main code here, to run repeatedly:
   digitalWrite(q4_npn_ensh, HIGH);  //activate shift register and set it all to zero
@@ -885,10 +796,9 @@ void loop() {
   //if(true){
     up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); //refresh the up_time every hour, no need for extra function or lib to calculate the up time
     //if(1){
-    if((hour1 == 11) | (hour1 == 19)){
+    if((hour1 == (byte)11) | (hour1 == (byte)19)){
       config = true; //only activate once per cycle
       thirsty = true;
-      //TODO? request or derive the watering amount!
       copy(group_st_time, watering_base, 6); //fill watering placeholder array
     }
   }
@@ -919,6 +829,7 @@ void loop() {
   //if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall-500000UL)) //replace for debuging
   if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall))
   //if(true)
+  //if(false)
   {
     last_activation = actual_time; //first action refresh the time
     TWBR=twbr_global; //make sure that IIC clock speed is low enough for esp01
@@ -1019,7 +930,16 @@ void loop() {
   //expecting i2c to send all values as int (2 bytes) with max 32 bytes due to i2c limitation
   //the bool values can be optimized if needed because 2 bytes for true or false is a big waste
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if(esp_busy){
+  if(config){
+    if(!esp_busy){
+          esp_busy = true;
+          esp_time = actual_time;
+          esp_status=(byte)0; //
+          digitalWrite(esp_pdown,HIGH); //turn up esp
+          delay(500);
+          signalesp01((byte)2);
+          delay(8000); //wait for esp to get the data
+    }
     signalesp01((byte)3); //permit esp01 to takeover iic bus as master
     byte count = 0;
     while(esp_status == 0){
