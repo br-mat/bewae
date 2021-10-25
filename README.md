@@ -1,4 +1,13 @@
 # Bewae - Bewässerungsprojekt v3.1
+### About
+Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino
+
+### Ziele
+- Sensorgesteuerte Automatisierte Bewässerung der Balkonpflanzen
+- Speichern & Darstellung von Sensordaten
+- Überwachung & Steuerung von unterwegs
+- (Zukünftig) Abfrage von Wetterdaten & Bewässerung mit Machine Learning
+
 ## Inhalt:
 - [Introduction (EN)](#introduction-(de))
 - [Einleitung (DE)](#einleitung-(de))
@@ -27,13 +36,6 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
 **Stand jetzt:** <br>
 **Technik:** Für die einfachere Handhabung wurde mit [fritzing](https://fritzing.org/) ein Plan für ein [PCB](#platinen) erstellt und gedruckt. Sensordaten von diversen Sensoren (Bodenfeuchte, Temperatur etc.) werden an einen [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet und dort in eine Datenbank gespeichert. Die Steuerung der Bewässerung funktioniert entweder automatisiert Sensorgesteuert oder über eine [MQTT-messaging App](#mqttdash-app-optional) über das Smartphone. Dank [VPN](https://www.pivpn.io/) sind auch von unterwegs Steuerung und Beobachtung möglich. <br>
 **Versorgung:** Mittlerweile wurde daraus ein autonom funktionierendes System, ausgestattet mit einem kleinen PV Modul einem Blei Akku und einem kleinen *100l* Wassertank. Je nach Temperatur muss nun nur noch einmal pro Woche daran gedacht werden den Tank zu füllen. <br>
-
-
-### Ziele
-- Sensorgesteuerte Automatisierte Bewässerung der Balkonpflanzen
-- Speichern & Darstellung von Sensordaten
-- Überwachung & Steuerung von unterwegs
-- (Zukünftig) Abfrage von Wetterdaten & Bewässerung mit Machine Learning
 
 ### aktueller Aufbau
 - Arduino Nano
