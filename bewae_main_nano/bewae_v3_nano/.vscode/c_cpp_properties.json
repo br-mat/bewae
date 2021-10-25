@@ -1,0 +1,82 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/include",
+                "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/src",
+                "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/.pio/libdeps/nanoatmega328new/Grove - Barometer Sensor BME280",
+                "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/.pio/libdeps/nanoatmega328new/Low-Power",
+                "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/.pio/libdeps/nanoatmega328new/SD/src",
+                "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/.pio/libdeps/nanoatmega328new/TimerOne",
+                "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/variants/eightanaloginputs",
+                "C:/Users/Matthias/.platformio/lib/DHT_nonblocking-master",
+                "C:/Users/Matthias/.platformio/lib/Grove - Barometer Sensor BME280_ID5348",
+                "C:/Users/Matthias/.platformio/lib/Grove_BME280-master",
+                "C:/Users/Matthias/.platformio/lib/Low-Power-master",
+                "C:/Users/Matthias/.platformio/lib/SD",
+                "C:/Users/Matthias/.platformio/lib/Servo/src",
+                "C:/Users/Matthias/.platformio/lib/Stepper/src",
+                "C:/Users/Matthias/.platformio/lib/U8g2/src",
+                "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "C:/Users/Matthias/.platformio/packages/tool-unity",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/include",
+                    "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/src",
+                    "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/.pio/libdeps/nanoatmega328new/Grove - Barometer Sensor BME280",
+                    "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                    "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/.pio/libdeps/nanoatmega328new/Low-Power",
+                    "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/.pio/libdeps/nanoatmega328new/SD/src",
+                    "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "c:/Users/Matthias/OneDrive/Projekte_2/bewaesserung_v3/bewae_main_nano/bewae_v3_nano/.pio/libdeps/nanoatmega328new/TimerOne",
+                    "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/variants/eightanaloginputs",
+                    "C:/Users/Matthias/.platformio/lib/DHT_nonblocking-master",
+                    "C:/Users/Matthias/.platformio/lib/Grove - Barometer Sensor BME280_ID5348",
+                    "C:/Users/Matthias/.platformio/lib/Grove_BME280-master",
+                    "C:/Users/Matthias/.platformio/lib/Low-Power-master",
+                    "C:/Users/Matthias/.platformio/lib/SD",
+                    "C:/Users/Matthias/.platformio/lib/Servo/src",
+                    "C:/Users/Matthias/.platformio/lib/Stepper/src",
+                    "C:/Users/Matthias/.platformio/lib/U8g2/src",
+                    "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "C:/Users/Matthias/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "C:/Users/Matthias/.platformio/packages/tool-unity",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=50200",
+                "ARDUINO_AVR_NANO",
+                "F_CPU=16000000L",
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO=10808",
+                "__AVR_ATmega328P__",
+                ""
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "compilerPath": "C:/Users/Matthias/.platformio/packages/toolchain-atmelavr/bin/avr-gcc.exe",
+            "compilerArgs": [
+                "-mmcu=atmega328p",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}
