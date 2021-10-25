@@ -10,7 +10,6 @@ Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
 ## Inhalt:
 - [Introduction (EN)](#introduction-(de))
 - [Einleitung (DE)](#einleitung-(de))
-  * [Ziele](#ziele)
   * [Aktueller Aufbau](#aktuelleraufbau)
   * [Beschreibung](#beschreibung)
   * [Systemdiagramm](#systemdiagramm)
