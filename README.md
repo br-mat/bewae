@@ -1,12 +1,11 @@
 # Bewae - Bewässerungsprojekt v3.1
 ### About
-Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino
-
-### Ziele
-- Sensorgesteuerte Automatisierte Bewässerung der Balkonpflanzen
-- Speichern & Darstellung von Sensordaten
-- Überwachung & Steuerung von unterwegs
-- (Zukünftig) Abfrage von Wetterdaten & Bewässerung mit Machine Learning
+Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
+**Ziele:**
++ Sensorgesteuerte Automatisierte Bewässerung der Balkonpflanzen
++ Speichern & Darstellung von Sensordaten
++ Überwachung & Steuerung von unterwegs
++ (Zukünftig) Abfrage von Wetterdaten & Bewässerung mit Machine Learning
 
 ## Inhalt:
 - [Introduction (EN)](#introduction-(de))
