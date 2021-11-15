@@ -76,7 +76,7 @@ Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle re
 <br>
 
 ### **Platine_01.fzz** als Erweiterung mit Esp01, Buckconverter etc. (Lochrasterboard)
-Sie ist als Erweiterung gedacht um eine Anbindung an das Netzwerk zu ermöglichen sowie größere Spannungen (*12V*) Schalten zu können. Auch die Spannung der Bleibatterie (Akku) soll über den Spannungsteiler abgegriffen werden können. Außerdem besitzt sie einen micro USB Anschluss und kann damit gut per USB Kabel vom Solarladeregler versorgt werden. So wird kein extra Spannungswandler von *12* auf *5* Vold benötigt. Von hier aus kann auch die Hauptplatine versorgt werden. Der [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) kann bei richtiger Verkabelung über I²C mit dem [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) kommunizieren sowie über den *'enable Pin'* ein und ausgeschalten werden um Strom zu sparen.
+Sie ist als Erweiterung gedacht um eine Anbindung an das Netzwerk zu ermöglichen sowie größere Spannungen (*12V*) Schalten zu können. Auch die Spannung der Bleibatterie (Akku) soll über den Spannungsteiler abgegriffen werden können. Außerdem besitzt sie einen micro USB Anschluss und kann damit gut per USB Kabel vom Solarladeregler versorgt werden. So wird kein extra Spannungswandler von *12* auf *5* Volt benötigt. Von hier aus kann auch die Hauptplatine versorgt werden. Der [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) kann bei richtiger Verkabelung über I²C mit dem [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) kommunizieren sowie über den *'enable Pin'* ein und ausgeschalten werden um Strom zu sparen.
 <br>
 
 ## Code Arduino Nano
