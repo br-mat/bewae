@@ -5,6 +5,7 @@ v3.2 WIP
 - added openweather script (saving current conditions to influxDB)
 - added corresponding .sh launcher files
 - added english translation
+
 todo:
 - added openwather forecast script
 - added dynamic watering controlled by Pi (using ML later)
