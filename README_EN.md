@@ -54,18 +54,18 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
 - *6* Ventile *12V*
 - *2* Pumpen (aktuell nur eine *12V* im Betrieb)
 - *16* Analoge/Digitale Pins für Sensoren & andere Messungen (Bodenfeuchte, Photoresistor, etc.)
-- BME280 Temperatur/Luftfeuchtigkeit/Druck Sensor
+- BME280 Temperature/Humidity/Pressure Sensor
 - RTC DS3231 Real Time Clock
-- micro SD module & micro SD Karte
-- Bewässerung Kit Schläuche, Sprinkler, etc.
+- micro SD module & micro SD card
+- Irrigation Kit Hoses, Sprinklers, etc.
 - *10W 12V* Solar Panel
-- *7.2 Ah* *12V* Bleiakku
-- Solarladeregler
+- *7.2 Ah* *12V* lead acid battery
+- Solar charge controller
 
-### Beschreibung
-Übersicht des Schaltungsaufbaus im beigefügten [*Systemdiagramm.png*](#systemdiagramm) als Blockschaltbild. Sensoren und Module zeichnen jede Menge Daten auf, dazu zählen Bodenfeuchtigkeits Sensoren, Temperatur-, Luftfeuchte- und Luftdruckdaten sowie Sonnenscheindauer. Die Daten werden via [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) an den [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt.
-Automatisiert bewässert wird momentan *2* mal Täglich morgens und abends, aktuell sind bis zu *6* Ventile und *2* Pumpen schalt und steuerbar (erweiterbar). Die Bewässerung passt sich in der aktuellen Version nicht mehr an die Messdaten aus den Feuchtigkeitssensoren im Boden an, um die Steuerung über die [*mqttdash*](https://play.google.com/store/apps/details?id=net.routix.mqttdash&hl=en&gl=US) App zu testen, wird aber später wieder hinzugefügt. Mit einem [*MQTT*](#mqtt) messaging client ist möglich in die Bewässerung einzugreifen und gespeicherte Werte zu verändern. Die Messdaten können über Grafana im Auge zu behalten werden, so kann man mit eingerichtetem [*VPN*](https://www.pivpn.io/) auch von unterwegs seine Pflanzen im Auge behalten und Notfalls eingreifen.
-In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard und die Python scripts zur Verarbeitung der [*MQTT*](#mqtt) messages. Die verwendete Datenbank ist [*InfluxDB*](#influxdb) in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang. <br>
+### Description
+Overview of the circuit design in the attached [*systemdiagram.png*](#systemdiagram) as a block diagram. Sensors and modules record lots of data, including soil moisture sensors, temperature, humidity and barometric pressure data, and sunshine duration. The data is sent via [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) over [*MQTT*](#mqtt) to the [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/), stored there and displayed as nice diagrams thanks to Grafana.
+Automated irrigation is currently *2* times daily in the morning and evening, currently up to *6* valves and *2* pumps are switchable and controllable (expandable). Irrigation no longer adapts to the measured data from the moisture sensors in the soil in the current version to test the control via the [*mqttdash*](https://play.google.com/store/apps/details?id=net.routix.mqttdash&hl=en&gl=US) app, but will be added back later. With a [*MQTT*](#mqtt) messaging client it is possible to intervene in the irrigation and change stored values. The measurement data can be kept track of via Grafana, so you can keep an eye on your plants with [*VPN*](https://www.pivpn.io/) even on the road and intervene if necessary.
+In the other folders are the code for both controllers as well as the json export for the Grafana Dashboard and the Python scripts for processing the [*MQTT*](#mqtt) messages. Die verwendete Datenbank ist [*InfluxDB*](#influxdb) in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang. <br>
 Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürlich einfacher einen [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) zu verwenden anstatt einem [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) mit einem [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) ein "Upgrade" zu verpassen. Da die Platine für einen Arduino Nano konzipiert und schon bestellt wurde habe ich mich für die zweite Variante entschieden, ein Mehraufwand der nicht notwendig aber lehrreich gewesen ist. <br>
 
 
@@ -123,11 +123,12 @@ Um die CPU Frequenz des [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über 
 Nun kann man unter dem Menüpunkt 'Tools' --> 'Board' nach 'Generic ESP8266 Module' wählen. Nachdem die restlichen Einstellungen - wie aus dem Bild zu entnehmen - vorgenommen wurden, ist die IDE bereit für den Upload. Eventuell fehlende librarys müssen gegebenenfalls noch installiert werden, dies ist einfach über den library Manager möglich. <br>
 ![ESP01 upload configuration](/docs/pictures/esp01upload.png "Upload configuration")
 
+
 ## Raspberrypi
 ### Allgemein
 Persönlich verwende ich gerade einen [**RaspberryPi 4B**](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) mit *4GB* Ram auf dem auch ein [*VPN*](https://www.pivpn.io/) (**wireguard**) und [*Pihole*](https://pi-hole.net/) installiert sind. Durch den [*VPN*](https://www.pivpn.io/) kann ich auch von unterwegs auf die Daten zugreifen oder gegebenenfalls in die Bewässerung eingreifen. Auf die Installation gehe ich nicht weiter ein, sie ist aber relativ einfach und in zahlreichen Tutorials gut beschrieben. <br>Für den Betrieb genügt auch die Verfügbarkeit im lokalen Netzwerk, hierbei notwendig sind:
 - SSid (Netzwerkname): BeispielNetzwerkXY
-- Passwort:            BeispielpasswortXY
+- Passwort: BeispielpasswortXY
 - IP oder hostname des RaspberryPi (IP statisch vergeben)
 Für die erleichterte Konfiguration entweder Bildschirm, ssh, teamviewer, vnc viewer ... am Raspberrypi auch auf diese Punkte gehe ich nicht weiter ein, da sie anderswo gut zu finden sind. <br>
 
@@ -203,8 +204,8 @@ Zusätzlich zu diesem topic werden im Payload die Daten angehängt, der Inhalt a
 ```
 
 #### Installation
-Auch hier gibt es einen [link](https://pimylifeup.com/raspberry-pi-mosquitto-mqtt-server/).
-Benutzername und Passwort müssen im Code wieder an allen Stellen angepasst werden.
+Again there is a [link](https://pimylifeup.com/raspberry-pi-mosquitto-mqtt-server/).
+Username and password have to be changed again in all places in the code.
 
 #### Python
 Um an die über [*MQTT*](#mqtt) gesendeten Daten nun in die Datenbank schreiben oder lesen zu können wird das Python script [MQTTInfluxDBBridge3.py](/code/pi_scripts/MQTTInfluxDBBridge3.py) verwendet. Das script selbst stammt aus einem [Tutorial](https://diyi0t.com/visualize-mqtt-data-with-influxdb-and-grafana/) und wurde adaptiert um es an die Anforderungen in meinem Projekt anzupassen. Der Python code kann mit dem shell script [launcher1.sh](/code/pi_scripts/launcher1.sh) automatisiert mit crontab bei jedem Bootvorgang mitgestartet werden. Da der Pi beim Hochfahren eine gewisse Zeit benötigt um alles fehlerfrei zu starten, verzögere ich den Start des scripts um *20* Sekunden. <br>
@@ -241,3 +242,5 @@ Kleine Sammlung von Fotos über mehrere Versionen des Projekts, die über die Ze
 ![Bild](/docs/pictures/bewaeV3(Herbst).jpg) <br>
 ![Bild](/docs/pictures/bewaeV3(Box).jpg) <br>
 ![Bild](/docs/pictures/MainPCB.jpg) <br>
+
+Translation partially done with www.DeepL.com/Translator (free version)
