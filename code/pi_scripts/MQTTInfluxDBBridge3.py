@@ -57,7 +57,7 @@ def _parse_mqtt_message(topic, payload, client):
                 query = influxdb_client.query("SELECT * FROM water_time WHERE location = '{}' ORDER BY time desc LIMIT 1".format(element))
                 item=list(query.get_points(measurement='water_time'))[0]['value']
                 water_time.append(item)
-                republish_data=SensorData(element ,'water_time' ,float(item)) #republish at every request (better readability with grafana)
+                republish_data=SensorData(element ,'water_time' ,float(item)) #republish at every request (better readability in grafana)
                 if republish_data is not None:
                      _send_sensor_data_to_influxdb(republish_data)
             mqtt_msg=','.join(str(e) for e in water_time)
