@@ -2,14 +2,15 @@
 ####################################################################################################
 # Autor: br-mat                       br-mat (c) 2022
 # contact: matthiasbraun@gmx.at
-# request Openweather API data and store within influxdb
+# Openweather API request data and store within influxdb
+# set crontab to execute this hourly
 ####################################################################################################
 
 ####################################################################################################
 # Imports
 ####################################################################################################
 from dataclasses import dataclass
-import requests
+import requests, json
 from influxdb import InfluxDBClient
 
 INFLUXDB_ADDRESS = 'raspberrypi' #hostname or IP
@@ -49,8 +50,8 @@ influxdb_client = InfluxDBClient(INFLUXDB_ADDRESS, 8086, INFLUXDB_USER, INFLUXDB
 
 def main():
     # request
-    LAT=XX.XX # latitude
-    LON=XX.XX # longitude
+    LAT=99.99 # latitude
+    LON=99.99 # longitude
     EXCL='minutely,hourly,daily' #exclude 'currently,minutley,hourly,daily'
     API_KEY='b05760615139c231301ec828d011e7b1' #"Your API Key"
     URL = f"https://api.openweathermap.org/data/2.5/onecall?lat={LAT}&lon={LON}&exclude={EXCL}&appid={API_KEY}"
@@ -61,14 +62,14 @@ def main():
     if response.status_code == 200:
         # getting data in the json format
         data = response.json()
+        current_set=Data(LAT, LON, 'City', 'current', data)
+        to_influxdb(current_set)
+        print(current_set.request)
         #print(data)
     else:
         # showing the error message
-        print("Error in the HTTP request")
+        print("Error: HTTP request not responding")
 
-    current_set=Data(LAT, LON, '****', 'current', data)
-    #to_influxdb(current_set)
-    print(current_set.request)
 
 if __name__ == '__main__':
     print('OpenweatherAPI to InfluxDB')
