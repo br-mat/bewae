@@ -2,7 +2,7 @@
 
 v3.2 WIP
 
-- added openweather script (saving current conditions to influxDB)
+- added openweather scripts (saving current conditions & air condition to influxDB)
 - added corresponding .sh launcher files
 - added english translation
 
