@@ -1,0 +1,67 @@
+keep out zone
+If the positions recommended are not suitable, please make sure that the module is not covered by any metal
+shell. The antenna area of the module and the area 15 mm outside the antenna should be kept clean.
+https://www.espressif.com/sites/default/files/documentation/esp32_hardware_design_guidelines_en.pdf
+
+
+esp32_port1.png:
+rotes X marker, 	sind reservierte pins
+violettes + marker, 	pins die bei boot high sind
+blauer kreis, 		input only
+
+
+GPIO17	X shiftregpin data
+GPIO16	X shiftregpin latch
+GPIO04	X shiftregpin clk
+GPIO02	X	
+
+GPIO32	X
+GPIO33	X
+GPIO25	X
+GPIO26	
+GPIO27	
+
+spi?? using other
+GPIO05
+GPIO23
+GPIO19
+GPIO18
+
+iic
+GPIO
+GPIO
+
+high or pwm @ boot:
+GPIO01	- debug output at boot
+GPIO03	- high at boot!
+GPIO05  mux3
+GPIO15  mux2	
+GPIO14	mux1
+GPIO12	q2 npn sens - boot failed if pulled high!
+GPIO13	mux0
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // ESP setup pin mode                                                                 ESP32 port?
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  pinMode(sw_sens, OUTPUT);       //switch mux, SD etc.                           GPIO04()
+  pinMode(sw_sens2, OUTPUT);      //switch sensor rail                            GPIO36()
+  pinMode(sw_3_3v, OUTPUT);       //switch 3.3v output (with shift bme, rtc)      GPIO23()
+  pinMode(s0_mux_1, OUTPUT);      //mux controll pin & s0_mux_1                   GPIO19()
+  pinMode(s1_mux_1, OUTPUT);      //mux controll pin & s1_mux_1                   GPIO18()
+  pinMode(s2_mux_1, OUTPUT);      //mux controll pin & s2_mux_1                   GPIO17()
+  pinMode(s3_mux_1, OUTPUT);      //mux controll pin & s3_mux_1                   GPIO16()
+  pinMode(sh_cp_shft, OUTPUT);    //74hc595 SH_CP                                 GPIO27()
+  pinMode(st_cp_shft, OUTPUT);    //74hc595 ST_CP                                 GPIO26()
+  pinMode(data_shft, OUTPUT);     //74hc595 Data                                  GPIO33()
+  pinMode(vent_pwm, OUTPUT);      //vent pwm output                               GPIO32()
+  pinMode(chip_select, OUTPUT);   //SPI CS                                        GPIO15()
+  //hardware defined SPI pin      //SPI MOSI                                      GPIO13()
+  //hardware defined SPI pin      //SPI MISO                                      GPIO12()
+  //hardware defined SPI pin      //SPI CLK                                       GPIO14()
+  pinMode(A0, INPUT);             //analog in?                                    GPIO()
+  pinMode(sig_mux_1, INPUT);      //mux sig in                                    GPIO39()
+  pinMode(en_mux_1, OUTPUT);      //mux enable                                    GPIO05() bei boot nicht high!
+  //hardware defined IIC pin        A4  SDA                                       GPIO21()
+  //hardware defined IIC pin        A5  SCL                                       GPIO22()
+  //input only                                                                    (N)GPIO22(34)
+  //input only                                                                    (N)GPIO22(35)
