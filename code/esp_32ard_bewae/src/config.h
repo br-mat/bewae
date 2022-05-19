@@ -1,8 +1,45 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+
+
+#ifndef __CONFIG_H__
+#define __CONFIG_H__
 
 #define DS3231_I2C_ADDRESS 0x68 //adress bme280 sensor
 #define MAX_MSG_LEN 128
+
+#define BME280 1
+#define SD_log 1
+#define RasPi 1
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Wifi Constants
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// WiFi
+const char* ssid = "XXXXXXXXX";         // Your personal network SSID
+const char* wifi_password = "XXXXXXXXX"; // Your personal network password
+
+// MQTT
+const char* mqtt_server = "XXXXXXXXX";  // IP of the MQTT broker
+//const char* topic_prefix_original="home/test/temperature";
+String topic_prefix = "home/sens3/z";
+const char* mqtt_username = "XXXXXXXXX"; // MQTT username
+const char* mqtt_password = "XXXXXXXXX"; // MQTT password
+const char* clientID = "client_test2"; // MQTT client ID
+const char* humidity_topic_sens2 = "home/sens2/humidity";
+const char* temperature_topic_sens2 = "home/sens2/temperature";
+const char* pressure_topic_sens2 = "home/sens2/pressure";
+const char* config_status = "home/bewae/config_status"; //send status with mqtt to raspberrypi
+
+//subsciption topics
+const char* watering_topic = "home/bewae/config";    //bewae config and config status indicate things not passed to influx recive watering instructions
+const char* bewae_sw = "home/nano/bewae_sw";       //switching watering system no/off
+const char* watering_sw = "home/nano/watering_sw"; //switching value override on/off (off - using default values on nano)
+const char* testing = "home/test/tester";
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Pin configuration
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define sw_sens 4 //switch mux, SD etc.
 #define en_mux_1 5 //mux enable
@@ -27,20 +64,20 @@
 #define pwm_ch0_res 8 //pwm resolution in bit (1-15)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//             default static variable definitions & virtual pins (shift register)
+// default static variable definitions & virtual pins (shift register)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //String dummy[100]; //approx data measurment string
 // virtual pins (shift register)
 #define pump1 (uint8_t)7
 #define pump2 (uint8_t)6
-uint8_t groups[6] = {0,1,2,3,4,5};
-uint8_t mux[4] = {s0_mux_1,s1_mux_1,s2_mux_1,s3_mux_1};
+static uint8_t groups[6] = {0,1,2,3,4,5};
+static uint8_t mux[4] = {s0_mux_1,s1_mux_1,s2_mux_1,s3_mux_1};
 //uint8_t pump1 = 7; //shift pin 7
 //uint8_t pump2 = 6; //shift pin 0
 
 //total vent&sensor count
-uint8_t sens_count=12;
-uint8_t vent_count=6;
+static uint8_t sens_count=12;
+static uint8_t vent_count=6;
 
 //limitations & watering & other
 //group limits and watering (some hardcoded stuff)                          
@@ -74,6 +111,24 @@ bool config_watering_sw = true; //switch default and custom values, default in g
 // watering time of specific group; binary values;
 const int raspi_config_size = max_groups+2; //6 groups + 2 binary
 int raspi_config[raspi_config_size]={0};
+
+//int groups[max_groups] = {0};
+byte sw0; //bewae switch
+byte sw1; //water value override switch
+
 byte esp_status = 0; //indicating data recieved from esp01, set true in request event
+bool esp_busy = false; //status variable for esp controller
+unsigned long esp_time = 0; //
+
+bool data_collected = false; //confirms that all requested data has been collected and wifi can be shut down
+bool update_data = false;            //check if nano requests config data update
+bool new_data = false;
+
+//timetable storing watering hours
+//                                    2523211917151311 9 7 5 3 1
+//                                     | | | | | | | | | | | | |
+unsigned long int timetable = 0b00000000000001000000010000000000;
+//                                      | | | | | | | | | | | |
+//                                     2422201816141210 8 6 4 2 
 
 #endif
