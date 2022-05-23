@@ -1,8 +1,3 @@
-/*
-#include <headers.h>
-
-using namespace Helper;
-*/
 //Standard
 //#include <ArduinoSTL.h>
 #include <Arduino.h>
@@ -14,47 +9,97 @@ using namespace Helper;
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <WiFi.h>
-#include <PubSubClient.h>
+#include <PubSubClient.h> //problems with arduino framework?
 
+#include <Helper.h>
 #include <config.h>
-#include <helper.cpp>
+
 
 using namespace std;
 
 #define DEBUG
 //#define ESP32
 
-namespace Helper{
-    String timestamp();
-    void shiftvalue8b(uint8_t val);
-    void system_sleep();
-    void copy(int* src, int* dst, int len);
-    void watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _time, 
-        uint8_t vent_pin, uint8_t pump_pin, uint8_t en, uint8_t pwm);
-    void controll_mux(uint8_t control_pins[], uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val);
-    void save_datalog(String data, uint8_t cs, const char * file);
-    void set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year);
-    void read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year);
-    void disableWiFi();
-    bool enableWifi();
-    void setModemSleep();
-    void wakeModemSleep();
-    bool find_element(int *array, int item);
-};
-
 using namespace Helper;
 
-Adafruit_BME280 bme; // use I2C interface
-/*
-Adafruit_Sensor *bme_temp = bme.getTemperatureSensor();
-Adafruit_Sensor *bme_pressure = bme.getPressureSensor();
-Adafruit_Sensor *bme_humidity = bme.getHumiditySensor();
-*/
 
+
+static uint8_t groups[6] = {0,1,2,3,4,5};
+static uint8_t mux[4] = {s0_mux_1,s1_mux_1,s2_mux_1,s3_mux_1};
+//uint8_t pump1 = 7; //shift pin 7
+//uint8_t pump2 = 6; //shift pin 0
+
+//total vent&sensor count
+static uint8_t sens_count=12;
+static uint8_t vent_count=6;
+
+//limitations & watering & other
+//group limits and watering (some hardcoded stuff)                          
+//          type                  amount of plant/brushes    estimated water amount in liter per day (average hot +30*C)
+//group 1 - große tom             5 brushes                  ~8l
+//group 2 - Chilli, Paprika       5 brushes                  ~1.5l
+//group 3 - Kräuter (trocken)     4 brushes                  ~0.2l
+//group 4 - Hochbeet2             10 brushes                 ~4l
+//group 5 - kleine tom            4 brushes                  ~3.5l
+//group 6 - leer 4 brushes +3 small?        ~0.5l
+
+int group_st_time[6]={120,10,5,30,60,0};//{180, 60, 5, 0, 120, 0} depending on assigned plants to the valve-pipe system
+                                        //standard watering time per day and valve (about 0.7-1l/min)
+int watering_base[6]={0}; //placeholder array to handle watering time over more than one loop period
+                          //watering should pause when exceeding the measurement period
+
+//moisture sensors
+//int low_lim = 300;  //lower limitations, values lower are not realistic
+//int high_lim = 600; //high limitation, values passed that threshold are not realistic
+
+//important global variables
+byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_;
+unsigned long up_time = 0;    //general estimated uptime
+unsigned long last_activation = 0; //timemark variable
+bool thirsty = false; //marks if a watering cycle is finished
+bool config = false;  //handle wireless configuration
+bool config_bewae_sw = true; //switch watering on off
+bool config_watering_sw = true; //switch default and custom values, default in group_st_time and custom sent via mqtt
+
+//wireless config array to switch on/off functions
+// watering time of specific group; binary values;
+const int raspi_config_size = max_groups+2; //6 groups + 2 binary
+int raspi_config[raspi_config_size]={0};
+
+//int groups[max_groups] = {0};
+byte sw0; //bewae switch
+byte sw1; //water value override switch
+
+byte esp_status = 0; //indicating data recieved from esp01, set true in request event
+bool esp_busy = false; //status variable for esp controller
+unsigned long esp_time = 0; //
+
+bool data_collected = false; //confirms that all requested data has been collected and wifi can be shut down
+bool update_data = false;            //check if nano requests config data update
+bool new_data = false;
+
+//timetable storing watering hours
+//                                    2523211917151311 9 7 5 3 1
+//                                     | | | | | | | | | | | | |
+unsigned long int timetable = 0b00000000000001000000010000000000;
+//                                      | | | | | | | | | | | |
+//                                     2422201816141210 8 6 4 2 
+
+
+
+
+
+
+
+Adafruit_BME280 bme; // use I2C interface
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// SETUP                                                       
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup() {
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // configure pin mode                                                                 ESP32 port?
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// configure pin mode                                                             ESP32 port
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   pinMode(sw_sens, OUTPUT);       //switch mux, SD etc.                           GPIO04()
   pinMode(sw_sens2, OUTPUT);      //switch sensor rail                            GPIO36()
   pinMode(sw_3_3v, OUTPUT);       //switch 3.3v output (with shift bme, rtc)      GPIO23()
@@ -78,14 +123,14 @@ void setup() {
   //input only                                                                    (N)GPIO22(34)
   //input only 
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // initialize serial
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// initialize serial
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   Serial.begin(9600);
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // initialize bme280 sensor
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// initialize bme280 sensor
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   #ifdef BME280
   Serial.println(F("BME280 Sensor event test"));
   if (!bme.begin()) {
@@ -106,9 +151,9 @@ void setup() {
   bme_humidity->printSensorDetails();
   */
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // initialize PWM:
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// initialize PWM:
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   //  ledcAttachPin(GPIO_pin, PWM_channel);
   ledcAttachPin(vent_pwm, pwm_ch0);
@@ -119,9 +164,9 @@ void setup() {
   // ledcWrite(PWM_Ch, DutyCycle); //max 2^resolution
   //ledcWrite(pwm_ch0, pow(2, pwm_ch0_res) * fac);
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //init time and date
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//init time and date
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //uncomment if want to set the time
   //set_time(01,42,17,02,30,07+2,20);
 
@@ -187,12 +232,16 @@ if(hour_ != hour1){
   //if(1){
   if(bitRead(timetable, hour1)){
   //if(find_element() & (hour1 == (byte)11) | (hour1 == (byte)19)){
-    config = true; //only activate once per cycle
-    thirsty = true;
+    #ifdef RasPi
+    config = true; //request config update from pi
+    #endif
+    thirsty = true; //initialize watering phase
     //TODO? request or derive the watering amount!
     copy(group_st_time, watering_base, 6); //fill watering placeholder array
   }
 }
+//update global time related variables
+read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
 unsigned long actual_time = (unsigned long)up_time+(unsigned long)sec1*1000+(unsigned long)min1*60000UL; //time in ms, comming from rtc module
                                                                                                 //give acurate values despide temperature changes
 
@@ -236,6 +285,7 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   #elif
   //possible dht solution?
   #endif
+
   // --- data shape---
   //data2[0] = (float)bme280.getPressure() / (float)10+0;     //--> press reading
   //data2[1] = (float)bme280.getHumidity() * (float)100+0;    //--> hum reading
@@ -252,7 +302,6 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   //data2[27]=0;
 
   //delay(500);
-  digitalWrite(sw_sens, LOW);   //deactivate mux & SD
   digitalWrite(sw_sens2, LOW);   //deactivate sensor rail
 
   // --- log data to SD card (backup) ---
@@ -264,13 +313,15 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
     data += data2[i];
     data += ",";
   }
-  delay(250); //give time
+  delay(100); //give time
   save_datalog(data, chip_select, "datalog2.txt");
   #ifdef DEBUG
   Serial.print(F("data:"));
   Serial.println(data);
   #endif
   data=""; //clear string
+  delay(150);
+  digitalWrite(sw_sens, LOW);   //deactivate mux & SD
   #endif //sd log
 
   // --- log to INFLUXDB ---
@@ -282,13 +333,118 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // recieve commands
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+switch(cmd[1]){
+  case :
+}
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // watering
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//thirsty = false;  //uncomment if not wanted
 if(thirsty){
-
-
+  #ifdef DEBUG
+  Serial.println(F("start watering phase"));
+  #endif
+  // --- Watering ---
+  //trigger at specific time
+  //alternate the solenoids to avoid heat damage, let cooldown time if only one remains
+  //Hints: it can happen that solenoids work without delay for 60+60 sec should be no problem when it happens once
+  //       main mosfet probably get warm (check that!)
+  //       overall time should not go over 40 min while watering
+  //       NEVER INTERUPT WHILE WATERING!!!!!!!!!!!!!!!!!!
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  
+  uint8_t watering_done[6]= {1,1,1,1,1,1};
+  #ifdef DEBUG
+  Serial.println(F("watering while"));
+  #endif
+  unsigned long start_t = millis();
+  //bool finished_watering = false; //using thirsty instead
+  while((start_t+measure_intervall > millis()) & (thirsty)){
+    //solenoids need time to cool down after 60 sek on time
+    //controlling for loop to alternate the groups and work on the "todo watering"
+    #ifdef DEBUG
+    Serial.println(F("watering while inside"));
+    #endif
+    for(uint8_t i=0; i<6; i++){
+      int water_timer=0;
+      uint8_t group = groups[i];
+      #ifdef DEBUG
+      Serial.println(group);
+      Serial.print(F("watering base: ")); Serial.println(watering_base[i]);
+      #endif
+      delay(500);
+      if(watering_base[i]<1){
+        water_timer=0;
+        watering_done[i]=0;
+        #ifdef DEBUG
+        Serial.println(F("watering group finished"));
+        #endif
+      }
+      else if(watering_base[i]<60){
+        water_timer=watering_base[i];
+        watering_base[i]=watering_base[i]-water_timer;
+      }
+      else{
+        water_timer=60;
+        watering_base[i]=watering_base[i]-60;
+      }
+      
+      //watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t time, uint8_t vent_pin, uint8_t pump_pin, uint8_t en, uint8_t pwm)
+      if(water_timer > 60){
+        //sanity check (should not be possible)
+        water_timer = 0;
+        #ifdef DEBUG
+        Serial.println(F("Error: watering over 60 sec"));
+        #endif
+      }
+      //water_timer = 0;
+      if(water_timer != 0){
+        #ifdef DEBUG
+        Serial.println(F("start watering"));
+        #endif
+        watering(s0_mux_1, s2_mux_1, s1_mux_1, water_timer, group, pump1, sw_3_3v, vent_pwm);
+        //Serial.print(F("cooldown time: ")); Serial.println(1000UL * water_timer / 2+10000);
+        //delay(1000UL * water_timer / 2+10000); //cooldown pump (OLD)
+        
+        //While doing nothing put arduino to sleep when it waits to cooldown
+        //sleep keep brown out detection (BOD) on in case of problems, so the system can reset
+        //and end possibly harming situations
+        unsigned long sleeptime = 1000UL * water_timer / 2+8000; //let it rest for half of active time + 8sec
+        unsigned int sleep8 = sleeptime/8000;
+        for(unsigned int i = 0; i<sleep8; i++){
+          esp_sleep_enable_timer_wakeup(8000);
+          esp_light_sleep_start();
+        }
+        #ifdef DEBUG
+        Serial.print(F("sleeptime%8: ")); Serial.println(sleeptime%8);
+        #endif
+        delay(sleeptime%8); //delay rest time not devidable by 8000ms
+      }
+    }
+    // check how many groups still need watering
+    byte sum = 0;
+    for(int i=0; i<6; i++){
+      //sum it up, could be done in the other for loop too
+      sum += watering_done[i];
+    }
+    if(sum == (byte)1){
+      //trigger if only one group remains in the list
+      //delay for 30 sec for cooldown on solenoid
+      delay(30000UL);
+    }
+    if(sum == (byte)0){
+      //break the loop
+      thirsty=false;
+    }
+    #ifdef DEBUG
+    Serial.print(F("Groups left: ")); Serial.println(sum); Serial.println(thirsty);
+    #endif
+  }
 }
 
 
@@ -644,404 +800,3 @@ void loop() {
 */
 
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  HELPER     functions
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// seting shiftregister to defined value (8bit)
-void Helper::shiftvalue8b(uint8_t val){
-  //Function description: shiftout 8 bit value, MSBFIRST
-  //FUNCTION PARAMETER:
-  //val         -- 8bit value writte out to shift register                             uint8_t
-  //------------------------------------------------------------------------------------------------
-  shiftOut(data_shft, sh_cp_shft, MSBFIRST, val); //take byte type as value
-  digitalWrite(st_cp_shft, HIGH); //update output of the register
-  delayMicroseconds(100);
-  digitalWrite(st_cp_shft, LOW);
-}
-
-
-void Helper::system_sleep(){
-  //Function: deactivate the modules, prepare for sleep & setting mux to "lowpower standby" mode:
-  digitalWrite(vent_pwm, LOW);     //pulls vent pwm pin low
-  digitalWrite(sw_sens, LOW);  //deactivates sensors
-  digitalWrite(sw_sens2, LOW);      //deactivates energy hungry devices
-  digitalWrite(sw_3_3v, LOW);      //deactivates energy hungry devices
-
-  digitalWrite(en_mux_1, HIGH);    //deactivates mux 1
-  digitalWrite(s0_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
-  digitalWrite(s1_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
-  digitalWrite(s2_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
-  digitalWrite(s3_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
-
-  esp_light_sleep_start();
-}
-
-
-// Function to copy 'len' elements from 'src' to 'dst'
-// code: https://forum.arduino.cc/index.php?topic=274173.0
-void Helper::copy(int* src, int* dst, int len) {
-  //Function description: copy strings
-  //FUNCTION PARAMETER:
-  //src         -- source array                                                       int
-  //dst         -- destiny array                                                      int
-  //len         -- length of array                                                    int
-  //------------------------------------------------------------------------------------------------
-  memcpy(dst, src, sizeof(src[0])*len);
-}
-
-
-void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _time, uint8_t vent_pin, uint8_t pump_pin, uint8_t en, uint8_t pwm){
-  //Function description: Controlls the watering procedure on valves and pump
-  // Careful with interupts! To avoid unwanted flooding.
-  //FUNCTION PARAMETER:
-  //datapin     -- pins to set the mux binaries [4 pins]; mux as example;             uint8_t
-  //clock       -- selected channel; 0-15 as example;                                 uint8_t
-  //latch       -- signal input signal output; free pin on arduino;                   uint8_t
-  //time        -- time in seconds, max 60 seconds                                    uint8_t
-  //vent_pin    -- virtual pin number with shift register                             uint8_t
-  //pump_pin    -- virtual pin number with shift register                             uint8_t 
-  //pwm         -- pwm pin for fast pwm                                               uint8_t
-  //------------------------------------------------------------------------------------------------
-  //initialize state
-  digitalWrite(en, LOW);
-  digitalWrite(clock, LOW); //make sure clock is low so rising-edge triggers
-  digitalWrite(latch, LOW);
-  digitalWrite(datapin, LOW);
-  #ifdef DEBUG
-  Serial.print(F("uint time:")); Serial.println(_time);
-  #endif
-  digitalWrite(en, HIGH);
-  unsigned long time_s = (unsigned long)_time * 1000UL;
-  if (time_s > 60000UL){
-    time_s = 60000UL;
-    #ifdef DEBUG
-    Serial.println(F("time warning: time exceeds 60 sec"));
-    #endif
-  }
-
-  // seting shiftregister to 0
-  shiftOut(datapin, clock, MSBFIRST, 0); //take byte type as value
-  digitalWrite(latch, HIGH); //enables the output of the register
-  delay(1);
-  digitalWrite(latch, LOW);
-  #ifdef DEBUG
-  Serial.print(F("Watering group: "));
-  Serial.println(vent_pin); Serial.print(F("time: ")); Serial.println(time_s);
-  #endif
-  // perform actual function
-  byte value = (1 << vent_pin) + (1 << pump_pin);
-  #ifdef DEBUG
-  Serial.print(F("shiftout value: ")); Serial.println(value);
-  #endif
-  shiftOut(datapin, clock, MSBFIRST, value);
-  digitalWrite(latch, HIGH); //enables the output of the register
-  delay(1);
-  digitalWrite(latch, LOW);
-  delay(100); //wait balance load after pump switches on
-  //control this PWM pin by changing the duty cycle:
-  // ledcWrite(PWM_Ch, DutyCycle);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 1);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.95);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.9);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.88);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.86);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.84);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.82);
-  delay(time_s);
-
-  // reset
-  // seting shiftregister to 0
-  shiftOut(datapin, clock, MSBFIRST, 0); //take byte type as value
-  digitalWrite(latch, HIGH); //enables the output of the register
-  delay(1);
-  digitalWrite(latch, LOW);
-
-  digitalWrite(clock, LOW); //make sure clock is low so rising-edge triggers
-  digitalWrite(latch, LOW);
-  digitalWrite(datapin, LOW);
-  digitalWrite(en, LOW);
-}
-
-
-//controll mux function
-void Helper::controll_mux(uint8_t control_pins[], uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
-  //Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
-  //FUNCTION PARAMETER:
-  //control_pins  -- pins to set the mux binaries [4 pins]; mux as example;            uint8_t array [4]
-  //NOT IN USE channel_setup -- array to define the 16 different channels; mux_channel as example; uint8_t array [16][4]
-  //channel       -- selected channel; 0-15 as example;                                 uint8_t
-  //sipsop        -- signal input signal output; free pin on arduino;                   uint8_t
-  //enable        -- enable a selected mux; free pin on arduino;                        uint8_t
-  //mode          -- mode wanted to use; set_low, set_high, read;                       String
-  //val           -- pointer to reading value; &value in function call;                 int (&pointer)   
-  //------------------------------------------------------------------------------------------------
-  
-  uint8_t channel_setup[16][4]={
-    {0,0,0,0}, //channel 0
-    {1,0,0,0}, //channel 1
-    {0,1,0,0}, //channel 2
-    {1,1,0,0}, //channel 3
-    {0,0,1,0}, //channel 4
-    {1,0,1,0}, //channel 5
-    {0,1,1,0}, //channel 6
-    {1,1,1,0}, //channel 7
-    {0,0,0,1}, //channel 8
-    {1,0,0,1}, //channel 9
-    {0,1,0,1}, //channel 10
-    {1,1,0,1}, //channel 11
-    {0,0,1,1}, //channel 12
-    {1,0,1,1}, //channel 13
-    {0,1,1,1}, //channel 14
-    {1,1,1,1}  //channel 15
-  };
-  
-  //make sure sig in/out of the mux is disabled
-  digitalWrite(enable, HIGH);
-  
-  //selecting channel
-  for(int i=0; i<4; i++){
-    digitalWrite(control_pins[i], channel_setup[channel][i]);
-  }
-  //modes
-  //"set_low" mode
-  if(mode == String("set_low")){
-    pinMode(sipsop, OUTPUT); //turning signal to output
-    delay(1);
-    digitalWrite(sipsop, LOW);
-    digitalWrite(enable, LOW);
-    delay(1);
-    digitalWrite(enable, HIGH);
-    pinMode(sipsop, INPUT); //seting back on input to not accidentally short the circuit somewhere
-  }
-  //"set_high" mode
-  if(mode == String("set_high")){
-    pinMode(sipsop, OUTPUT); //turning signal to output
-    delay(1);
-    digitalWrite(sipsop, HIGH);
-    digitalWrite(enable, LOW);
-    delay(1);
-    digitalWrite(enable, HIGH);
-    pinMode(sipsop, INPUT); //seting back to input to not accidentally short the circuit somewhere
-  }
-  //"read" mode
-  if(mode == String("read")){
-    double valsum=0;
-    pinMode(sipsop, INPUT); //make sure its on input
-    digitalWrite(enable, LOW);
-    delay(2); //give time to stabilize reading
-    *val=analogRead(sipsop); //throw away 
-    *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
-    for(int i=0; i<15; i++){
-      valsum += analogRead(sipsop);
-    }
-    *val=(int)(valsum/15.0+0.5); //take measurement (mean value)
-    delayMicroseconds(100);
-    digitalWrite(enable, HIGH);
-  }
-}
-
-
-void Helper::save_datalog(String data, uint8_t cs, const char * file){
-  //Function: saves data given as string to a sd card via spi
-  //FUNCTION PARAMETER
-  //data       --      a string to save on SD card;    String
-  //cs         --      Chip Select of SPI;             int
-  //file       --      filename as string;             String
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  Serial.begin(9600);
-  pinMode(cs, OUTPUT);
-  // see if the card is present and can be initialized: NEEDED ALTOUGH NOTHING IS DONE!!! DONT DELETE
-  bool sd_check;
-  byte iteration = 0;
-  if (!SD.begin(cs)) {
-    // don't do anything more: 
-    //return;
-    #ifdef DEBUG
-    Serial.println(F("some problem occured: SD card not there"));
-    #endif
-    sd_check=false;
-  }
-  else{
-    sd_check=true;
-  }
-  while(!sd_check){
-    delay(5000);
-    if(!SD.begin(cs)){
-      //do again nothing
-      #ifdef DEBUG
-      Serial.print(F(" - again not found"));
-      #endif
-    }
-    else{
-      sd_check=true;
-    }
-    iteration = iteration + 1;
-    if(iteration > 5){
-      #ifdef DEBUG
-      Serial.println(F(" - not trying again"));
-      #endif
-      sd_check=false;
-    }
-  }
-  // open the file. note that only one file can be open at a time,
-  // so you have to close this one before opening another.
-  File dataFile = SD.open(file, FILE_WRITE);
-  // if the file is available, write to it:
-  if (dataFile){
-    dataFile.println(data);
-    dataFile.close();
-    // print to the serial port too:
-    Serial.println(data);
-  }   //ln 
-  delay(1000);  //need time to save for some reason to work without mistakes
-}
-// Convert normal decimal numbers to binary coded decimal
-byte dec_bcd(byte val)
-{
-  return( (val/10*16) + (val%10) );
-}
-// Convert binary coded decimal to normal decimal numbers
-byte bcd_dec(byte val)
-{
-  return( (val/16*10) + (val%16) );
-}
-
-
-//took basically out of the librarys example as the rest of the time functions, slightly modded
-void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
-//Function: sets the time on the rtc module (iic)
-//FUNCTION PARAMETERS:
-//second     --                   seconds -- byte
-//minute     --                   minutes -- byte
-//hour       --                   hours   -- byte
-//dayofweek  --         weekday as number -- byte
-//dayofmonrh --    day of month as number -- byte
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-{
-  // sets time and date data to DS3231
-  Wire.beginTransmission(DS3231_I2C_ADDRESS);
-  Wire.write(0); // set next input to start at the seconds register
-  Wire.write(dec_bcd(second)); // set seconds
-  Wire.write(dec_bcd(minute)); // set minutes
-  Wire.write(dec_bcd(hour)); // set hours
-  Wire.write(dec_bcd(dayOfWeek)); // set day of week (1=Sunday, 7=Saturday)
-  Wire.write(dec_bcd(dayOfMonth)); // set date (1 to 31)
-  Wire.write(dec_bcd(month)); // set month
-  Wire.write(dec_bcd(year)); // set year (0 to 99)
-  Wire.endTransmission();
-}
-
-
-void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
-{
-//Function: read the time on the rtc module (iic)
-//FUNCTION PARAMETERS:
-//second     --                   seconds -- byte
-//minute     --                   minutes -- byte
-//hour       --                   hours   -- byte
-//dayofweek  --         weekday as number -- byte
-//dayofmonrh --    day of month as number -- byte
-//month      --                     month -- byte
-//year       --   year as number 2 digits -- byte
-//comment: took basically out of the librarys example as the rest of the time functions, slightly modded
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  Wire.beginTransmission(DS3231_I2C_ADDRESS);
-  Wire.write(0); // set DS3231 register pointer to 00h
-  Wire.endTransmission();
-  Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
-  // request seven bytes of data from DS3231 starting from register 00h
-  *second = bcd_dec(Wire.read() & 0x7f);
-  *minute = bcd_dec(Wire.read());
-  *hour = bcd_dec(Wire.read() & 0x3f);
-  *dayOfWeek = bcd_dec(Wire.read());
-  *dayOfMonth = bcd_dec(Wire.read());
-  *month = bcd_dec(Wire.read());
-  *year = bcd_dec(Wire.read());
-}
-
-
-String Helper::timestamp(){
-//Function: give back a timestamp as string (iic)
-//FUNCTION PARAMETERS:
-// NONE
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  String time_data="";
-  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
-  // retrieve data from DS3231
-  read_time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month,
-  &year);
-  time_data += String(hour, DEC);
-  time_data += String(F(","));
-  time_data += String(minute, DEC);
-  time_data += String(F(","));
-  time_data += String(second, DEC);
-  time_data += String(F(","));
-  time_data += String(dayOfMonth, DEC);
-  time_data += String(F(","));
-  time_data += String(month, DEC);
-  return time_data;
-}
-
-void Helper::disableWiFi(){
-    WiFi.disconnect(true);  // Disconnect from the network
-    delayMicroseconds(100);
-    WiFi.mode(WIFI_OFF);    // Switch WiFi off
-}
-
-
-bool Helper::enableWifi(){
-  WiFi.disconnect(false);  // Reconnect the network
-  delayMicroseconds(100);
-  WiFi.mode(WIFI_STA);    // Switch WiFi on
-
-  Serial.println("START WIFI");
-  WiFi.begin(ssid, wifi_password);
-
-  int iterator = 0;
-  while (WiFi.status() != WL_CONNECTED) {
-      delay(1000);
-      Serial.print(".");
-      if(iterator > 30){
-        return false;
-      }
-      iterator++;
-  }
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-  return true;
-}
-
-void Helper::setModemSleep() {
-    WiFi.setSleep(true);
-    if (!setCpuFrequencyMhz(80)){
-        Serial2.println("Not valid frequency!");
-    }
-    // Use this if 40Mhz is not supported
-    // setCpuFrequencyMhz(80); //(40) also possible
-}
- 
-void Helper::wakeModemSleep() {
-    setCpuFrequencyMhz(240);
-}
-
-bool Helper::find_element(int *array, int item){
-  int len = sizeof(array);
-  for(int i = 0; i < len; i++){
-      if(array[i] == item){
-          return true;
-      }
-  }
-  return false;
-}
