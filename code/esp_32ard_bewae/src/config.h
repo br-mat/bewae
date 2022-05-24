@@ -142,7 +142,19 @@
     #endif
 
     #ifndef measure_intervall
-    #define measure_intervall 600000UL // value/1000 ==> seconds
+    #define measure_intervall 600000UL //~10 min, measurement intervall ==> MILLISECOND
+    #endif
+
+    #ifndef cooldown
+    #define cooldown 30000UL //min cooldown time of each solenoid ==> MILLISECOND
+    #endif
+
+    #ifndef max_active_time_sec
+    #define max_active_time_sec 60 //max time active of each solenoid ==> SECOND
+    #endif
+
+    #ifndef pump_cooldown_sec
+    #define pump_cooldown_sec 60000UL //max time active of each solenoid ==> MILLISECOND
     #endif
 
     #ifndef pwm_ch0
@@ -163,6 +175,14 @@
 
     #ifndef pump2
     #define pump2 (uint8_t)6
+    #endif
+
+    // moisture sensors
+    #ifndef low_lim
+    #define low_lim = 300;  //lower limitations, values lower are not realistic
+    #endif
+    #ifndef high_lim
+    #define high_lim = 600; //high limitation, values passed that threshold are not realistic
     #endif
 
 #endif

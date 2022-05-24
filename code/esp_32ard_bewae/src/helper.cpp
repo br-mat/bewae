@@ -65,9 +65,9 @@ void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _ti
   //Function description: Controlls the watering procedure on valves and pump
   // Careful with interupts! To avoid unwanted flooding.
   //FUNCTION PARAMETER:
-  //datapin     -- pins to set the mux binaries [4 pins]; mux as example;             uint8_t
-  //clock       -- selected channel; 0-15 as example;                                 uint8_t
-  //latch       -- signal input signal output; free pin on arduino;                   uint8_t
+  //datapin     -- serial data pin seting bit of shift register                       uint8_t
+  //clock       -- shiftout clock pin                                                 uint8_t
+  //latch       -- shift register set output pin                                      uint8_t
   //time        -- time in seconds, max 60 seconds                                    uint8_t
   //vent_pin    -- virtual pin number with shift register                             uint8_t
   //pump_pin    -- virtual pin number with shift register                             uint8_t 
@@ -141,7 +141,8 @@ void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _ti
 
 
 //controll mux function
-void Helper::controll_mux(uint8_t control_pins[], uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
+//void Helper::controll_mux(uint8_t control_pins[], uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
+void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
   //Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
   //FUNCTION PARAMETER:
   //control_pins  -- pins to set the mux binaries [4 pins]; mux as example;            uint8_t array [4]
@@ -152,7 +153,7 @@ void Helper::controll_mux(uint8_t control_pins[], uint8_t channel, uint8_t sipso
   //mode          -- mode wanted to use; set_low, set_high, read;                       String
   //val           -- pointer to reading value; &value in function call;                 int (&pointer)   
   //------------------------------------------------------------------------------------------------
-  
+  int control_pins[4] = {s0_mux_1,s1_mux_1,s2_mux_1,s3_mux_1};
   uint8_t channel_setup[16][4]={
     {0,0,0,0}, //channel 0
     {1,0,0,0}, //channel 1
@@ -416,3 +417,4 @@ bool Helper::find_element(int *array, int item){
   }
   return false;
 }
+
