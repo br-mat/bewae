@@ -1,16 +1,17 @@
-# Bewae - Bewässerungsprojekt v3.2
+# Bewae - Bewässerungsprojekt v3.3
 
-v3.2 WIP
+v3.3 WIP versions now are not stable
 
 - added openweather scripts (saving current conditions & air condition to influxDB)
 - added corresponding .sh launcher files
 - added english translation
+- added ESP32 build (dropping nano in future?)
+- added 2nd circuit handling pumps & solenoids
 
 todo:
 - added openwather forecast script
 - added dynamic watering controlled by Pi (using ML later)
-- updating main circuit, correct bugs & problems (possible ESP32/Pico version?)
-- added 2nd circuit handling pumps & solenoids?
+- updating main circuit, correct bugs & problems on ESP32 build
 
 ### About
 Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
