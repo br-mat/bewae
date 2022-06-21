@@ -72,8 +72,10 @@ Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürli
 
 
 ## Systemdiagramm
+### V3.0:
 ![System](/docs/pictures/Systemdiagramm.png "Systemdiagramm")
-
+### V3.3 preview:
+![System](/docs/pictures/Systemdiagramm3_3.png "Systemdiagramm 3.3")
 # Details
 
 ## Platinen
