@@ -1,49 +1,59 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+
 #define BME280 1
 #define SD_log 1
 #define RasPi 1
 
 #ifndef DS3231_I2C_ADDRESS
-#define DS3231_I2C_ADDRESS 0x68 //adress bme280 sensor
+#define DS3231_I2C_ADDRESS 0x68 //adress rtc module
 #endif
 
 #ifndef MAX_MSG_LEN
 #define MAX_MSG_LEN 128
 #endif
 
+#ifndef uS_TO_S_FACTOR
+#define uS_TO_S_FACTOR 1000000  //Conversion factor for micro seconds to seconds
+#endif
+#ifndef TIME_TO_SLEEP
+#define TIME_TO_SLEEP  8        //Time ESP32 will go to sleep (in seconds)
+#endif
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Wifi Constants
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // WiFi
     #ifndef ssid
-    #define ssid "XXXXXXXXX"         // Your personal network SSID
+    #define ssid "XXX"         // Your personal network SSID
     #endif
 
     #ifndef wifi_password
-    #define wifi_password "XXXXXXXXX" // Your personal network password
+    #define wifi_password "XXX" // Your personal network password
     #endif
 
     // MQTT
     #ifndef mqtt_server
-    #define mqtt_server "XXXXXXXXX"  // IP of the MQTT broker
+    #define mqtt_server "XXX"  // IP of the MQTT broker
     #endif
 
     #ifndef mqtt_username
-    #define mqtt_username "XXXXXXXXX" // MQTT username
+    #define mqtt_username "XXX" // MQTT username
     #endif
 
     #ifndef mqtt_password
-    #define mqtt_password "XXXXXXXXX" // MQTT password
+    #define mqtt_password "XXX" // MQTT password
     #endif
 
     #ifndef cliendID
-    #define clientID "client_bewaev3" // MQTT client ID
+    //#define clientID "client_bewaev3" // MQTT client ID
+    #define clientID "client_test2"
     #endif
 
     #ifndef topic_prefix
-    #define topic_prefix "home/sens3/z"
+    #define topic_prefix "home/bewae_data/"
     #endif
 
     #ifndef humidity_topic_sens2
@@ -59,21 +69,27 @@
     #endif
 
     #ifndef config_status
-    #define config_status "home/bewae/config_status" //send status with mqtt to raspberrypi
+    #define config_status "home/bewae/config_status" //signal Pi that system is up and listening for instructions
     #endif
 
     //subsciption topics
     #ifndef watering_topic
-    #define watering_topic "home/bewae/config"   //bewae config and config status indicate things not passed to influx recive watering instructions
+    #define watering_topic "home/bewae/config" //bewae config and config status indicate things not passed to influx recive watering instructions
     #endif
     #ifndef bewae_sw
-    #define bewae_sw "home/nano/bewae_sw"     //switching watering system no/off
+    #define bewae_sw "home/nano/bewae_sw" //switching watering system no/off
     #endif
     #ifndef watering_sw
-    #define watering_sw "home/nano/watering_sw" //switching value override on/off (off - using default values on nano)
+    #define watering_sw "home/nano/watering_sw" //switching value override on/off (default values on esp or sent from pi)
+    #endif
+    #ifndef timetable_sw
+    #define timetable_sw "home/nano/timetable" //changing timetable
     #endif
     #ifndef testing
     #define testing "home/test/tester"
+    #endif
+    #ifndef comms
+    #define comms "home/bewae/comms" //get command from raspberrypi
     #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -148,13 +164,14 @@
     #ifndef cooldown
     #define cooldown 30000UL //min cooldown time of each solenoid ==> MILLISECOND
     #endif
-
+    
+    //pump & transistor max on time
     #ifndef max_active_time_sec
-    #define max_active_time_sec 60 //max time active of each solenoid ==> SECOND
+    #define max_active_time_sec 40 //max time active of each solenoid ==> SECOND
     #endif
 
     #ifndef pump_cooldown_sec
-    #define pump_cooldown_sec 60000UL //max time active of each solenoid ==> MILLISECOND
+    #define pump_cooldown_sec 60000UL //max time active of each pump ==> MILLISECOND
     #endif
 
     #ifndef pwm_ch0
@@ -170,19 +187,25 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // virtual pins (shift register)
     #ifndef pump1
-    #define pump1 (uint8_t)7
+    #define pump1 (uint8_t)5
     #endif
 
     #ifndef pump2
-    #define pump2 (uint8_t)6
+    #define pump2 (uint8_t)5
     #endif
 
     // moisture sensors
     #ifndef low_lim
-    #define low_lim = 300;  //lower limitations, values lower are not realistic
+    #define low_lim 300  //lower limitations, values lower are not realistic
     #endif
+    
     #ifndef high_lim
-    #define high_lim = 600; //high limitation, values passed that threshold are not realistic
+    #define high_lim 600 //high limitation, values passed that threshold are not realistic
+    #endif
+
+    //commands
+    #ifndef stat_request
+    #define stat_request 2
     #endif
 
 #endif

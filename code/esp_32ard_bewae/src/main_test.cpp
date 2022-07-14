@@ -1,3 +1,5 @@
+/*
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // br-mat (c) 2022
@@ -14,6 +16,7 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <SD.h>
+
 
 //external
 #include <Adafruit_Sensor.h>
@@ -52,13 +55,14 @@ using namespace Helper;
 //is_set, pin, pump_pin, name, watering default, watering base, watering time, last act,
 solenoid group[max_groups] =
 { 
-  {true, 0, pump1, "Tom1", 60, 0, 0 , 0}, //group1
-  {true, 1, pump1, "Tom2", 50, 0, 0, 0}, //group2
-  {true, 2, pump1, "Gewa", 20, 0, 0, 0}, //group3
-  {true, 3, pump1, "Chil", 18, 0, 0, 0}, //group4
-  {true, 6, pump1, "Krtr", 10, 0, 0, 0}, //group5
-  {true, 7, pump1, "Erdb", 25, 0, 0, 0}, //group6
+  {true, 0, pump1, "Tom1", 65, 0, 0 , 0}, //group1
+  {true, 1, pump1, "Tom2", 47, 0, 0, 0}, //group2
+  {true, 2, pump1, "Gewa", 10, 0, 0, 0}, //group3
+  {true, 3, pump1, "Chil", 20, 0, 0, 0}, //group4
+  {true, 6, pump1, "Krtr", 15, 0, 0, 0}, //group5
+  {true, 7, pump1, "Erdb", 35, 0, 0, 0}, //group6
 };
+
 
 //maybe shift into function to save ram?
 //is_set, pin, name, val (float keep memory in mind! esp32 can handle a lot tho)
@@ -97,18 +101,15 @@ const int raspi_config_size = max_groups+2; //6 groups + 2 binary
 int raspi_config[raspi_config_size]={0};
 
 //int groups[max_groups] = {0};
-bool msg_stop = false;
-bool sw0 = 1; //bewae switch (ON/OFF)
-bool sw1 = 0; //water value override switch
+byte sw0; //bewae switch
+byte sw1; //water value override switch
 
 //timetable storing watering hours
-//                                           2523211917151311 9 7 5 3 1
-//                                            | | | | | | | | | | | | |
-unsigned long int timetable_default = 0b00000000000100100010010000000000;
-//                                             | | | | | | | | | | | | |
-//                                            2422201816141210 8 6 4 2 0
-unsigned long int timetable = timetable_default; //initialize on default
-unsigned long int timetable_raspi = timetable_default; //initialize on default
+//                                   2523211917151311 9 7 5 3 1
+//                                    | | | | | | | | | | | | |
+unsigned long int timetable = 0b00000000000100001000000100000000;
+//                                     | | | | | | | | | | | | |
+//                                    2422201816141210 8 6 4 2 0
 
 Adafruit_BME280 bme; // use I2C interface
 
@@ -117,105 +118,12 @@ Adafruit_BME280 bme; // use I2C interface
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Initialise the WiFi and MQTT Client objects
 WiFiClient wificlient;
+
 PubSubClient client(wificlient);
 
 void callback(char *topic, byte *payload, unsigned int msg_length);
 bool connect_MQTT();
 bool msg_mqtt();
-
-//callback function to receive mqtt data
-//watering topic payload rules:
-//',' is the sepperator -- no leading ',' -- msg can end with or without ',' -- only int numbers
-// -- max_groups should be the same as in code for nano!!!
-void callback(char *topic, byte *payload, unsigned int msg_length){
-  #ifdef DEBUG
-  Serial.print(F("Enter callback topic: "));
-  Serial.println(topic);
-  #endif
-  // copy payload to a string
-  String msg="";
-  if(msg_length > MAX_MSG_LEN){ //limit msg length
-    msg_length = MAX_MSG_LEN;
-    #ifdef DEBUG
-    Serial.print(F("Message got cut off, allowed len: "));
-    Serial.println(MAX_MSG_LEN);
-    #endif
-  }
-  for(int i=0; i< msg_length; i++){
-    msg+=String((char)payload[i]);
-  }
-  //trigger correct topic to decode msg
-  if(String(watering_topic) == topic){
-    int c_index=0;
-    for(int i=0; i<max_groups; i++){
-      String val="";
-      int start_index = c_index; //use old index position
-      c_index=msg.indexOf(",",start_index)+1; //find point of digit after the sepperator ','
-      if((int)c_index == (int)-1){            //index = -1 means char nor found
-        c_index=msg_length+1;                 //add 1 to reach end of string
-      }
-      //extracting csv values
-      for(start_index; start_index<c_index-1; start_index++){
-        val+=msg[start_index];
-      }
-      group[i].watering_mqtt = val.toInt(); //changing watering value of the valve
-
-      #ifdef DEBUG
-      Serial.print(F("MQTT val received:"));
-      Serial.println(val.toInt());
-      Serial.print(F("index: "));
-      Serial.println(i);
-      #endif
-    }
-  }
-  if(String(bewae_sw) == topic){
-    sw0 = (bool)msg.toInt();
-    #ifdef DEBUG
-    Serial.print(F("Watering switched: ")); Serial.println(sw0);
-    #endif
-  }
-
-  if(String(watering_sw) == topic){
-    sw1 = (bool)msg.toInt();
-    #ifdef DEBUG
-    Serial.println(F("watering-values changed, transmitted values will be considered"));
-    #endif
-  }
-
-  if(String(testing) == topic){
-    #ifdef DEBUG
-    Serial.println(F("test msg: ")); Serial.println(msg);
-    #endif
-  }
-
-  if(String(timetable_sw) == topic){
-    timetable_raspi = (unsigned long) msg.toInt(); //toInt returns long! naming is confusing
-    #ifdef DEBUG
-    Serial.println(F("timetable changed"));
-    #endif
-  }
-
-  // TODO implement command function consisting of two letters and a msg part
-  //   this function should be able to set watering times (probably values too?)
-  //   and turn on/off measureing watering etc.
-  if(String(comms) == topic){
-    int command = (int) msg.toInt();
-    switch (command)
-    {
-    case 0: //stop case indicates end off transmission
-      msg_stop = true;
-      break;
-    
-    default:
-      break;
-    }
-
-    #ifdef DEBUG
-    Serial.println(F("command recieved"));
-    #endif
-  }
-}
-
 
 // Custom function to connet to the MQTT broker via WiFi
 bool connect_MQTT(){
@@ -280,13 +188,13 @@ bool connect_MQTT(){
     #ifdef DEBUG
     Serial.println("Connected to MQTT Broker!");
     #endif
-    //client.setCallback(callback);
+    client.setCallback(callback);
     client.subscribe(watering_topic, 0); //(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
     client.subscribe(bewae_sw, 0); //switch on/off default values for watering
     client.subscribe(watering_sw, 0); //switch on/off watering procedure
     client.subscribe(testing, 0);
     client.subscribe(comms, 0); //commands from Pi
-    client.setCallback(callback);
+    //client.setCallback(callback);
     client.loop();
     return true;
   }
@@ -298,25 +206,89 @@ bool connect_MQTT(){
     return false;
   }
 }
-
-
-bool msg_mqtt(String topic, String data){
-  //This function take topic and data as String and publishes it via MQTT
-  //it returns a bool value, where 0 means success and 1 is a failed attemt
-
-  //input: String topic, String data
-  //return: false if everything ok otherwise true
-
-  //unsigned int length = data.length(); //NEW IMPLEMENTATION SHOULD CORRECT BUG
-  client.loop();
+//callback function to receive mqtt data
+//watering topic payload rules:
+//',' is the sepperator -- no leading ',' -- msg can end with or without ',' -- only int numbers
+// -- max_groups should be the same as in code for nano!!!
+void callback(char *topic, byte *payload, unsigned int msg_length){
   #ifdef DEBUG
-  Serial.println(F("msg_mqtt func called"));
-  #endif  
+  Serial.print(F("Enter callback topic: "));
+  Serial.println(topic);
+  #endif
+  // copy payload to a string
+  String msg="";
+  if(msg_length > MAX_MSG_LEN){ //limit msg length
+    msg_length = MAX_MSG_LEN;
+    #ifdef DEBUG
+    Serial.print(F("Message got cut off, allowed len: "));
+    Serial.println(MAX_MSG_LEN);
+    #endif
+  }
+  for(int i=0; i< msg_length; i++){
+    msg+=String((char)payload[i]);
+  }
+  //trigger correct topic to decode msg
+  if(String(watering_topic) == topic){
+    int c_index=0;
+    for(int i=0; i<max_groups; i++){
+      String val="";
+      int start_index = c_index; //use old index position
+      c_index=msg.indexOf(",",start_index)+1; //find point of digit after the sepperator ','
+      if((int)c_index == (int)-1){            //index = -1 means char nor found
+        c_index=msg_length+1;                 //add 1 to reach end of string
+      }
+      //extracting csv values
+      for(start_index; start_index<c_index-1; start_index++){
+        val+=msg[start_index];
+      }
+      group[i].watering_time = val.toInt(); //changing watering value of the valve
+
+      #ifdef DEBUG
+      Serial.print(F("MQTT val received:"));
+      Serial.println(val.toInt());
+      Serial.print(F("index: "));
+      Serial.println(i);
+      #endif
+    }
+  }
+  if(String(bewae_sw) == topic){
+    sw0 = (byte)msg.toInt();
+    #ifdef DEBUG
+    Serial.println(F("watering switched"));
+    #endif
+  }
+
+  if(String(watering_sw) == topic){
+    sw1 = (byte)msg.toInt();
+    #ifdef DEBUG
+    Serial.println(F("watering-values changed, transmitted values will be considered"));
+    #endif
+    //data_collected=true; //!!!!!!!!!!!!!!!!!!!! replace later last sent by raspi
+  }
+
+  // TODO implement command function consisting of two letters and a msg part
+  //   this function should be able to set watering times (probably values too?)
+  //   and turn on/off measureing watering etc.
+  if(String(comms) == topic){
+    int length = msg.length();
+    String comm_pre = msg.substring(0, 2);
+    String comm_suf = msg.substring(2, length);
+
+    #ifdef DEBUG
+    Serial.println(F("command recieved"));
+    #endif
+  }
+}
+
+byte msg_mqtt(String topic, String data){
+  //This function take topic and data as String and publishes it via MQTT
+  //it returns a byte value, where 0 means success and 1 is a failed attemt
+  //try publishing
   if(client.publish(topic.c_str(), data.c_str())){
     #ifdef DEBUG
     Serial.println(F("Data sent!"));
     #endif
-    return false;
+    return (byte)0;
   }
   else{
     //handle retry
@@ -324,57 +296,20 @@ bool msg_mqtt(String topic, String data){
     Serial.println(F("Data failed to send. Reconnecting to MQTT Broker and trying again"));
     #endif
     client.connect(clientID, mqtt_username, mqtt_password);
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! REDOO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // FALLS ES RECONNECT GIBT DIESE NUTZEN ANSONSTEN anders lösen
-    //reconnect macht probleme, weiß aber nicht warum überhaupt notwendig, da eigentlich verbindung stehen sollte.
-    client.subscribe(watering_topic, 0); //(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
-    client.subscribe(bewae_sw, 0); //switch on/off default values for watering
-    client.subscribe(watering_sw, 0); //switch on/off watering procedure
-    client.subscribe(testing, 0);
-    client.subscribe(comms, 0); //commands from Pi
-    client.setCallback(callback);
-    client.loop();
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! REDOO REDOO REDOO REDOO REDOO REDOO REDOO REDOO REDOO !!!!!!!!!!!!!!!!!!!!!!!!!
     delay(1000); // This delay ensures that client.publish doesn't clash with the client.connect call
     if(!client.publish(topic.c_str(), data.c_str())){
       #ifdef DEBUG
       Serial.println(F("ERROR no data sent!"));
       #endif
-      return true;
+      return (byte)1;
     }
     else{
       #ifdef DEBUG
       Serial.println(F("Data sent!"));
       #endif
-      return false;
+      return (byte)0;
     }
   }
-}
-
-bool pub_data(struct sensors* output_data, unsigned int length){
-  //This function should take an array and publish the content via mqtt
-  //input: a pointer array of sensors struct, its unsigned int length
-  //return: false on success, true if any problems occured
-
-  #ifdef DEBUG
-  Serial.println(F("pub_data func called"));
-  #endif
-  unsigned int problem = 0;
-  for (int i=0; i<length; i++, output_data++ ) {
-    if(output_data->is_set){
-      String name = output_data->name;
-      String val = String(output_data->val);
-      String topic = topic_prefix + name;
-      problem += msg_mqtt(topic, val);
-    }
-  }
-  if((bool)problem){
-    #ifdef DEBUG
-    Serial.println(F("Problem occured while publishing data! count: ")); Serial.println(problem);
-    #endif
-  }
-  return (bool)problem;
-  
 }
 
 //######################################################################################################################
@@ -407,11 +342,11 @@ void setup() {
   //hardware defined SPI pin      //SPI MOSI                                      GPIO13()
   //hardware defined SPI pin      //SPI MISO                                      GPIO12()
   //hardware defined SPI pin      //SPI CLK                                       GPIO14()
-  //pinMode(A0, INPUT);             //analog in?                                  GPIO()
+  //pinMode(A0, INPUT);             //analog in?                                    GPIO()
   pinMode(sig_mux_1, INPUT);      //mux sig in                                    GPIO39()
   pinMode(en_mux_1, OUTPUT);      //mux enable                                    GPIO05() bei boot nicht high!
   //hardware defined IIC pin      //A4  SDA                                       GPIO21()
-  //hardware defined IIC pin      //A5  SCL                                       GPIO22()
+  //hardware defined IIC pin      a//A5  SCL                                       GPIO22()
   //input only                                                                    (N)GPIO22(34)
   //input only 
 
@@ -437,13 +372,13 @@ void setup() {
   //delay(60000UL);
 
   Serial.println(F("BME280 Sensor event test"));
-  if (!bme.begin(0x76)) {
+  if (!bme.begin()) {
     #ifdef DEBUG
     Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
     #endif
     int it = 0;
     while (1){
-      delay(25);
+      delay(100);
       it++;
       #ifdef DEBUG
       Serial.println(F("."));
@@ -453,12 +388,6 @@ void setup() {
       }
     }
   }
-  #ifdef DEBUG
-  else{
-    float temp_test = bme.readTemperature();
-    Serial.print(F("Temperature reading: ")); Serial.println(temp_test);
-  }
-  #endif
   delay(1000);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize PWM:
@@ -477,7 +406,7 @@ void setup() {
 //init time and date
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //uncomment if want to set the time
-  //set_time(01,59,16,02,30,06,22);
+  //set_time(01,45,19,02,17,06,22);
 
   //seting time (second,minute,hour,weekday,date_day,date_month,year)
   //set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
@@ -488,7 +417,6 @@ void setup() {
   //initialize global time
   Helper::read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
   #ifdef DEBUG
-  Serial.print("Time: "); Serial.print(hour_);
   Serial.println(F("debug 0"));
   #endif
 
@@ -509,9 +437,9 @@ void setup() {
   String test_msg = String("Hello! ") + String(hour_) + String(":") + String(min_);
   Serial.println(msg_mqtt(testing, test_msg));
   Serial.print(hour_);
-  delay(1000);
+  delay(100);
   #endif
-  hour_ = 0;
+
   //disableWiFi();
 
   system_sleep(); //turn off all external transistors
@@ -574,86 +502,37 @@ if(rtc_status != 0){
 else{
   Serial.println(F("rtc found"));
 }
-if (!(bool)rtc_status)
+if (!rtc_status)
 {
   read_time(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1);
-}
   #ifdef DEBUG
-  delay(1);
   Serial.print(F("Time hour: ")); Serial.print(hour1); Serial.print(F(" last ")); Serial.println(hour_);
-  Serial.print("rtc status: "); Serial.println(rtc_status); Serial.println(!(bool) rtc_status);
   #endif
+}
 
-if((hour_ != hour1) & (!(bool)rtc_status)){
+if((hour_ != hour1) & (!rtc_status)){
 //if(true){
-  // check for hour change
   up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); //refresh the up_time every hour, no need for extra function or lib to calculate the up time
   read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
-
-  #ifdef RasPi
-  // ask for config updates
-  wakeModemSleep();
-  delay(1);
-  connect_MQTT();
-  delay(100);
-  #ifdef DEBUG
-  Serial.println(F("Sending status message to Raspi!"));
-  #endif
-  msg_mqtt(config_status, String("2")); //signal message to rasPi
-  int iter = 0;
-  client.loop();
-  delay(1);
-  client.loop();
-  while(true){
-    delay(1);
-    client.loop();
-    Serial.print("1");
-    if(iter > 5000){
-      msg_stop = true;
-      #ifdef DEBUG
-      Serial.println(F("Warning: No commands recieved from Raspi!"));
-      #endif
-      break;
-    }
-    iter++;
-  }
-  #endif
-
-  //select chosen timetable
-  if(sw1){
-    timetable = timetable_raspi;
-  }
-  else{
-    timetable = timetable_default;
-  }
-  timetable = timetable_default;
   //if(true){
   if(bitRead(timetable, hour1)){
+  //if(find_element() & (hour1 == (byte)11) | (hour1 == (byte)19)){ //OLD!
+    #ifdef RasPi
+    config = true; //request config update from pi
+    #endif
     thirsty = true; //initialize watering phase
 
-    #ifdef DEBUG
-    Serial.print("bool status: sw1 "); Serial.print(sw1); Serial.print(" sw0 "); Serial.print(sw0);
-    #endif
     // take default values
     //if(sw1){
-    if(sw1 && sw0){
-      //take recieved values
-      #ifdef DEBUG
-      Serial.println(F("consider sent watering configuration."));
-      #endif
+    if(true){
       int len = sizeof(group)/sizeof(group[0]);
       struct solenoid* ptr = group;
-      if(ptr->is_set){
-        for (int i=0; i<len; i++, ptr++ ) {
-          ptr->watering_time = ptr->watering_mqtt;
-        }
+      for (int i=0; i<len; i++, ptr++ ) {
+        ptr->watering_time = ptr->watering_default;
       }
     }
-    if(!sw1 && sw0){
-      // take default values
-      #ifdef DEBUG
-      Serial.println(F("consider default watering configuration."));
-      #endif
+    else{
+    // take recieved values
       int len = sizeof(group)/sizeof(group[0]);
       struct solenoid* ptr = group;
       for (int i=0; i<len; i++, ptr++ ) {
@@ -662,45 +541,43 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
         }
       }
     }
-
-    if(!sw0){
-      #ifdef DEBUG
-      Serial.print(F("Set watering of all active groups to 0."));
-      #endif
-      int len = sizeof(group)/sizeof(group[0]);
-      struct solenoid* ptr = group;
-      for(int i=0; i<len; i++, ptr++){
-        if(ptr->is_set){
-          ptr->watering_time = 0;
+/*
+    //TODO? request or derive the watering amount!
+    connect_MQTT();
+    //request instructions from Pi
+    if((config) & (connect_MQTT())){ 
+      if(!client.publish(config_status, String(stat_request).c_str())){
+        #ifdef DEBUG
+        Serial.print(F("Error: sending status value, retry"));
+        Serial.println(String(stat_request).c_str());
+        #endif
+        delay(500);
+        int i=0;
+        while(!client.publish(config_status, String(stat_request).c_str())){
+          if(i>5){
+            #ifdef DEBUG
+            Serial.print(F("Error: sending statusquestion value "));
+            #endif
+            //return_value = false;
+            break;
+          }
+          #ifdef DEBUG
+          Serial.println(F(" . "));
+          #endif
+          delay(2000);
+          i++;
         }
       }
-    }
-
-    #ifdef DEBUG
-    if(sw0)
-    {
-      Serial.println(F("Watering ON"));
-    }
-    else{
-      Serial.println(F("Watering OFF"));
-    }
-    if(1){
-      Serial.println(F("Water configuration:"));
-      int len = sizeof(group)/sizeof(group[0]);
-      struct solenoid* ptr = group;
-      for(int i=0; i<len; i++, ptr++){
-        Serial.print(F("Group - ")); Serial.print(ptr->name); Serial.print(F(" - time - ")); Serial.println(ptr->watering_time);
+      else{
+        #ifdef DEBUG
+        Serial.println(F("Success status: request sent!"));
+        #endif
       }
     }
-    #endif
-    
+    */
+   /*
   }
 }
-#ifdef DEBUG
-Serial.println(F("Config: ")); Serial.print(F("Bewae switch: ")); Serial.println(sw0);
-Serial.print(F("Value override: ")); Serial.println(sw1);
-Serial.print(F("Timetable: ")); Serial.print(timetable_raspi); Serial.print(F(" value ")); Serial.println(timetable); 
-#endif
 
 //update global time related variables
 unsigned long loop_t = millis();
@@ -716,9 +593,9 @@ Serial.println(actual_time); Serial.println(last_activation); Serial.println(mea
 Serial.println((float)((float)actual_time-(float)last_activation)); Serial.println(up_time);
 #endif
 //if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall-500000UL)) //replace for debuging
-if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall))
+//if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall)) //use ds3231 based time read for more stability
 //if(true)
-//if(false)
+if(false)
 {
   last_activation = actual_time; //first action refresh the time
   #ifdef DEBUG
@@ -757,31 +634,10 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   delay(1); //was 3
   data2[6+i] = value;
   }
-  digitalWrite(sw_3_3v, HIGH);
-  delay(1);
   #ifdef BME280
-  if (!bme.begin(0x76)) {
-    #ifdef DEBUG
-    Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
-    #endif
-    int it = 0;
-    while (1){
-      delay(25);
-      it++;
-      #ifdef DEBUG
-      Serial.println(F("."));
-      #endif
-      if(it > 100){
-        break;
-      }
-    }
-    data2[0] = 0; data2[1] = 0; data2[2] = 0;
-  }
-  else{
-    data2[0] = (float)bme.readPressure() / (float)10+0;     //--> press reading
-    data2[1] = (float)bme.readHumidity() * (float)100+0;    //--> hum reading
-    data2[2] = (float)bme.readTemperature() * (float)100+0; //--> temp reading
-  }
+  data2[0] = (float)bme.readPressure() / (float)10+0;     //--> press reading
+  data2[1] = (float)bme.readHumidity() * (float)100+0;    //--> hum reading
+  data2[2] = (float)bme.readTemperature() * (float)100+0; //--> temp reading
   #endif
 
   #ifdef DHT
@@ -825,11 +681,11 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   delay(150);
   digitalWrite(sw_sens, LOW);   //deactivate mux & SD
   digitalWrite(sw_sens2, LOW);   //deactivate sensor rail
-  digitalWrite(sw_3_3v, LOW);
   #endif //sd log
 
   // --- log to INFLUXDB ---
   #ifdef RasPi
+  
   #endif
 }
 
@@ -868,6 +724,18 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
     Serial.println(raspi_config[i]);
   }
   */
+ /*
+
+
+
+ 
+#ifdef RasPi
+if (connect_MQTT())
+{
+  Serial.println(" "); Serial.println(F("Connection established!"));
+}
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // watering
@@ -909,21 +777,20 @@ if(thirsty){
       if((ptr->last_t + cooldown < millis()) & (ptr->watering_time > 0) & (ptr->is_set)) //minimum cooldown of 30 sec
       {
         unsigned int water_timer = 0;
-        //set ptr variable to 0 when finished
         if (ptr->watering_time < max_active_time_sec)
         {
           water_timer = ptr->watering_time;
           ptr->watering_time = 0;
         }
-        else{ //reduce ptr variable
-          water_timer = (unsigned int) max_active_time_sec;
-          ptr->watering_time -= (unsigned int) max_active_time_sec;
+        else{
+          water_timer = 60;
+          ptr->watering_time -= 60;
         }
-        if(water_timer > (unsigned int) max_active_time_sec){ //sanity check
+        if(water_timer > 60){ //sanity check
           #ifdef DEBUG
           Serial.println(F("Warning watering timer over 60!"));
           #endif
-          water_timer = (unsigned int) max_active_time_sec;
+          water_timer = 60;
         }
         #ifdef DEBUG
         Serial.print(F("Watering group: ")); Serial.print(ptr->name); Serial.println(F(";  "));
@@ -937,30 +804,25 @@ if(thirsty){
         delay(10);
         #endif
       }
-      //delay(10000); // !!!!!!!!!!!!!!!!!!!!!!!!!! REMOVE IN REAL PROGRAMM !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       #ifdef DEBUG
       Serial.println(F("----------------------"));
       #endif
-
-      //if((unsigned long) pump_t > 1UL + (pump_cooldown_sec/1000UL)/2UL){
-      if(pump_t > (unsigned int) max_active_time_sec){
-        pump_t = 0;
-        //sleep while cooldown
-        #ifdef DEBUG
-        Serial.print(F("cooling down: ")); Serial.println(2UL + (unsigned long) (pump_cooldown_sec / ((unsigned long) TIME_TO_SLEEP * 1000UL)));
-        delay(100);
-        #endif
-        for(unsigned long i = 0; i < 2UL + (unsigned long) (pump_cooldown_sec / ((unsigned long) TIME_TO_SLEEP * 1000UL)); i++){
-        //for(int i=0; i > 15; i++){
-          esp_light_sleep_start();
-        }
-      }
-      else{
-      //send esp to sleep
-      esp_light_sleep_start();
+    }
+    if((unsigned long)pump_t > 1UL + pump_cooldown_sec/1000UL){
+      pump_t = 0;
+      //sleep while cooldown
+      #ifdef DEBUG
+      Serial.print(F("Sleeping: ")); Serial.println((unsigned long) (pump_cooldown_sec / TIME_TO_SLEEP * 1000));
+      delay(10);
+      #endif
+      for(unsigned long i = 0; i < 2UL + (unsigned long) (pump_cooldown_sec / (unsigned long) TIME_TO_SLEEP * 1000UL); i++){
+        esp_light_sleep_start();
       }
     }
-
+    else{
+    //send esp to sleep
+    esp_light_sleep_start();
+    }
     if(finish == set){
       Serial.print("Temp stat fin and set: "); Serial.print(finish); Serial.print(" "); Serial.println(set);
       thirsty = false;
@@ -977,8 +839,7 @@ if(thirsty){
 // sleep
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 if (loop_t + measure_intervall > millis()){
-  //sleep till next measure intervall + 2 times sleep time
-  unsigned long sleep = loop_t + measure_intervall - millis() + TIME_TO_SLEEP * 1000UL * 2UL; 
+  unsigned long sleep = loop_t + measure_intervall - millis();
   #ifdef DEBUG
   Serial.print(F("sleep in s: ")); Serial.println(sleep / 1000);
   #endif
@@ -995,3 +856,5 @@ if (loop_t + measure_intervall > millis()){
 Serial.println(F("End loop!"));
 #endif
 }
+
+*/

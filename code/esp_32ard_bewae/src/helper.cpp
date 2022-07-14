@@ -13,7 +13,14 @@
 
 #include <Helper.h>
 
-//#include "PubSubClient.h" // wont work with platformio use esp idf
+#define DEBUG
+
+#define SD_MOSI      13
+#define SD_MISO      5
+#define SD_SCK       14
+
+SPIClass spiSD(HSPI);
+//spiSD.begin(SD_SCK, SD_MISO, SD_MOSI);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  HELPER     functions
@@ -37,14 +44,17 @@ void Helper::system_sleep(){
   digitalWrite(sw_sens, LOW);  //deactivates sensors
   digitalWrite(sw_sens2, LOW);      //deactivates energy hungry devices
   digitalWrite(sw_3_3v, LOW);      //deactivates energy hungry devices
-
-  digitalWrite(en_mux_1, HIGH);    //deactivates mux 1
+  delay(1);
+  digitalWrite(en_mux_1, HIGH);    //deactivates mux 1 on HIGH
   digitalWrite(s0_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
   digitalWrite(s1_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
   digitalWrite(s2_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
   digitalWrite(s3_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
 
-  esp_light_sleep_start();
+
+  disableWiFi();
+  //esp_light_sleep_start();
+  Serial.println(F("Output on standby"));
 }
 
 
@@ -223,7 +233,7 @@ void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, Strin
 }
 
 
-void Helper::save_datalog(String data, uint8_t cs, const char * file){
+bool Helper::save_datalog(String data, uint8_t cs, const char * file){
   //Function: saves data given as string to a sd card via spi
   //FUNCTION PARAMETER
   //data       --      a string to save on SD card;    String
@@ -235,7 +245,8 @@ void Helper::save_datalog(String data, uint8_t cs, const char * file){
   // see if the card is present and can be initialized: NEEDED ALTOUGH NOTHING IS DONE!!! DONT DELETE
   bool sd_check;
   byte iteration = 0;
-  if (!SD.begin(cs)) {
+  spiSD.begin(SD_SCK, SD_MISO, SD_MOSI);
+  if (!SD.begin(cs, spiSD, 1000000U)) {
     // don't do anything more: 
     //return;
     #ifdef DEBUG
@@ -248,7 +259,7 @@ void Helper::save_datalog(String data, uint8_t cs, const char * file){
   }
   while(!sd_check){
     delay(5000);
-    if(!SD.begin(cs)){
+    if(!SD.begin(cs, spiSD)){
       //do again nothing
       #ifdef DEBUG
       Serial.print(F(" - again not found"));
@@ -262,7 +273,7 @@ void Helper::save_datalog(String data, uint8_t cs, const char * file){
       #ifdef DEBUG
       Serial.println(F(" - not trying again"));
       #endif
-      sd_check=false;
+      return false;
     }
   }
   // open the file. note that only one file can be open at a time,
@@ -276,7 +287,9 @@ void Helper::save_datalog(String data, uint8_t cs, const char * file){
     Serial.println(data);
   }   //ln 
   delay(1000);  //need time to save for some reason to work without mistakes
+  return true;
 }
+
 // Convert normal decimal numbers to binary coded decimal
 byte dec_bcd(byte val)
 {
@@ -364,19 +377,21 @@ String Helper::timestamp(){
   return time_data;
 }
 
+/* //old original function
 void Helper::disableWiFi(){
     WiFi.disconnect(true);  // Disconnect from the network
     delayMicroseconds(100);
     WiFi.mode(WIFI_OFF);    // Switch WiFi off
 }
-
+*/
 
 bool Helper::enableWifi(){
-  WiFi.disconnect(false);  // Reconnect the network
+  WiFi.disconnect(true);  // Reconnect the network
   delayMicroseconds(100);
   WiFi.mode(WIFI_STA);    // Switch WiFi on
-
+  #ifdef DEBUG
   Serial.println("START WIFI");
+  #endif
   WiFi.begin(ssid, wifi_password);
 
   int iterator = 0;
@@ -384,28 +399,51 @@ bool Helper::enableWifi(){
       delay(1000);
       Serial.print(".");
       if(iterator > 30){
+        #ifdef DEBUG
+        Serial.print(F("Connection failed"));
+        #endif
         return false;
       }
       iterator++;
   }
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
   return true;
 }
 
 void Helper::setModemSleep() {
     WiFi.setSleep(true);
     if (!setCpuFrequencyMhz(80)){
-        Serial2.println("Not valid frequency!");
+        Serial.println("Not valid frequency!");
     }
     // Use this if 40Mhz is not supported
     // setCpuFrequencyMhz(80); //(40) also possible
 }
- 
+
+void Helper::disableWiFi(){
+    //adc_power_off();
+    WiFi.disconnect(true);  // Disconnect from the network
+    WiFi.mode(WIFI_OFF);    // Switch WiFi off
+    Serial.println("");
+    Serial.println("WiFi disconnected!");
+    if (!setCpuFrequencyMhz(80)){
+        Serial.println("Not valid frequency!");
+    }
+}
+
+void Helper::disableBluetooth(){
+    // Quite unusefully, no relevable power consumption
+    btStop();
+    #ifdef DEBUG
+    Serial.println("");
+    Serial.println("Bluetooth stop!");
+    #endif
+}
+
 void Helper::wakeModemSleep() {
+    #ifdef DEBUG
+    Serial.println(F("Waking up modem!"));
+    #endif
     setCpuFrequencyMhz(240);
+    Helper::enableWifi();
 }
 
 bool Helper::find_element(int *array, int item){
