@@ -13,6 +13,11 @@ todo:
 - added dynamic watering controlled by Pi (using ML later)
 - updating main circuit, correct bugs & problems on ESP32 build
 
+open problems:
+- sensor rail needs 5V not 3V! (hooked onto logic switch for now)
+- backup SD card module malfunctions
+- brown out triggers sometimes in end of watering process, due to a very short voltage drop on the ESP32
+
 ### About
 Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
 **Ziele:**
