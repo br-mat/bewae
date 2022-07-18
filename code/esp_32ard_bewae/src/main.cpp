@@ -5,11 +5,8 @@
 //
 // Monitor all sensor values, handle watering procedure and get/send data to RasPi                                      
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
-//change frequency to save power
-//#define F_CPU (80 * 1000000U)
 
 //Standard
-//#include <ArduinoSTL.h>
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -19,7 +16,7 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <WiFi.h>
-#include <PubSubClient.h> //problems with arduino framework?
+#include <PubSubClient.h>
 
 #include <Helper.h>
 #include <config.h>
@@ -27,8 +24,6 @@
 using namespace std;
 
 #define DEBUG 1
-
-//#define ESP32
 
 using namespace Helper;
 
@@ -60,26 +55,33 @@ solenoid group[max_groups] =
   {true, 7, pump1, "Erdb", 25, 0, 0, 0}, //group6
 };
 
-//maybe shift into function to save ram?
-//is_set, pin, name, val (float keep memory in mind! esp32 can handle a lot tho)
+//(float keep memory in mind! esp32 can handle a lot tho)
+//is_set, pin, name, val, group
 sensors measure_point[16] =
 {
-  {true, 0, "Tom-RR", 0, 0},
-  {true, 1, "Tom-GR", 0, 0},
-  {true, 2, "Tom-JC", 0, 1},
-  {true, 3, "Tom-RC", 0, 1},
-  {true, 4, "Tom-FL", 0, 0},
-  {true, 5, "Pep-Bl", 0, 2},
-  {true, 6, "Pep-5f", 0, 2},
-  {true, 7, "Krt-Ba", 0, 3},
-  {true, 8, "HoB-1", 0, 4},
-  {true, 9, "HoB-2", 0, 5},
-  {false, 10, "test", 0, max_groups+1},
-  {false, 11, "test", 0, max_groups+1},
-  {false, 12, "test", 0, max_groups+1},
-  {false, 13, "test", 0, max_groups+1},
-  {false, 14, "test", 0, max_groups+1},
-  {true, 15, "Bat-12", 0, max_groups+1},
+  {true, 0, "Tom-RR", 0.0, 0},
+  {true, 1, "Tom-GR", 0.0, 0},
+  {true, 2, "Tom-JC", 0.0, 1},
+  {true, 3, "Tom-RC", 0.0, 1},
+  {true, 4, "Tom-FL", 0.0, 0},
+  {true, 5, "Pep-Bl", 0.0, 2},
+  {true, 6, "Pep-5f", 0.0, 2},
+  {true, 7, "Krt-Ba", 0.0, 3},
+  {true, 8, "HoB-1", 0.0, 4},
+  {true, 9, "HoB-2", 0.0, 5},
+  {false, 10, "test", 0.0, max_groups+1},
+  {false, 11, "test", 0.0, max_groups+1},
+  {false, 12, "test", 0.0, max_groups+1},
+  {false, 13, "test", 0.0, max_groups+1},
+  {true, 14, "pht-rs", 0.0, max_groups+1},
+  {true, 15, "Bat-12", 0.0, max_groups+1},
+};
+
+sensors bme_point[3] =
+{
+  {true, 0, "temp280", 0.0, max_groups+1},
+  {true, 0, "pres280", 0.0, max_groups+1},
+  {true, 0, "humi280", 0.0, max_groups+1},
 };
 
 //important global variables
@@ -96,8 +98,8 @@ bool config_watering_sw = true; //switch default and custom values, default in g
 const int raspi_config_size = max_groups+2; //6 groups + 2 binary
 int raspi_config[raspi_config_size]={0};
 
-//int groups[max_groups] = {0};
-bool msg_stop = false;
+bool post_DATA = true; //controlls if data is sent back to pi or not
+bool msg_stop = false; //is config finished or not
 bool sw0 = 1; //bewae switch (ON/OFF)
 bool sw1 = 0; //water value override switch
 
@@ -830,44 +832,38 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
 
   // --- log to INFLUXDB ---
   #ifdef RasPi
+  if(post_DATA){
+    wakeModemSleep();
+    delay(1);
+    connect_MQTT();
+    int len = sizeof(measure_point)/sizeof(measure_point[0]);
+    struct sensors* data_ptr = measure_point;
+    for (int i=0; i<len; i++, data_ptr++ ) {
+      if(data_ptr->is_set){
+        String topic = topic_prefix + data_ptr->name;
+        String data = String(data_ptr->val);
+        msg_mqtt(topic, data);
+      }
+    }
+    #ifdef BME280
+    len = sizeof(bme_point)/sizeof(bme_point[0]);
+    struct sensors* data_ptr2 = bme_point;
+    for (int i=0; i<len; i++, data_ptr2++) {
+      if(data_ptr2->is_set){
+        String topic = topic_prefix + data_ptr2->name;
+        String data = String(data_ptr2->val);
+        msg_mqtt(topic, data);
+      }
+    }
+    #endif
+  }
   #endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // recieve commands
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// IMPLEMENT: check for new data and sw conditions on esp sent rom raspberrypi
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    if((esp_status == (byte)1) & (config)){
-      config = false;
-      config_bewae_sw=(bool)raspi_config[max_groups];
-      config_watering_sw=(bool)raspi_config[max_groups+1];
-      #ifdef DEBUG
-      Serial.print(F("config triggered, bool values: ")); Serial.print(config_bewae_sw);
-      Serial.print(F(" ")); Serial.println(config_watering_sw);
-      #endif
-      if(config_watering_sw){
-        copy(raspi_config, watering_base, max_groups);
-        for(int i=0; i<max_groups; i++){
-          watering_base[i]=raspi_config[i];
-        }
-      }
-      if(!config_bewae_sw){
-        thirsty = false;
-        int zeros[max_groups]={0};
-        copy(raspi_config, zeros, max_groups);
-      }
-      //delay(1000);
-    }
-  }
-  //test   test   test   test   test   test   test   test   test   test   test   test   test   test   test   test   
-  Serial.println("test values raspi");
-  for(int i=0; i < 8; i++){
-    Serial.println(raspi_config[i]);
-  }
-  */
+//currently done on every change of hour, which should save some power
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // watering
