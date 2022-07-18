@@ -39,9 +39,11 @@ def _parse_mqtt_message(topic, payload, client):
         measurement = match.group(2)
         print(measurement)
         #some exceptions should not be parsed and stored in influxdb
-        if measurement in ['config','status']:
+        if measurement in ['config','status','comms', 'test', 'tester']:
             return None
-        elif measurement == 'config_status': # answer & repost config stats 
+        elif measurement == 'config_status':
+            # answer & repost config stats (bool switches & water_time configuration)
+            # search for latest topics and repost them too update bewae on config
             query = influxdb_client.query("SELECT * from water_time LIMIT 1000") #limiting reduce time taken to gather data
             if query is None:
                 return None
@@ -57,7 +59,7 @@ def _parse_mqtt_message(topic, payload, client):
                 query = influxdb_client.query("SELECT * FROM water_time WHERE location = '{}' ORDER BY time desc LIMIT 1".format(element))
                 item=list(query.get_points(measurement='water_time'))[0]['value']
                 water_time.append(item)
-                republish_data=SensorData(element ,'water_time' ,float(item)) #republish at every request (better readability in grafana)
+                republish_data=SensorData(element ,'water_time' ,float(item)) #republish at every request (better readability with grafana)
                 if republish_data is not None:
                      _send_sensor_data_to_influxdb(republish_data)
             mqtt_msg=','.join(str(e) for e in water_time)
@@ -65,16 +67,25 @@ def _parse_mqtt_message(topic, payload, client):
             client.publish('home/bewae/config', mqtt_msg)
             
             query = influxdb_client.query("SELECT * FROM bewae_sw GROUP BY * ORDER BY DESC LIMIT 1".format(element))
-            query_msg=str(list(query.get_points(measurement='bewae_sw'))[0]['value'])
-            #print('test')
-            #print(query_msg)
-            client.publish('home/nano/bewae_sw', query_msg)
+            if query:
+                query_msg=str(list(query.get_points(measurement='bewae_sw'))[0]['value'])
+                #print('test')
+                #print(query_msg)
+                client.publish('home/nano/bewae_sw', query_msg)
             
             query = influxdb_client.query("SELECT * FROM watering_sw GROUP BY * ORDER BY DESC LIMIT 1".format(element))
-            query_msg=str(list(query.get_points(measurement='watering_sw'))[0]['value'])
-            #print('test')
-            #print(query_msg)
-            client.publish('home/nano/watering_sw', query_msg)
+            if query:
+                query_msg=str(list(query.get_points(measurement='watering_sw'))[0]['value'])
+                #print('test')
+                #print(query_msg)
+                client.publish('home/nano/watering_sw', query_msg)
+            
+            query = influxdb_client.query("SELECT * FROM timetable GROUP BY * ORDER BY DESC LIMIT 1".format(element))
+            if query:
+               query_msg=str(list(query.get_points(measurement='timetable'))[0]['value'])
+               #print('test')
+               #print(query_msg)
+               client.publish('home/nano/timetable', query_msg)
             return None
         else: #real data
             return SensorData(location, measurement, float(payload))
@@ -124,4 +135,3 @@ def main():
 if __name__ == '__main__':
     print('MQTT to InfluxDB bridge')
     main()
-
