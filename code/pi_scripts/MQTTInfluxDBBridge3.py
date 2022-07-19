@@ -41,6 +41,19 @@ def _parse_mqtt_message(topic, payload, client):
         #some exceptions should not be parsed and stored in influxdb
         if measurement in ['config','status','comms', 'test', 'tester']:
             return None
+        #planed watering hours passed as lst [7, 10, 19]
+        elif measurement == 'planed':
+            payload=payload.sub(" ", "")
+            lst=payload.split(",")
+            hours = [x for x in lst if x in range(0,24)]
+            plan_long = sum(hours)
+            return SensorData(location, 'timetable', float(plan_long))
+        elif measurement == 'timetable':
+            try:
+                float(payload)
+            except ValueError:
+                return None
+            return SensorData(location, measurement, float(payload))
         elif measurement == 'config_status':
             # answer & repost config stats (bool switches & water_time configuration)
             # search for latest topics and repost them too update bewae on config
