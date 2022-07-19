@@ -10,6 +10,10 @@
 #define DS3231_I2C_ADDRESS 0x68 //adress rtc module
 #endif
 
+#ifndef BME280_I2C_ADDRESS
+#define BME280_I2C_AddRESS 0x76 //adress bme module
+#endif
+
 #ifndef MAX_MSG_LEN
 #define MAX_MSG_LEN 128
 #endif
