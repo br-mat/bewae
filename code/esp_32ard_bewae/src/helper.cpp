@@ -1,4 +1,3 @@
-
 //Standard
 //#include <ArduinoSTL.h>
 #include <Arduino.h>
@@ -122,18 +121,18 @@ void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _ti
   //control this PWM pin by changing the duty cycle:
   // ledcWrite(PWM_Ch, DutyCycle);
   ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 1);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.95);
+  delay(2);
+  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.96);
+  delay(2);
+  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.92);
   delay(1);
   ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.9);
   delay(1);
   ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.88);
   delay(1);
+  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.87);
+  delay(1);
   ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.86);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.84);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.82);
   delay(time_s);
 
   // reset

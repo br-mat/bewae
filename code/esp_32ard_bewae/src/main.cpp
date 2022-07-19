@@ -43,7 +43,7 @@ using namespace Helper;
 //group 5 - kleine tom            4 brushes                  ~3.5l
 //group 6 - leer 4 brushes +3 small?        ~0.5l
 
-//stay global for access through more than one iteration of loop
+//stay global for access through more than one iteration of loop (keep memory in mind)
 //is_set, pin, pump_pin, name, watering default, watering base, watering time, last act,
 solenoid group[max_groups] =
 { 
@@ -55,7 +55,6 @@ solenoid group[max_groups] =
   {true, 7, pump1, "Erdb", 25, 0, 0, 0}, //group6
 };
 
-//(float keep memory in mind! esp32 can handle a lot tho)
 //is_set, pin, name, val, group
 sensors measure_point[16] =
 {
@@ -395,7 +394,7 @@ void setup() {
 // configure pin mode                                                             ESP32 port
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   pinMode(sw_sens, OUTPUT);       //switch mux, SD etc.                           GPIO04()
-  pinMode(sw_sens2, OUTPUT);      //switch sensor rail                            GPIO36() 25?!
+  pinMode(sw_sens2, OUTPUT);      //switch sensor rail                            GPIO25()
   pinMode(sw_3_3v, OUTPUT);       //switch 3.3v output (with shift bme, rtc)      GPIO23()
   pinMode(s0_mux_1, OUTPUT);      //mux controll pin & s0_mux_1                   GPIO19()
   pinMode(s1_mux_1, OUTPUT);      //mux controll pin & s1_mux_1                   GPIO18()
@@ -430,16 +429,15 @@ void setup() {
 // initialize bme280 sensor
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   digitalWrite(sw_3_3v, HIGH); delay(5);
-  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //take byte type as value data_shft, sh_cp_shft, st_cp_shft
-  digitalWrite(st_cp_shft, HIGH);
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
+  digitalWrite(st_cp_shft, HIGH); //write our to shift register output
   delay(1);
   digitalWrite(st_cp_shft, LOW);
   digitalWrite(sw_sens, HIGH);
   digitalWrite(sw_sens2, HIGH);
-  //delay(60000UL);
 
   Serial.println(F("BME280 Sensor event test"));
-  if (!bme.begin(0x76)) {
+  if (!bme.begin(BME280_I2C_ADDRESS)) {
     #ifdef DEBUG
     Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
     #endif
@@ -471,9 +469,8 @@ void setup() {
   //Configure this PWM Channel with the selected frequency & resolution using this function:
   // ledcSetup(PWM_Ch, PWM_Freq, PWM_Res);
   ledcSetup(pwm_ch0, 30000, pwm_ch0_res);
-  //control this PWM pin by changing the duty cycle:
-  // ledcWrite(PWM_Ch, DutyCycle); //max 2^resolution
-  //ledcWrite(pwm_ch0, pow(2, pwm_ch0_res) * fac);
+  // PWM changing the duty cycle:
+  // ledcWrite(pwm_ch0, pow(2, pwm_ch0_res) * fac);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //init time and date
@@ -531,8 +528,8 @@ void loop(){
 // start loop
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 digitalWrite(sw_3_3v, HIGH); delay(10);
-shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //take byte type as value data_shft, sh_cp_shft, st_cp_shft
-digitalWrite(st_cp_shft, HIGH);
+shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
+digitalWrite(st_cp_shft, HIGH); //write our to shift register output
 delay(1);
 digitalWrite(st_cp_shft, LOW);
 delay(20);
@@ -545,6 +542,8 @@ byte rtc_status = Wire.endTransmission();
 //delay(200);
 byte sec1, min1, hour1, day_w1, day_m1, mon1 , y1;
 
+//check real time clock module,
+// check for hour change and request config update from pi or use default settings
 if(rtc_status != 0){
   #ifdef DEBUG
   Serial.println(F("Error: rtc device not available!"));
@@ -560,8 +559,8 @@ if(rtc_status != 0){
 
     //reactivate 3.3v supply
     digitalWrite(sw_3_3v, HIGH); delay(10);
-    shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //take byte type as value data_shft, sh_cp_shft, st_cp_shft
-    digitalWrite(st_cp_shft, HIGH);
+    shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
+    digitalWrite(st_cp_shft, HIGH); //write our to shift register output
     delay(1);
     digitalWrite(st_cp_shft, LOW);
     delay(1000);
@@ -762,27 +761,24 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   digitalWrite(sw_3_3v, HIGH);
   delay(1);
   #ifdef BME280
-  if (!bme.begin(0x76)) {
+  if (!bme.begin(BME280_I2C_ADDRESS)) {
     #ifdef DEBUG
     Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
     #endif
-    int it = 0;
-    while (1){
-      delay(25);
-      it++;
-      #ifdef DEBUG
-      Serial.println(F("."));
-      #endif
-      if(it > 100){
-        break;
-      }
-    }
     data2[0] = 0; data2[1] = 0; data2[2] = 0;
+
+    bme_point[1].val = 0; 
+    bme_point[2].val = 0;
+    bme_point[0].val = 0;
   }
   else{
     data2[0] = (float)bme.readPressure() / (float)10+0;     //--> press reading
     data2[1] = (float)bme.readHumidity() * (float)100+0;    //--> hum reading
     data2[2] = (float)bme.readTemperature() * (float)100+0; //--> temp reading
+
+    bme_point[1].val = bme.readPressure(); 
+    bme_point[2].val = bme.readHumidity();
+    bme_point[0].val = bme.readTemperature();
   }
   #endif
 
@@ -790,26 +786,17 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   //possible dht solution?
   #endif
 
-  // --- data shape---
+  // --- log data to SD card (backup) ---  
+  #ifdef SD_log
+    // --- data shape---
   //data2[0] = (float)bme280.getPressure() / (float)10+0;     //--> press reading
   //data2[1] = (float)bme280.getHumidity() * (float)100+0;    //--> hum reading
   //data2[2] = (float)bme280.getTemperature() * (float)100+0; //--> temp reading
   //data2[3] = readVcc();                     //--> vcc placeholder (not active with esp right now)
   //data2[4] = battery_indicator;             //--> battery voltage (low load)
   //data2[5] = 0;                             //--> placeholder
-  //data 6-21                                 //--> 15 Mux channels
-  //data2[22]=0;
-  //data2[23]=0;
-  //data2[24]=0;
-  //data2[25]=0;
-  //data2[26]=0;
-  //data2[27]=0;
-
-  //delay(500);
-  
-
-  // --- log data to SD card (backup) ---
-  #ifdef SD_log
+  //data2 6-21                                //--> 15 Mux channels
+  //data2 22-27                               //--> unused
   String data="";
   data += timestamp();
   data += ",";
@@ -870,8 +857,8 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 if(thirsty){
   digitalWrite(sw_3_3v, HIGH); delay(10); //switch on shift register!
-  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set register to zero
-  digitalWrite(st_cp_shft, HIGH);
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
+  digitalWrite(st_cp_shft, HIGH); //write our to shift register output
   delay(1);
   digitalWrite(st_cp_shft, LOW);
   #ifdef DEBUG
@@ -883,7 +870,7 @@ if(thirsty){
   //alternate the solenoids to avoid heat damage, let cooldown time if only one remains
   //Hints:  main mosfet probably get warm (check that!)
   //        pause procedure when measure events needs to happen
-  //        NEVER INTERUPT WHILE WATERING!!!!!!!!!!!!!!!!!!
+  //        NEVER INTERUPT WHILE WATERING!
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   while((loop_t + measure_intervall > millis()) & (thirsty)){
     int len = sizeof(group)/sizeof(group[0]);
@@ -933,12 +920,11 @@ if(thirsty){
         delay(10);
         #endif
       }
-      //delay(10000); // !!!!!!!!!!!!!!!!!!!!!!!!!! REMOVE IN REAL PROGRAMM !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
       #ifdef DEBUG
       Serial.println(F("----------------------"));
       #endif
 
-      //if((unsigned long) pump_t > 1UL + (pump_cooldown_sec/1000UL)/2UL){
       if(pump_t > (unsigned int) max_active_time_sec){
         pump_t = 0;
         //sleep while cooldown

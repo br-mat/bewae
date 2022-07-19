@@ -11,7 +11,7 @@
 #endif
 
 #ifndef BME280_I2C_ADDRESS
-#define BME280_I2C_AddRESS 0x76 //adress bme module
+#define BME280_I2C_ADDRESS 0x76 //adress bme module
 #endif
 
 #ifndef MAX_MSG_LEN
@@ -52,23 +52,23 @@
     #endif
 
     #ifndef cliendID
-    //#define clientID "client_bewaev3" // MQTT client ID
     #define clientID "client_test2"
     #endif
 
+    //mqtt topics
     #ifndef topic_prefix
     #define topic_prefix "home/bewae_data/"
     #endif
 
-    #ifndef humidity_topic_sens2
+    #ifndef humidity_topic_sens2 //old
     #define humidity_topic_sens2 "home/sens2/humidity"
     #endif
 
-    #ifndef temperature_topic_sens2
+    #ifndef temperature_topic_sens2 //old
     #define temperature_topic_sens2 "home/sens2/temperature"
     #endif
 
-    #ifndef pressure_topic_sens2
+    #ifndef pressure_topic_sens2 //old
     #define pressure_topic_sens2 "home/sens2/pressure"
     #endif
 
