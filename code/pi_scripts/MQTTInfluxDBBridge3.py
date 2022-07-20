@@ -43,9 +43,9 @@ def _parse_mqtt_message(topic, payload, client):
             return None
         #planed watering hours passed as lst [7, 10, 19]
         elif measurement == 'planed':
-            payload=payload.sub(" ", "")
+            payload=payload.replace(" ", "")
             lst=payload.split(",")
-            hours = [x for x in lst if x in range(0,24)]
+            hours = [int(x) for x in lst if int(x) in list(range(0,24))]
             plan_long = sum(hours)
             return SensorData(location, 'timetable', float(plan_long))
         elif measurement == 'timetable':
