@@ -50,6 +50,10 @@
     #ifndef mqtt_password
     #define mqtt_password "XXX" // MQTT password
     #endif
+    
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// MQTT topics
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     #ifndef cliendID
     #define clientID "client_test2"
@@ -84,10 +88,13 @@
     #define bewae_sw "home/nano/bewae_sw" //switching watering system no/off
     #endif
     #ifndef watering_sw
-    #define watering_sw "home/nano/watering_sw" //switching value override on/off (default values on esp or sent from pi)
+    #define watering_sw "home/nano/watering_sw" //switching value override on/off (default values on esp (false) or sent from pi (true))
     #endif
     #ifndef timetable_sw
-    #define timetable_sw "home/nano/timetable" //changing timetable
+    #define timetable_sw "home/nano/timetable_sw" //switch custom timetable on/off (take default (false) take sent (true))
+    #endif
+    #ifndef timetable_content
+    #define timetable_content "home/nano/timetable" //changing timetable
     #endif
     #ifndef testing
     #define testing "home/test/tester"

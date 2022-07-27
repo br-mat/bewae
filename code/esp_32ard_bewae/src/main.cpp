@@ -47,33 +47,33 @@ using namespace Helper;
 //is_set, pin, pump_pin, name, watering default, watering base, watering time, last act,
 solenoid group[max_groups] =
 { 
-  {true, 0, pump1, "Tom1", 60, 0, 0 , 0}, //group1
-  {true, 1, pump1, "Tom2", 50, 0, 0, 0}, //group2
-  {true, 2, pump1, "Gewa", 20, 0, 0, 0}, //group3
-  {true, 3, pump1, "Chil", 18, 0, 0, 0}, //group4
-  {true, 6, pump1, "Krtr", 10, 0, 0, 0}, //group5
-  {true, 7, pump1, "Erdb", 25, 0, 0, 0}, //group6
+  {true, 0, pump1, "Tom1", 100, 0, 0 , 0}, //group1
+  {true, 1, pump1, "Tom2", 80, 0, 0, 0}, //group2
+  {true, 2, pump1, "Gewa", 30, 0, 0, 0}, //group3
+  {true, 3, pump1, "Chil", 40, 0, 0, 0}, //group4
+  {true, 6, pump1, "Krtr", 20, 0, 0, 0}, //group5
+  {true, 7, pump1, "Erdb", 50, 0, 0, 0}, //group6
 };
 
 //is_set, pin, name, val, group
 sensors measure_point[16] =
 {
-  {true, 0, "Tom-RR", 0.0, 0},
-  {true, 1, "Tom-GR", 0.0, 0},
-  {true, 2, "Tom-JC", 0.0, 1},
-  {true, 3, "Tom-RC", 0.0, 1},
-  {true, 4, "Tom-FL", 0.0, 0},
-  {true, 5, "Pep-Bl", 0.0, 2},
-  {true, 6, "Pep-5f", 0.0, 2},
-  {true, 7, "Krt-Ba", 0.0, 3},
-  {true, 8, "HoB-1", 0.0, 4},
-  {true, 9, "HoB-2", 0.0, 5},
-  {false, 10, "test", 0.0, max_groups+1},
-  {false, 11, "test", 0.0, max_groups+1},
-  {false, 12, "test", 0.0, max_groups+1},
-  {false, 13, "test", 0.0, max_groups+1},
-  {true, 14, "pht-rs", 0.0, max_groups+1},
-  {true, 15, "Bat-12", 0.0, max_groups+1},
+  {false, 0, "Tom-RR", 0.0, 0},
+  {false, 1, "Tom-GR", 0.0, 0},
+  {false, 2, "Tom-JC", 0.0, 1},
+  {false, 3, "Tom-RC", 0.0, 1},
+  {false, 4, "Tom-FL", 0.0, 0},
+  {false, 5, "Pep-Bl", 0.0, 2},
+  {false, 6, "Pep-5f", 0.0, 2},
+  {false, 7, "Krt-Ba", 0.0, 3},
+  {false, 8, "HoB-1", 0.0, 4},
+  {false, 9, "HoB-2", 0.0, 5},
+  {false, 10, "test10", 0.0, max_groups+1},
+  {false, 11, "test11", 0.0, max_groups+1},
+  {false, 12, "test12", 0.0, max_groups+1},
+  {false, 13, "test13", 0.0, max_groups+1},
+  {true, 14, "Bat-12", 0.0, max_groups+1},
+  {false, 15, "pht-rs", 0.0, max_groups+1},
 };
 
 sensors bme_point[3] =
@@ -100,12 +100,13 @@ int raspi_config[raspi_config_size]={0};
 bool post_DATA = true; //controlls if data is sent back to pi or not
 bool msg_stop = false; //is config finished or not
 bool sw0 = 1; //bewae switch (ON/OFF)
-bool sw1 = 0; //water value override switch
+bool sw1 = 0; //water time override condition
+bool sw2 = 0; //timetable override condition
 
 //timetable storing watering hours
 //                                           2523211917151311 9 7 5 3 1
 //                                            | | | | | | | | | | | | |
-unsigned long int timetable_default = 0b00000000000100100010010000000000;
+unsigned long int timetable_default = 0b00000000000100000000010000000000;
 //                                             | | | | | | | | | | | | |
 //                                            2422201816141210 8 6 4 2 0
 unsigned long int timetable = timetable_default; //initialize on default
@@ -170,14 +171,14 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
     }
   }
   if(String(bewae_sw) == topic){
-    sw0 = (bool)msg.toInt();
+    sw0 = (bool)msg.toInt(); //toInt returns long! naming is confusing
     #ifdef DEBUG
     Serial.print(F("Watering switched: ")); Serial.println(sw0);
     #endif
   }
 
   if(String(watering_sw) == topic){
-    sw1 = (bool)msg.toInt();
+    sw1 = (bool)msg.toInt(); //toInt returns long! naming is confusing
     #ifdef DEBUG
     Serial.println(F("watering-values changed, transmitted values will be considered"));
     #endif
@@ -190,6 +191,13 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
   }
 
   if(String(timetable_sw) == topic){
+    sw2 = (bool)msg.toInt(); //toInt returns long! naming is confusing
+    #ifdef DEBUG
+    Serial.println(F("custom timetable active"));
+    #endif
+  }
+
+  if(String(timetable_content) == topic){ //sent timetable
     timetable_raspi = (unsigned long) msg.toInt(); //toInt returns long! naming is confusing
     #ifdef DEBUG
     Serial.println(F("timetable changed"));
@@ -200,7 +208,7 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
   //   this function should be able to set watering times (probably values too?)
   //   and turn on/off measureing watering etc.
   if(String(comms) == topic){
-    int command = (int) msg.toInt();
+    int command = (int) msg.toInt(); //toInt returns long! naming is confusing
     switch (command)
     {
     case 0: //stop case indicates end off transmission
@@ -315,7 +323,7 @@ bool msg_mqtt(String topic, String data){
   #endif  
   if(client.publish(topic.c_str(), data.c_str())){
     #ifdef DEBUG
-    Serial.println(F("Data sent!"));
+    Serial.print(F("Data sent: ")); Serial.println(data.c_str()); Serial.println(topic.c_str());
     #endif
     return false;
   }
@@ -510,7 +518,7 @@ void setup() {
   Serial.print(hour_);
   delay(1000);
   #endif
-  hour_ = 0;
+  //hour_ = 0;
   //disableWiFi();
 
   system_sleep(); //turn off all external transistors
@@ -621,13 +629,13 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
   #endif
 
   //select chosen timetable
-  if(sw1){
+  if(sw2){
     timetable = timetable_raspi;
   }
   else{
     timetable = timetable_default;
   }
-  timetable = timetable_default;
+
   //if(true){
   if(bitRead(timetable, hour1)){
     thirsty = true; //initialize watering phase
@@ -733,7 +741,7 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   delay(1000);
   int value=0; //mux reading value
 
-
+  //measure all moisture sensors
   int len = sizeof(measure_point)/sizeof(measure_point[0]);
   struct sensors* m_ptr = measure_point;
   for (int i=0; i<len; i++, m_ptr++ ) {
@@ -744,6 +752,9 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
                                                 //avoid using other functions inside the brackets of constrain
         value = map(value, low_lim, high_lim, 100, 0);
         m_ptr->val = value;
+      }
+      else{
+        m_ptr->val = (float)value * (float)measurement_LSB;
       }
     }
   }
