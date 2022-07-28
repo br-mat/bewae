@@ -106,7 +106,7 @@ bool sw2 = 0; //timetable override condition
 //timetable storing watering hours
 //                                           2523211917151311 9 7 5 3 1
 //                                            | | | | | | | | | | | | |
-unsigned long int timetable_default = 0b00000000000100000000010000000000;
+unsigned long int timetable_default = 0b00000000000010000000100000000000;
 //                                             | | | | | | | | | | | | |
 //                                            2422201816141210 8 6 4 2 0
 unsigned long int timetable = timetable_default; //initialize on default
@@ -207,6 +207,54 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
   // TODO implement command function consisting of two letters and a msg part
   //   this function should be able to set watering times (probably values too?)
   //   and turn on/off measureing watering etc.
+  //
+  // Command: (1 letter) - (10 digits)
+  // EXAMPLE: STOP = "X8"
+  if(String(comms) == topic){
+    if(msg.length() > 6){
+      msg = "00000000000";
+      #ifdef DEBUG
+      Serial.println(F("command message too long."));
+      #endif
+      msg_stop = true;
+    }
+    String pt0 = msg.substring(0, 1);
+    char buff[11];
+    pt0.toCharArray(buff, 2);
+    String pt1 = msg.substring(1, 6);
+    int num1 = pt1.toInt();
+    #ifdef DEBUG
+    Serial.println(F("Command DEBUG:")); Serial.print(F("MSG: ")); Serial.println(msg);
+    Serial.print(F("pt0: ")); Serial.print(F("pt0")); Serial.print(F(" - buff[0]: ")); Serial.println(buff[0]);
+    Serial.print(F("number: ")); Serial.println(num1);
+    #endif
+    switch(buff[0])
+    {
+    case 'X': //stop case indicates end off transmission
+      if(num1 == 8){
+        msg_stop = true;
+        #ifdef DEBUG
+        Serial.println(F("Stop message."));
+        #endif
+        break;
+      }
+      else{
+        msg_stop = true;
+        #ifdef DEBUG
+        Serial.println(F("Warning stop message might be incorrect or noisy."));
+        #endif
+        break;
+      }
+
+    default:
+      break;
+    }
+
+    #ifdef DEBUG
+    Serial.println(F("command recieved"));
+    #endif
+  }
+
   if(String(comms) == topic){
     int command = (int) msg.toInt(); //toInt returns long! naming is confusing
     switch (command)
