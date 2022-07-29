@@ -89,8 +89,8 @@ unsigned long up_time = 0;    //general estimated uptime
 unsigned long last_activation = 0; //timemark variable
 bool thirsty = false; //marks if a watering cycle is finished
 bool config = false;  //handle wireless configuration
-bool config_bewae_sw = true; //switch watering on off
-bool config_watering_sw = true; //switch default and custom values, default in group_st_time and custom sent via mqtt
+//OLD bool config_bewae_sw = true; //switch watering on off
+//OLD bool config_watering_sw = true; //switch default and custom values, default in group_st_time and custom sent via mqtt
 
 //wireless config array to switch on/off functions
 // watering time of specific group; binary values;
@@ -106,7 +106,7 @@ bool sw2 = 0; //timetable override condition
 //timetable storing watering hours
 //                                           2523211917151311 9 7 5 3 1
 //                                            | | | | | | | | | | | | |
-unsigned long int timetable_default = 0b00000000000010000000100000000000;
+unsigned long int timetable_default = 0b00000000000100000000010000000000;
 //                                             | | | | | | | | | | | | |
 //                                            2422201816141210 8 6 4 2 0
 unsigned long int timetable = timetable_default; //initialize on default
@@ -170,6 +170,7 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
       #endif
     }
   }
+
   if(String(bewae_sw) == topic){
     sw0 = (bool)msg.toInt(); //toInt returns long! naming is confusing
     #ifdef DEBUG
@@ -208,46 +209,130 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
   //   this function should be able to set watering times (probably values too?)
   //   and turn on/off measureing watering etc.
   //
-  // Command: (1 letter) - (10 digits)
+  // Command: (1 letter) - (32 digits)
   // EXAMPLE: STOP = "X8"
   if(String(comms) == topic){
-    if(msg.length() > 6){
-      msg = "00000000000";
+    if(msg.length() > 33){
+      msg = "Z00000000000000000000000000000000";
       #ifdef DEBUG
       Serial.println(F("command message too long."));
       #endif
       msg_stop = true;
+      return;
     }
     String pt0 = msg.substring(0, 1);
-    char buff[11];
-    pt0.toCharArray(buff, 2);
-    String pt1 = msg.substring(1, 6);
-    int num1 = pt1.toInt();
+    char buff[1];
+    pt0.toCharArray(buff, 1);
+    String msg_num = msg.substring(1, 33);
+    long full = msg_num.toInt();
+    int high = full >> 16; //high int
+    int low = (int16_t)full; //lower int
     #ifdef DEBUG
     Serial.println(F("Command DEBUG:")); Serial.print(F("MSG: ")); Serial.println(msg);
     Serial.print(F("pt0: ")); Serial.print(F("pt0")); Serial.print(F(" - buff[0]: ")); Serial.println(buff[0]);
-    Serial.print(F("number: ")); Serial.println(num1);
+    Serial.print(F("number1: ")); Serial.println(high);
+    Serial.print(F("number2: ")); Serial.println(low);
     #endif
     switch(buff[0])
     {
-    case 'X': //stop case indicates end off transmission
-      if(num1 == 8){
-        msg_stop = true;
-        #ifdef DEBUG
-        Serial.println(F("Stop message."));
-        #endif
+      case 'S': //switch features ON/OFF - only take high (MSB) int part
+        switch(high){
+          case 3:
+            #ifdef DEBUG
+            Serial.println(F("bewae ON"));
+            #endif
+            sw0 = 1; //bewae ON
+            break;
+
+          case 4:
+            #ifdef DEBUG
+            Serial.println(F("bewae OFF"));
+            #endif
+            sw0 = 0; //bewae OFF
+            break;
+
+          case 5:
+            #ifdef DEBUG
+            Serial.println(F("water time ON"));
+            #endif
+            sw1 = 1; //water time override ON
+            break;
+
+          case 6:
+            #ifdef DEBUG
+            Serial.println(F("water time OFF"));
+            #endif
+            sw1 = 0; //water time override OFF
+            break;
+
+          case 7:
+            #ifdef DEBUG
+            Serial.println(F("custom timetable ON"));
+            #endif
+            sw2 = 1; //timetable override ON
+            break;
+
+          case 8:
+            #ifdef DEBUG
+            Serial.println(F("custom timetable OFF"));
+            #endif
+            sw2 = 0; //timetable override OFF
+            break;
+
+          case 9:
+            #ifdef DEBUG
+            Serial.println(F("publish DATA ON"));
+            #endif
+            post_DATA = 1; //sending Data to PI ON
+            break;
+
+          case 10:
+            #ifdef DEBUG
+            Serial.println(F("publish DATA OFF"));
+            #endif
+            post_DATA = 0; //sending Data to PI OFF
+            break;
+
+          default:
+            #ifdef DEBUG
+            Serial.println(F("Warning: dont know this command"));
+            #endif
+            break;
+        }
         break;
-      }
-      else{
-        msg_stop = true;
-        #ifdef DEBUG
-        Serial.println(F("Warning stop message might be incorrect or noisy."));
-        #endif
+
+      case 'W': //watering times - (int) group (v pin number) - (int) value
+      {
+        int len = sizeof(group)/sizeof(group[0]);
+        struct solenoid* ptr = group;
+        for (int i=0; i<len; i++, ptr++){
+          if((int)ptr->pin == high){
+            ptr->watering_time = low;
+          }
+        }
         break;
       }
 
-    default:
-      break;
+      case 'X': //indicates finished configuration
+        if(high == 8){
+          msg_stop = true;
+          #ifdef DEBUG
+          Serial.println(F("Stop message."));
+          #endif
+        }
+        else{
+          msg_stop = true;
+          #ifdef DEBUG
+          Serial.println(F("Warning stop message might be incorrect or noisy."));
+          #endif
+        }
+        break;
+
+      default:
+        #ifdef DEBUG
+        Serial.println(F("Warning: Default command triggered"));
+        #endif
+        break;
     }
 
     #ifdef DEBUG
@@ -700,8 +785,8 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
       #endif
       int len = sizeof(group)/sizeof(group[0]);
       struct solenoid* ptr = group;
-      if(ptr->is_set){
-        for (int i=0; i<len; i++, ptr++ ) {
+      for (int i=0; i<len; i++, ptr++){
+        if(ptr->is_set){
           ptr->watering_time = ptr->watering_mqtt;
         }
       }
@@ -713,7 +798,7 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
       #endif
       int len = sizeof(group)/sizeof(group[0]);
       struct solenoid* ptr = group;
-      for (int i=0; i<len; i++, ptr++ ) {
+      for (int i=0; i<len; i++, ptr++){
         if(ptr->is_set){
           ptr->watering_time = ptr->watering_default;
         }
