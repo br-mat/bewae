@@ -99,6 +99,7 @@ int raspi_config[raspi_config_size]={0};
 
 bool post_DATA = true; //controlls if data is sent back to pi or not
 bool msg_stop = false; //is config finished or not
+bool sw = 1;  //system switch (ON/OFF) NOT IMPLEMENTED YET
 bool sw0 = 1; //bewae switch (ON/OFF)
 bool sw1 = 0; //water time override condition
 bool sw2 = 0; //timetable override condition
@@ -194,7 +195,7 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
   if(String(timetable_sw) == topic){
     sw2 = (bool)msg.toInt(); //toInt returns long! naming is confusing
     #ifdef DEBUG
-    Serial.println(F("custom timetable active"));
+    Serial.println(F("custom timetable changed"));
     #endif
   }
 
@@ -230,67 +231,46 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
     #ifdef DEBUG
     Serial.println(F("Command DEBUG:")); Serial.print(F("MSG: ")); Serial.println(msg);
     Serial.print(F("pt0: ")); Serial.print(F("pt0")); Serial.print(F(" - buff[0]: ")); Serial.println(buff[0]);
-    Serial.print(F("number1: ")); Serial.println(high);
-    Serial.print(F("number2: ")); Serial.println(low);
+    Serial.print(F("high bits: ")); Serial.println(high);
+    Serial.print(F("low bits: ")); Serial.println(low);
     #endif
     switch(buff[0])
     {
       case 'S': //switch features ON/OFF - only take high (MSB) int part
         switch(high){
+          case 1:
+            #ifdef DEBUG
+            Serial.print(F("System: ")); Serial.println(low);
+            #endif
+            sw = low; //bewae ON
+            break;
+
+          case 2:
+            #ifdef DEBUG
+            Serial.print(F("bewae: ")); Serial.println(low);
+            #endif
+            sw0 = low; //bewae ON
+            break;
+
           case 3:
             #ifdef DEBUG
-            Serial.println(F("bewae ON"));
+            Serial.print(F("water time: ")); Serial.println(low);
             #endif
-            sw0 = 1; //bewae ON
+            sw1 = low; //water time override ON
             break;
 
           case 4:
             #ifdef DEBUG
-            Serial.println(F("bewae OFF"));
+            Serial.print(F("custom timetable: ")); Serial.println(low);
             #endif
-            sw0 = 0; //bewae OFF
+            sw2 = low; //timetable override ON
             break;
 
           case 5:
             #ifdef DEBUG
-            Serial.println(F("water time ON"));
+            Serial.print(F("publish DATA: ")); Serial.println(low);
             #endif
-            sw1 = 1; //water time override ON
-            break;
-
-          case 6:
-            #ifdef DEBUG
-            Serial.println(F("water time OFF"));
-            #endif
-            sw1 = 0; //water time override OFF
-            break;
-
-          case 7:
-            #ifdef DEBUG
-            Serial.println(F("custom timetable ON"));
-            #endif
-            sw2 = 1; //timetable override ON
-            break;
-
-          case 8:
-            #ifdef DEBUG
-            Serial.println(F("custom timetable OFF"));
-            #endif
-            sw2 = 0; //timetable override OFF
-            break;
-
-          case 9:
-            #ifdef DEBUG
-            Serial.println(F("publish DATA ON"));
-            #endif
-            post_DATA = 1; //sending Data to PI ON
-            break;
-
-          case 10:
-            #ifdef DEBUG
-            Serial.println(F("publish DATA OFF"));
-            #endif
-            post_DATA = 0; //sending Data to PI OFF
+            post_DATA = low; //sending Data to PI ON
             break;
 
           default:
@@ -301,8 +281,16 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
         }
         break;
 
+      case 'T':
+        timetable_raspi = 0;
+        timetable_raspi = (long)high<<16 + low;
+        #ifdef DEBUG
+        Serial.print(F("Timetable set to: ")); Serial.println(timetable_raspi);
+        #endif
+        break;
+
       case 'W': //watering times - (int) group (v pin number) - (int) value
-      {
+      { //care: initialize variables can cause problems within case block, therefor {}
         int len = sizeof(group)/sizeof(group[0]);
         struct solenoid* ptr = group;
         for (int i=0; i<len; i++, ptr++){
@@ -328,28 +316,17 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
         }
         break;
 
+      case 'Z': //transmission failure
+          #ifdef DEBUG
+          Serial.println(F("Warning: transmission failure"));
+          #endif
+          break;
+
       default:
         #ifdef DEBUG
         Serial.println(F("Warning: Default command triggered"));
         #endif
         break;
-    }
-
-    #ifdef DEBUG
-    Serial.println(F("command recieved"));
-    #endif
-  }
-
-  if(String(comms) == topic){
-    int command = (int) msg.toInt(); //toInt returns long! naming is confusing
-    switch (command)
-    {
-    case 0: //stop case indicates end off transmission
-      msg_stop = true;
-      break;
-    
-    default:
-      break;
     }
 
     #ifdef DEBUG
