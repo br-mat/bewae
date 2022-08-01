@@ -92,6 +92,8 @@ def _parse_mqtt_message(topic, payload, client):
                 #print('test')
                 #print(query_msg)
                 client.publish('home/nano/watering_sw', query_msg)
+            
+            query = influxdb_client.query("SELECT * FROM timetable_sw GROUP BY * ORDER BY DESC LIMIT 1".format(element))
             if query:
                 query_msg=str(list(query.get_points(measurement='timetable_sw'))[0]['value'])
                 #print('test')
