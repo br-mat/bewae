@@ -58,9 +58,9 @@ solenoid group[max_groups] =
 //is_set, pin, name, val, group
 sensors measure_point[16] =
 {
-  {false, 0, "Tom-RR", 0.0, 0},
-  {false, 1, "Tom-GR", 0.0, 0},
-  {false, 2, "Tom-JC", 0.0, 1},
+  {true, 0, "Tom-RR", 0.0, 0},
+  {true, 1, "Chl-GW", 0.0, 0},
+  {true, 2, "Krt-HB", 0.0, 1},
   {false, 3, "Tom-RC", 0.0, 1},
   {false, 4, "Tom-FL", 0.0, 0},
   {false, 5, "Pep-Bl", 0.0, 2},
@@ -68,8 +68,8 @@ sensors measure_point[16] =
   {false, 7, "Krt-Ba", 0.0, 3},
   {false, 8, "HoB-1", 0.0, 4},
   {false, 9, "HoB-2", 0.0, 5},
-  {false, 10, "test10", 0.0, max_groups+1},
-  {false, 11, "test11", 0.0, max_groups+1},
+  {false, 10, "Tom-GR", 0.0, max_groups+1},
+  {false, 11, "Tom-JC", 0.0, max_groups+1},
   {false, 12, "test12", 0.0, max_groups+1},
   {false, 13, "test13", 0.0, max_groups+1},
   {true, 14, "Bat-12", 0.0, max_groups+1},
@@ -400,9 +400,12 @@ bool connect_MQTT(){
     Serial.println("Connected to MQTT Broker!");
     #endif
     //client.setCallback(callback);
-    client.subscribe(watering_topic, 0); //(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
+    //client.subscribe(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
+    client.subscribe(watering_topic, 0);  //watering values (val1, val2, val3, ...)
     client.subscribe(bewae_sw, 0); //switch on/off default values for watering
     client.subscribe(watering_sw, 0); //switch on/off watering procedure
+    client.subscribe(timetable_sw, 0); //switch on/off custom timetable
+    client.subscribe(timetable_content, 0); //change timetable
     client.subscribe(testing, 0);
     client.subscribe(comms, 0); //commands from Pi
     client.setCallback(callback);
@@ -858,8 +861,10 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
     if(m_ptr->is_set){ //convert moisture reading to relative moisture and clip bad data with constrain
       controll_mux(m_ptr->pin, sig_mux_1, en_mux_1, "read", &value);
       if(m_ptr->group_vpin < max_groups){ //will be true if it is moisture measurement (max_group as dummy for all values not assigned to a group)
-        value = constrain(value, low_lim, high_lim); //x within borders else x = border value; (1221 wet; 3176 dry)
-                                                //avoid using other functions inside the brackets of constrain
+        float temp = (float)value * measurement_LSB * 1000;
+        value = temp;
+        value = constrain(value, low_lim, high_lim); //x within borders else x = border value; (example 1221 wet; 3176 dry [in mV])
+                                                      //avoid using other functions inside the brackets of constrain
         value = map(value, low_lim, high_lim, 100, 0);
         m_ptr->val = value;
       }
@@ -977,7 +982,7 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
 // watering
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 if(thirsty){
-  digitalWrite(sw_3_3v, HIGH); delay(10); //switch on shift register!
+  digitalWrite(sw_3_3v, HIGH); delay(10); //switch on shift register! and logic?
   shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
   digitalWrite(st_cp_shft, HIGH); //write our to shift register output
   delay(1);
@@ -989,7 +994,7 @@ if(thirsty){
   // --- Watering ---
   //trigger at specific time
   //alternate the solenoids to avoid heat damage, let cooldown time if only one remains
-  //Hints:  main mosfet probably get warm (check that!)
+  //Hints:  main mosfet probably get warm
   //        pause procedure when measure events needs to happen
   //        NEVER INTERUPT WHILE WATERING!
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
