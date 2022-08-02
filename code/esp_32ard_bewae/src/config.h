@@ -3,7 +3,7 @@
 
 
 #define BME280 1
-#define SD_log 1
+//#define SD_log 1
 #define RasPi 1
 
 #ifndef DS3231_I2C_ADDRESS
@@ -25,6 +25,15 @@
 #define TIME_TO_SLEEP  8        //Time ESP32 will go to sleep (in seconds)
 #endif
 
+#ifndef measurement_LSB
+#define measurement_LSB 0.01008018 //LSB in Volt! - REPLACE with your specific value, derives from voltage devider and
+                                            //resolution of adc
+#endif
+
+#ifndef measurement_LSB5V
+#define measurement_LSB5V 0.00151581243 //LSB in Volt! - REPLACE with your specific value, derives from voltage devider and
+                                            //resolution of adc
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Wifi Constants
