@@ -16,6 +16,7 @@ MQTT_TOPIC = 'home/+/+'
 MQTT_REGEX = 'home/([^/]+)/([^/]+)'
 MQTT_CLIENT_ID = 'MQTTInfluxDBBridge'
 
+
 influxdb_client = InfluxDBClient(INFLUXDB_ADDRESS, 8086, INFLUXDB_USER, INFLUXDB_PASSWORD, None)
 
 class SensorData(NamedTuple):
@@ -45,8 +46,9 @@ def _parse_mqtt_message(topic, payload, client):
         elif measurement == 'planed':
             payload=payload.replace(" ", "")
             lst=payload.split(",")
-            hours = [int(x) for x in lst if int(x) in list(range(0,24))]
+            hours = [1<<int(x) for x in lst if int(x) in list(range(0,24))]
             plan_long = sum(hours)
+            print(float(plan_long))
             return SensorData(location, 'timetable', float(plan_long))
         elif measurement == 'timetable':
             try:
@@ -78,29 +80,37 @@ def _parse_mqtt_message(topic, payload, client):
             mqtt_msg=','.join(str(e) for e in water_time)
             mqtt_msg+=','
             client.publish('home/bewae/config', mqtt_msg)
+            #time.sleep(1) #give ESP some time to handle stuff
             
             query = influxdb_client.query("SELECT * FROM bewae_sw GROUP BY * ORDER BY DESC LIMIT 1".format(element))
+            #print(query)
             if query:
                 query_msg=str(list(query.get_points(measurement='bewae_sw'))[0]['value'])
                 #print('test')
                 #print(query_msg)
                 client.publish('home/nano/bewae_sw', query_msg)
+            #time.sleep(1) #give ESP some time to handle stuff
             
             query = influxdb_client.query("SELECT * FROM watering_sw GROUP BY * ORDER BY DESC LIMIT 1".format(element))
+            #print(query)
             if query:
                 query_msg=str(list(query.get_points(measurement='watering_sw'))[0]['value'])
                 #print('test')
                 #print(query_msg)
                 client.publish('home/nano/watering_sw', query_msg)
+            #time.sleep(1) #give ESP some time to handle stuff
             
             query = influxdb_client.query("SELECT * FROM timetable_sw GROUP BY * ORDER BY DESC LIMIT 1".format(element))
+            #print(query)
             if query:
                 query_msg=str(list(query.get_points(measurement='timetable_sw'))[0]['value'])
                 #print('test')
                 #print(query_msg)
                 client.publish('home/nano/timetable_sw', query_msg)
+            #time.sleep(1) #give ESP some time to handle stuff
             
             query = influxdb_client.query("SELECT * FROM timetable GROUP BY * ORDER BY DESC LIMIT 1".format(element))
+            #print(query)
             if query:
                query_msg=str(list(query.get_points(measurement='timetable'))[0]['value'])
                #print('test')

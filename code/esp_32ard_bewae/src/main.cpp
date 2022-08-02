@@ -111,7 +111,7 @@ unsigned long int timetable_default = 0b00000000000100000000010000000000;
 //                                             | | | | | | | | | | | | |
 //                                            2422201816141210 8 6 4 2 0
 unsigned long int timetable = timetable_default; //initialize on default
-unsigned long int timetable_raspi = timetable_default; //initialize on default
+unsigned long int timetable_raspi = 0; //initialize on default
 
 Adafruit_BME280 bme; // use I2C interface
 
@@ -195,7 +195,7 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
   if(String(timetable_sw) == topic){
     sw2 = (bool)msg.toInt(); //toInt returns long! naming is confusing
     #ifdef DEBUG
-    Serial.println(F("custom timetable changed"));
+    Serial.println(F("custom timetable changed: ")); Serial.println(sw2);
     #endif
   }
 
@@ -261,7 +261,7 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
 
           case 4:
             #ifdef DEBUG
-            Serial.print(F("custom timetable: ")); Serial.println(low);
+            Serial.print(F("custom timetable: ")); Serial.println(low, BIN);
             #endif
             sw2 = low; //timetable override ON
             break;
@@ -401,13 +401,13 @@ bool connect_MQTT(){
     #endif
     //client.setCallback(callback);
     //client.subscribe(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
-    client.subscribe(watering_topic, 0);  //watering values (val1, val2, val3, ...)
-    client.subscribe(bewae_sw, 0); //switch on/off default values for watering
-    client.subscribe(watering_sw, 0); //switch on/off watering procedure
-    client.subscribe(timetable_sw, 0); //switch on/off custom timetable
-    client.subscribe(timetable_content, 0); //change timetable
-    client.subscribe(testing, 0);
-    client.subscribe(comms, 0); //commands from Pi
+    client.subscribe(watering_topic, 1);  //watering values (val1, val2, val3, ...)
+    client.subscribe(bewae_sw, 1); //switch on/off default values for watering
+    client.subscribe(watering_sw, 1); //switch on/off watering procedure
+    client.subscribe(timetable_sw, 1); //switch on/off custom timetable
+    client.subscribe(timetable_content, 1); //change timetable
+    client.subscribe(testing, 1);
+    client.subscribe(comms, 1); //commands from Pi
     client.setCallback(callback);
     client.loop();
     return true;
@@ -449,15 +449,17 @@ bool msg_mqtt(String topic, String data){
     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! REDOO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // FALLS ES RECONNECT GIBT DIESE NUTZEN ANSONSTEN anders lösen
     //reconnect macht probleme, weiß aber nicht warum überhaupt notwendig, da eigentlich verbindung stehen sollte.
-    client.subscribe(watering_topic, 0); //(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
-    client.subscribe(bewae_sw, 0); //switch on/off default values for watering
-    client.subscribe(watering_sw, 0); //switch on/off watering procedure
-    client.subscribe(testing, 0);
-    client.subscribe(comms, 0); //commands from Pi
+    client.subscribe(watering_topic, 1); //(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
+    client.subscribe(bewae_sw, 1); //switch on/off default values for watering
+    client.subscribe(watering_sw, 1); //switch on/off watering procedure
+    client.subscribe(timetable_sw, 1); //switch on/off custom timetable
+    client.subscribe(timetable_content, 1); //change timetable
+    client.subscribe(testing, 1);
+    client.subscribe(comms, 1); //commands from Pi
     client.setCallback(callback);
     client.loop();
     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! REDOO REDOO REDOO REDOO REDOO REDOO REDOO REDOO REDOO !!!!!!!!!!!!!!!!!!!!!!!!!
-    delay(1000); // This delay ensures that client.publish doesn't clash with the client.connect call
+    delay(2000); // This delay ensures that client.publish doesn't clash with the client.connect call
     if(!client.publish(topic.c_str(), data.c_str())){
       #ifdef DEBUG
       Serial.println(F("ERROR no data sent!"));
@@ -717,27 +719,24 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
   wakeModemSleep();
   delay(1);
   connect_MQTT();
-  delay(100);
+  delay(1000);
   #ifdef DEBUG
-  Serial.println(F("Sending status message to Raspi!"));
+  Serial.println(F("Sending status message to Raspi!")); Serial.print(F("Is connected: ")); Serial.println(client.connected());
   #endif
   msg_mqtt(config_status, String("2")); //signal message to rasPi
-  int iter = 0;
+  Serial.print(F("Is connected: ")); Serial.println(client.connected());
   client.loop();
-  delay(1);
-  client.loop();
-  while(true){
-    delay(1);
+  unsigned long start = millis();
+  while(1){
+    delay(100);
     client.loop();
-    Serial.print("1");
-    if(iter > 5000){
+    if(millis() > start + 6500){
       msg_stop = true;
       #ifdef DEBUG
       Serial.println(F("Warning: No commands recieved from Raspi!"));
       #endif
       break;
     }
-    iter++;
   }
   #endif
 
@@ -821,7 +820,8 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
 #ifdef DEBUG
 Serial.println(F("Config: ")); Serial.print(F("Bewae switch: ")); Serial.println(sw0);
 Serial.print(F("Value override: ")); Serial.println(sw1);
-Serial.print(F("Timetable: ")); Serial.print(timetable_raspi); Serial.print(F(" value ")); Serial.println(timetable); 
+Serial.print(F("timetable override: ")); Serial.println(sw2);
+Serial.print(F("Timetable: ")); Serial.print(timetable_raspi); Serial.print(F(" value ")); Serial.println(timetable, BIN); 
 #endif
 
 //update global time related variables
@@ -861,7 +861,11 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
     if(m_ptr->is_set){ //convert moisture reading to relative moisture and clip bad data with constrain
       controll_mux(m_ptr->pin, sig_mux_1, en_mux_1, "read", &value);
       if(m_ptr->group_vpin < max_groups){ //will be true if it is moisture measurement (max_group as dummy for all values not assigned to a group)
-        float temp = (float)value * measurement_LSB * 1000;
+        float temp = (float)value * measurement_LSB5V * 1000;
+        #ifdef DEBUG
+        Serial.print(F("raw read:")); Serial.println(value);
+        Serial.print(F("raw read int:")); Serial.println((int)temp);
+        #endif
         value = temp;
         value = constrain(value, low_lim, high_lim); //x within borders else x = border value; (example 1221 wet; 3176 dry [in mV])
                                                       //avoid using other functions inside the brackets of constrain
@@ -1060,12 +1064,12 @@ if(thirsty){
         #endif
         for(unsigned long i = 0; i < 2UL + (unsigned long) (pump_cooldown_sec / ((unsigned long) TIME_TO_SLEEP * 1000UL)); i++){
         //for(int i=0; i > 15; i++){
-          esp_light_sleep_start();
+          delay(TIME_TO_SLEEP*1000);
         }
       }
       else{
       //send esp to sleep
-      esp_light_sleep_start();
+      delay(TIME_TO_SLEEP*1000);
       }
     }
 
