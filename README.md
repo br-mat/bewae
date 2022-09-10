@@ -4,19 +4,20 @@ v3.3 WIP versions now are not stable
 
 - added openweather scripts (saving current conditions & air condition to influxDB)
 - added corresponding .sh launcher files
-- added english translation
-- added ESP32 build (dropping nano in future?)
+- added ESP32 build
 - added 2nd circuit handling pumps & solenoids
 
 todo:
-- added openwather forecast script
-- added dynamic watering controlled by Pi (using ML later)
+- add openwather forecast script
+- add dynamic watering controlled by Pi (using ML later)
 - updating main circuit, correct bugs & problems on ESP32 build
+- update english translation of new version
+- update documentation
 
 open problems:
 - sensor rail needs 5V not 3V! (hooked onto logic switch for now)
 - backup SD card module malfunctions
-- brown out triggers sometimes in end of watering process, due to a very short voltage drop on the ESP32
+- reverse voltage protection on 12V IN get really hot (bridged for now)
 
 ### About
 Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
@@ -32,6 +33,7 @@ Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
   * [Aktueller Aufbau](#aktuelleraufbau)
   * [Beschreibung](#beschreibung)
   * [Systemdiagramm](#systemdiagramm)
+- [Steuerung](#steuerung-der-bewässerung)
 - [Details](#details)
   * [Platinen](#platinen)
   * [Code Arduino Nano](#code-arduino-nano)
@@ -40,11 +42,11 @@ Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
 - [Bilder](#bilder)
 
 ## Introduction (EN)
-This version is more of a test version. The controllability via [*MQTT*](#mqtt) is now added and tested. <br>
+This version is more of a test version. It has been reworked to fit a ESP32 board. <br>
 This is **not** a step-by-step guide - a little basic knowledge in dealing with Linux and microcontrollers is required. It should only be given an insight into the project and make it easier for me to rebuild in spring or at new locations. That's why I decided to use German, but I would like to add an English version later. <br>
 
 ## Einleitung (DE)
-Diese Version ist eher als Testversion zu sehen.  Neu hinzugefügt und getestet wird nun die Steuerbarkeit über [*MQTT*](#mqtt). <br>
+Diese Version ist eher als Testversion zu sehen. <br>
 Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorausgesetzt. Es soll lediglich ein Einblick in das Projekt gegeben werden und mir den Wiederaufbau im Frühjahr oder an neuen Standorten erleichtern. Deshalb habe ich mich auch für Deutsch entschieden, möchte jedoch noch eine Englische Version ergänzen. <br>
 <br>
 **Entstehung:** <br>
@@ -55,8 +57,7 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
 **Versorgung:** Mittlerweile wurde daraus ein autonom funktionierendes System, ausgestattet mit einem kleinen PV Modul einem Blei Akku und einem kleinen *100l* Wassertank. Je nach Temperatur muss nun nur noch einmal pro Woche daran gedacht werden den Tank zu füllen. <br>
 
 ### aktueller Aufbau
-- Arduino Nano
-- ESP-8266 01
+- ESP32
 - RaspberryPi 4 B (*4GB*)
 - *6* Ventile *12V*
 - *2* Pumpen (aktuell nur eine *12V* im Betrieb)
@@ -66,14 +67,13 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
 - micro SD module & micro SD Karte
 - Bewässerung Kit Schläuche, Sprinkler, etc.
 - *10W 12V* Solar Panel
-- *7.2 Ah* *12V* Bleiakku
+- *12 Ah* *12V* Bleiakku
 - Solarladeregler
 
 ### Beschreibung
-Übersicht des Schaltungsaufbaus im beigefügten [*Systemdiagramm.png*](#systemdiagramm) als Blockschaltbild. Sensoren und Module zeichnen jede Menge Daten auf, dazu zählen Bodenfeuchtigkeits Sensoren, Temperatur-, Luftfeuchte- und Luftdruckdaten sowie Sonnenscheindauer. Die Daten werden via [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) an den [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt.
-Automatisiert bewässert wird momentan *2* mal Täglich morgens und abends, aktuell sind bis zu *6* Ventile und *2* Pumpen schalt und steuerbar (erweiterbar). Die Bewässerung passt sich in der aktuellen Version nicht mehr an die Messdaten aus den Feuchtigkeitssensoren im Boden an, um die Steuerung über die [*mqttdash*](https://play.google.com/store/apps/details?id=net.routix.mqttdash&hl=en&gl=US) App zu testen, wird aber später wieder hinzugefügt. Mit einem [*MQTT*](#mqtt) messaging client ist möglich in die Bewässerung einzugreifen und gespeicherte Werte zu verändern. Die Messdaten können über Grafana im Auge zu behalten werden, so kann man mit eingerichtetem [*VPN*](https://www.pivpn.io/) auch von unterwegs seine Pflanzen im Auge behalten und Notfalls eingreifen.
+Übersicht des Schaltungsaufbaus im beigefügten [*Systemdiagramm.png*](#systemdiagramm) als Blockschaltbild. Zur Steuerung wird ein [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) verwendet. Sensoren und Module zeichnen jede Menge Daten auf, dazu zählen Bodenfeuchtigkeits Sensoren, Temperatur-, Luftfeuchte- und Luftdruckdaten sowie Sonnenscheindauer. Die Daten werden via [*MQTT*](#mqtt) an den [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt. <br> 
+ Die bewässerung folgt einem Zeitplan. Der entweder mit einprogrammierten Werten arbeitet oder über das Netzwerk gesteuert werden kann. Mit einem [*MQTT*](#mqtt) messaging client ist möglich in die Bewässerung einzugreifen. Mit einem eingerichtetem [*VPN*](https://www.pivpn.io/) kann man auch von unterwegs seine Pflanzen im Auge behalten und bewässern.
 In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard und die Python scripts zur Verarbeitung der [*MQTT*](#mqtt) messages. Die verwendete Datenbank ist [*InfluxDB*](#influxdb) in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang. <br>
-Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürlich einfacher einen [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) zu verwenden anstatt einem [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) mit einem [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) ein "Upgrade" zu verpassen. Da die Platine für einen Arduino Nano konzipiert und schon bestellt wurde habe ich mich für die zweite Variante entschieden, ein Mehraufwand der nicht notwendig aber lehrreich gewesen ist. <br>
 
 
 ## Systemdiagramm
@@ -81,56 +81,89 @@ Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürli
 ![System](/docs/pictures/Systemdiagramm.png "Systemdiagramm")
 ### V3.3 preview:
 ![System](/docs/pictures/Systemdiagramm3_3.png "Systemdiagramm 3.3")
+
+
+## Steuerung der Bewässerung
+
+- (Neu) getestet wird eine Steuerung über eine command funktion
+
+### Steuerung mit Programmierung (Default):
+Grundsätzlich erlaubt es der **Zeitplan** das einmal pro stunde bewässert wird. Die Wassermenge in den einzelnen Bewässerungsgruppen wird über die **Zeit** gesteuert die Pumpe und das jeweilige Ventil arbeiten. <br>
+**ZEITPLAN:** bestehend aus einer *long* Zahl wobei jedes bit von rechts beginnend bei *0* für eine Stunde auf der Uhr steht. Im Beispiel wird somit um *10* und *20* Uhr bewässert. <br>
+```
+//                                           2523211917151311 9 7 5 3 1
+//                                            | | | | | | | | | | | | |
+unsigned long int timetable_default = 0b00000000000100000000010000000000;
+//                                             | | | | | | | | | | | | |
+//                                            2422201816141210 8 6 4 2 0
+```
+<br>
+
+**MENGE:**
+Hierbei muss die Gruppe auf *true* gesetzt werden und der richtige pin und pumpe eingetragen werden. Nach der Bezeichnung (nicht notwendig) muss noch die Zeit in Sekunden eingetragen werden. Die restlichen Werte müssen auf *0* gesetzt werden da diese zur Laufzeit relevant werden.
+```
+//is_set, pin, pump_pin, name, watering default, watering base, watering time, last act,
+solenoid group[max_groups] =
+{ 
+  {true, 0, pump1, "Tom1", 100, 0, 0 , 0}, //group1
+  {true, 1, pump1, "Tom2", 80, 0, 0, 0}, //group2
+  {true, 2, pump1, "Gewa", 30, 0, 0, 0}, //group3
+  {true, 3, pump1, "Chil", 40, 0, 0, 0}, //group4
+  {true, 6, pump1, "Krtr", 20, 0, 0, 0}, //group5
+  {true, 7, pump1, "Erdb", 50, 0, 0, 0}, //group6
+};
+```
+<br>
+
+### Steuerung über WLAN:
+Im *config.h* file muss *define RasPi 1* gesetzt sein und MQTT sowie WLAN einstellungen müssen richtig konfiguriert sein.
+
+**ZEITPLAN:**
+Über MQTT muss mit dem topic *home/nano/timetable* der Wert der *long* *int* Zahl als dezimal gesendet werden. Da die Binäre representation als string unnötig lange wäre. <br>
+
+**MENGE:**
+Es muss lediglich die anzahl an sekunden gesendet werden die die jeweilige Gruppe bewässert werden soll. Die Topics müssen dem unten angeführten schema entsprechen. <br>
+Topics:
+```
+home/grp1/water_time
+home/grp2/water_time
+.
+.
+home/grp6/water_time
+```
+<br>
+
+### Steuerung über commands:
+platzhalter
+
 # Details
 
 ## Platinen
 Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen. Ab einer gewissen größe des Projekts ist fritzing allerdings nicht mehr ideal. <br>
-Auf die Verkabelung wird nicht weiter eingegangen, jedoch ein paar hinweise:
-- A4/A5 (SDA/SCL) richtig mit Platine_01 verbinden (reihenfolg im Code beachten)
-- Da Platine_01 einen micro USB Anschluss besitzt empfiehlt es sich diesen zu verwenden und von dort die Hauptplatine über jumper zu versorgen <br>
 
-### **bew_entwurf_v2_7.fzz** Hauptplatine (PCB)
-Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle relevanten Sensoren und Module sowie Steuerungen auf diese Platine zusammengeführt und von einem [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) verarbeitet. Für den Offline betrieb alleine würde diese Platine ausreichen. Ursprünglich sollte das System über Powerbanks versorgt werden. Um zu verhindern, dass die Powerbank abschaltet ist ein *NE555*-Schaltung eingeplant die, richtig Dimensioniert, den Schutzmechanismus der Powerbank bei geringer last umgeht. Im momentanen Aufbau werden jedoch keine Powerbanks verwendet daher ist dieser Teil der Platine obsolet. Die gesammelten Daten werden auf eine SD Karte gespeichert. Diese ist nach aktuellem stand Notwendig durch Anpassungen im [Code](/code/bewae_main_nano/bewae_v3_nano/src/main.cpp) könnte man sie aber auch weglassen. <br>
-
+### **bewae3_3_board1v3_7.fzz** Hauptplatine (PCB)
+Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle relevanten Sensoren und Module sowie Steuerungen auf diese Platine zusammengeführt und von einem [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) verarbeitet.
 ![Main PCB](/docs/pictures/bewae_v3_1.png "Main board")
 
 <br>
 
-### **Platine_01.fzz** als Erweiterung mit Esp01, Buckconverter etc. (Lochrasterboard)
-Sie ist als Erweiterung gedacht um eine Anbindung an das Netzwerk zu ermöglichen sowie größere Spannungen (*12V*) Schalten zu können. Auch die Spannung der Bleibatterie (Akku) soll über den Spannungsteiler abgegriffen werden können. Außerdem besitzt sie einen micro USB Anschluss und kann damit gut per USB Kabel vom Solarladeregler versorgt werden. So wird kein extra Spannungswandler von *12* auf *5* Volt benötigt. Von hier aus kann auch die Hauptplatine versorgt werden. Der [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) kann bei richtiger Verkabelung über I²C mit dem [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) kommunizieren sowie über den *'enable Pin'* ein und ausgeschalten werden um Strom zu sparen.
+### **bewae3_3_board2v6.fzz** als Erweiterung (PCB)
+Sie ist als Erweiterung gedacht. Die Platine bietet 13 Steckplätze für sensoren sowie 2 Pumpen (*12V*) und 6 Ventile (*12V*). Die Spannung der Bleibatterie (Akku) soll über den Spannungsteiler abgegriffen werden können. 
 <br>
 
-## Code Arduino Nano
+
+## Code ESP32
 [Arduino-Nano Code](/code/bewae_main_nano/bewae_v3_nano/src/main.cpp)
 <br>
-### Allgemein
-Der Code wird mit Visual Studio Code und der Platformio extension aufgespielt, VS code bietet eine umfangreichere IDE als die Arduino IDE und ist damit für das deutlich umfangreichere Programm einfach besser geeignet. <br>
-
-- Damit das Programm ausgeführt werden kann werden alle Module benötigt. Es muss eine SD Karte als Backup gesteckt sein, der BME280 muss funktionieren sowie das RTC Modul.
-- Um die fehlerfreie Kommunikation zum [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) als "slave" zu ermöglichen setze ich im Register TWBR manuell wie in der Setup Funktion ersichtlich, dies ermöglicht eine präzise Steuerung des [*I²C*](#ic) Bus Taktes über SCL. Durch "trial and error" bin ich zu dem Wert **TWBR=230** gekommen. Es gibt auch noch eine zweite Möglichkeit die Frequenz zu ändern mit **Wire.setClock(clockFrequency)**, dies hatte jedoch leider öfter zu Fehlern geführt (nicht nur in der Kommunikation). 
-```
-#Formula:
-freq = clock / (16 + (2 * TWBR * prescaler)) #für den fall TWBR=230 --> 8.62 kHz (prescaler = 4, clock = 16MHz)
-```
-
-### I²C
-**I²C** (Inter-Integrated Circuit) ein serieller Datenbus der von Philips Semiconductors entwickelt wurde und hauptsächlich für sehr kurze Strecken (gerätintern) vorgesehen ist. <br>
-
-Im Fall dieses Projekts spielt die Kommunikation der beiden Mikrocontroller eine tragende Rolle. Grundsätzlich ist ein Multi-master Betrieb möglich wenn auch oft nicht empfohlen. Für die fehlerfreie Kommunikation in beide Richtungen müssen leider beide Controller als Master dem Bus beitreten. Hauptsächlich als Master verwende ich den [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) der dem [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) signalisiert wann er als Master die Kommunikation übernehmen darf um Komplikationen zu vermeiden.
-
-
-## Code ESP8266 01
-[ESP8266-01 Code](/code/esp01_bewae_reporterv3_5_beta/esp01_bewae_reporterv3_5_beta.ino)
-<br>
 
 ### Allgemein
-Dieser Mikrocontroller wird verwendet um dem System den Zugang zum Lokalen Netzwerk zu verschaffen. Dabei stellt der [*ESP8266-01*](https://de.wikipedia.org/wiki/ESP8266) die Verbindung ins WLAN-Netz her und die Kommunikation mit dem [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) erfolgt seriell mit I²C. Den [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) als "slave" des [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) zu verwenden bringt einige Probleme mit sich daher tritt auch dieser Mikrocontroller dem Bus als Master bei. Für eine fehlerfreie Funktion müssen die CPU Frequenz des [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) muss auf *160MHz* statt den standardmäßigen *80MHz* angehoben werden und am [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) die Frequenz des Buses reduziert werden ([siehe TWBR](#code-arduino-nano)). Damit auch der [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) dem Arduino zuverlässig Daten senden kann wird der Bus nun mit *2* Master also Multimasterbetrieb betrieben. <br>Nach all diesen Anpassungen funktioniert die Kommunikation sehr stabil. Sehr selten kommt es zu kleinen Fehlern in der Übertragung, deshalb wird am Schluss einer Übertragung als letztes Byte eine festgelegte Zahl gesendet, die der Zuordnung und Kontrolle zum Ausschluss von Fehlern dient.
+Der Code wird mit Visual Studio Code und der Platformio extension aufgespielt, VS code bietet eine umfangreiche IDE und eignet sich für größere Projekte ausgezeichnet. <br>
 
-### Programmierung mit Arduino IDE
-Für die Programmierung des [*ESP8266-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) empfiehlt es sich Programmier-Module zu verwenden. Ich verwende ein Modul auf Basis CH340, hierzu muss man die Treiber im Vorhinein [installieren](https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers/all). Wichtig ist auf die Spannung zu achten je nach Modul kann es notwendig sein den Output erst auf *3.3V* zu schalten. <br>
-Um die CPU Frequenz des [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) beim Programmieren mit der Arduino IDE zu ändern muss man beim Menüpunkt 'File' --> 'Preferences' und unter 'Additional Boards Manager URLs:' Folgendes ergänzt werden (mehrere URLs einfach mit Kommas trennen) *http://arduino.esp8266.com/stable/package_esp8266com_index.json* <br>
-Nun kann man unter dem Menüpunkt 'Tools' --> 'Board' nach 'Generic ESP8266 Module' wählen. Nachdem die restlichen Einstellungen - wie aus dem Bild zu entnehmen - vorgenommen wurden, ist die IDE bereit für den Upload. Eventuell fehlende librarys müssen gegebenenfalls noch installiert werden, dies ist einfach über den library Manager möglich. <br>
-![ESP01 upload configuration](/docs/pictures/esp01upload.png "Upload configuration")
+Damit das Programm ausgeführt werden kann muss das RTC Module richtig angeschlossen sein und funktionieren. Die SD Karte, den BME280 sowie Netzwerksteuerung können über dei config deaktiviert werden. Dazu werden einfach die dafür vorgesehenen definitionen im *config.h* file auskommentiert. <br>
+
+Damit die Steuerung und Kommunikation über das Netzwerk funktioniert müssen die WLAN Einstellungen richtig konfiguriert sein. Hier sind lediglich die Daten des jeweiligen Netzwerks auszufüllen. <br>
+
+Für Debugging zwecke empfielt es sich RX und TX pins am Mikrocontroller abzugreifen und die *DEBUG* definition zu setzten. <br>
 
 ## Raspberrypi
 ### Allgemein
@@ -184,9 +217,6 @@ exampletopic=home/location/measurement
 Zusätzlich zu diesem topic werden im Payload die Daten angehängt, der Inhalt als String. Auflistung relevanter topics:
 ```
 #example topics to publish data on
-  topic_prefix = "home/sens3/z";
-  #send multiple measurments from nano to raspberry pi unter fortlaufender nummer die angehängt wird
-
   humidity_topic_sens2 = "home/sens2/humidity";
   #bme280 sensor read
 
@@ -235,14 +265,6 @@ Ein Beispiel Screenshot aus der App, die Zahlen stehen für die Zeit (s) in der 
 
 ## Bilder
 Kleine Sammlung von Fotos über mehrere Versionen des Projekts, die über die Zeit entstanden sind.
-### V1
-
-![Bild](/docs/pictures/bewaeV1(2).jpg) <br>
-![Bild](/docs/pictures/bewaeV1.jpg) <br>
-
-### V2
-
-![Bild](/docs/pictures/bewaeV2.jpg) <br>
 
 ### V3
 
@@ -250,3 +272,13 @@ Kleine Sammlung von Fotos über mehrere Versionen des Projekts, die über die Ze
 ![Bild](/docs/pictures/bewaeV3(Herbst).jpg) <br>
 ![Bild](/docs/pictures/bewaeV3(Box).jpg) <br>
 ![Bild](/docs/pictures/MainPCB.jpg) <br>
+
+### V2
+
+![Bild](/docs/pictures/bewaeV2.jpg) <br>
+
+
+### V1
+
+![Bild](/docs/pictures/bewaeV1(2).jpg) <br>
+![Bild](/docs/pictures/bewaeV1.jpg) <br>
