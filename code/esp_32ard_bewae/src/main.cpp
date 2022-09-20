@@ -89,8 +89,6 @@ unsigned long up_time = 0;    //general estimated uptime
 unsigned long last_activation = 0; //timemark variable
 bool thirsty = false; //marks if a watering cycle is finished
 bool config = false;  //handle wireless configuration
-//OLD bool config_bewae_sw = true; //switch watering on off
-//OLD bool config_watering_sw = true; //switch default and custom values, default in group_st_time and custom sent via mqtt
 
 //wireless config array to switch on/off functions
 // watering time of specific group; binary values;
@@ -115,9 +113,11 @@ unsigned long int timetable_raspi = 0; //initialize on default
 
 Adafruit_BME280 bme; // use I2C interface
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Wifi & Pubsubclient                                           
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//######################################################################################################################
+//----------------------------------------------------------------------------------------------------------------------
+//---- SOME ADDITIONAL FUNCTIONS ---------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+//######################################################################################################################
 // Initialise the WiFi and MQTT Client objects
 WiFiClient wificlient;
 PubSubClient client(wificlient);
@@ -890,6 +890,8 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   }
   digitalWrite(sw_3_3v, HIGH);
   delay(1);
+
+  // BME280 sensor (default)
   #ifdef BME280
   if (!bme.begin(BME280_I2C_ADDRESS)) {
     #ifdef DEBUG
@@ -912,13 +914,15 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   }
   #endif
 
+  // DHT11 sensor (alternative)
   #ifdef DHT
-  //possible dht solution?
+  //possible dht solution --- CURRENTLY NOT IMPLEMENTED!
   #endif
 
-  // --- log data to SD card (backup) ---  
+  // log data to SD card (backup) ---  CURRENTLY NOT IMPLEMENTED!
   #ifdef SD_log
-    // --- data shape---
+  /*
+  // --- data shape---
   //data2[0] = (float)bme280.getPressure() / (float)10+0;     //--> press reading
   //data2[1] = (float)bme280.getHumidity() * (float)100+0;    //--> hum reading
   //data2[2] = (float)bme280.getTemperature() * (float)100+0; //--> temp reading
@@ -945,9 +949,10 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   digitalWrite(sw_sens, LOW);   //deactivate mux & SD
   digitalWrite(sw_sens2, LOW);   //deactivate sensor rail
   digitalWrite(sw_3_3v, LOW);
+  */
   #endif //sd log
 
-  // --- log to INFLUXDB ---
+  // log to INFLUXDB (default)
   #ifdef RasPi
   if(post_DATA){
     wakeModemSleep();
@@ -962,6 +967,7 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
         msg_mqtt(topic, data);
       }
     }
+    //switch if using DHT
     #ifdef BME280
     len = sizeof(bme_point)/sizeof(bme_point[0]);
     struct sensors* data_ptr2 = bme_point;
@@ -978,11 +984,6 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// recieve commands
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//currently done on every change of hour, which should save some power
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // watering
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 if(thirsty){
@@ -996,8 +997,8 @@ if(thirsty){
   #endif
   delay(30);
   // --- Watering ---
-  //trigger at specific time
-  //alternate the solenoids to avoid heat damage, let cooldown time if only one remains
+  //description: trigger at specific time
+  //             alternate the solenoids to avoid heat damage, let cooldown time if only one remains
   //Hints:  main mosfet probably get warm
   //        pause procedure when measure events needs to happen
   //        NEVER INTERUPT WHILE WATERING!
@@ -1014,11 +1015,15 @@ if(thirsty){
       if(ptr->is_set){
         set+=1;
       }
+      //check if procedure finished
       if(ptr->watering_time == 0){
         finish+=1;
+        #ifdef DEBUG
         Serial.println(ptr->watering_time == 0);
+        #endif
       }
       delay(10);
+      //start watering process
       if((ptr->last_t + cooldown < millis()) & (ptr->watering_time > 0) & (ptr->is_set)) //minimum cooldown of 30 sec
       {
         unsigned int water_timer = 0;
@@ -1028,7 +1033,7 @@ if(thirsty){
           water_timer = ptr->watering_time;
           ptr->watering_time = 0;
         }
-        else{ //reduce ptr variable
+        else{ //reduce ptr variable with max active time
           water_timer = (unsigned int) max_active_time_sec;
           ptr->watering_time -= (unsigned int) max_active_time_sec;
         }
@@ -1038,6 +1043,7 @@ if(thirsty){
           #endif
           water_timer = (unsigned int) max_active_time_sec;
         }
+        //perform watering
         #ifdef DEBUG
         Serial.print(F("Watering group: ")); Serial.print(ptr->name); Serial.println(F(";  "));
         Serial.print(water_timer); Serial.print(F(" seconds")); Serial.println(F(";  "));
@@ -1055,15 +1061,14 @@ if(thirsty){
       Serial.println(F("----------------------"));
       #endif
 
+      //let electronics cool down
       if(pump_t > (unsigned int) max_active_time_sec){
         pump_t = 0;
-        //sleep while cooldown
         #ifdef DEBUG
         Serial.print(F("cooling down: ")); Serial.println(2UL + (unsigned long) (pump_cooldown_sec / ((unsigned long) TIME_TO_SLEEP * 1000UL)));
         delay(100);
         #endif
         for(unsigned long i = 0; i < 2UL + (unsigned long) (pump_cooldown_sec / ((unsigned long) TIME_TO_SLEEP * 1000UL)); i++){
-        //for(int i=0; i > 15; i++){
           delay(TIME_TO_SLEEP*1000);
         }
       }
@@ -1074,7 +1079,9 @@ if(thirsty){
     }
 
     if(finish == set){
-      Serial.print("Temp stat fin and set: "); Serial.print(finish); Serial.print(" "); Serial.println(set);
+      #ifdef DEBUG
+      Serial.print("Finished and set: "); Serial.print(finish); Serial.print("::"); Serial.println(set);
+      #endif
       thirsty = false;
       break;
     }
@@ -1089,6 +1096,22 @@ if(thirsty){
 // sleep
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 if (loop_t + measure_intervall > millis()){
+  //sleep till next measure point
+  int sleep_ = (long)(loop_t + measure_intervall - millis())/(TIME_TO_SLEEP * 1000UL);
+  #ifdef DEBUG
+  if(sleep_ < (int)measure_intervall / (TIME_TO_SLEEP * 1000)){
+  Serial.println(F("Warning: sleep time calculation went wrong value too high!"));
+  }
+  Serial.print(F("sleep in s: ")); Serial.println((float)sleep_ * TIME_TO_SLEEP);
+  #endif
+  for(int i = 0; i < sleep_; i++){
+    system_sleep(); //turn off all external transistors
+    esp_light_sleep_start();
+    if(loop_t + measure_intervall < millis()){
+      break; //stop loop to start measuring
+    }
+  }
+  /* // old implementation
   //sleep till next measure intervall + 2 times sleep time
   unsigned long sleep = loop_t + measure_intervall - millis() + TIME_TO_SLEEP * 1000UL * 2UL; 
   #ifdef DEBUG
@@ -1102,6 +1125,7 @@ if (loop_t + measure_intervall > millis()){
       break; //stop loop to start measuring
     }
   }
+  */
 }
 #ifdef DEBUG
 Serial.println(F("End loop!"));
