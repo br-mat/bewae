@@ -145,8 +145,8 @@ home/grp6/water_time
 ```
 <br>
 
-![config](/docs/pictures/mqtt-app)
-![config](/docs/pictures/watering-config)
+![config](/docs/pictures/mqtt-app.jpg)
+![config](/docs/pictures/watering-config.jpg)
 
 ### Steuerung über WLAN (commands):
 platzhalter
