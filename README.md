@@ -20,6 +20,7 @@ open problems:
 - reverse voltage protection on 12V IN get really hot (bridged for now)
 
 ### About
+
 Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
 **Ziele:**
 + Sensorgesteuerte Automatisierte Bewässerung der Balkonpflanzen
@@ -48,13 +49,6 @@ This is **not** a step-by-step guide - a little basic knowledge in dealing with 
 ## Einleitung (DE)
 Diese Version ist eher als Testversion zu sehen. <br>
 Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorausgesetzt. Es soll lediglich ein Einblick in das Projekt gegeben werden und mir den Wiederaufbau im Frühjahr oder an neuen Standorten erleichtern. Deshalb habe ich mich auch für Deutsch entschieden, möchte jedoch noch eine Englische Version ergänzen. <br>
-<br>
-**Entstehung:** <br>
-Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balkonpflanzen ohne Versorgung gewesen wären. Das grün sollte mit einem Bewässerungsset, Schläuche und ein paar Düsen und einer Pumpe am Leben gehalten werden. Eine Reguläre Bewässerung wie bei einer Zeitschaltuhr kam mir jedoch zu langweilig vor und mein Interesse an einem kleinen Bastelprojekt war geweckt. Kapazitive Bodenfeuchte Sensoren und 4 kleine *12V* Ventile waren schnell bestellt, Arduinos hatte ich genug zu Hause, so kam es innerhalb einer Woche zu [Version 1](#v1) und das Überleben der Pflanzen war gesichert. Es entstand aus der Not ein Projekt das mich eine Weile Beschäftigt hat, kontinuierlich erweitert und verbessert erfüllt es nach momentanem Stand weit mehr als zuerst geplant. <br>
-<br>
-**Stand jetzt:** <br>
-**Technik:** Für die einfachere Handhabung wurde mit [fritzing](https://fritzing.org/) ein Plan für ein [PCB](#platinen) erstellt und gedruckt. Sensordaten von diversen Sensoren (Bodenfeuchte, Temperatur etc.) werden an einen [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet und dort in eine Datenbank gespeichert. Die Steuerung der Bewässerung funktioniert entweder automatisiert Sensorgesteuert oder über eine [MQTT-messaging App](#mqttdash-app-optional) über das Smartphone. Dank [VPN](https://www.pivpn.io/) sind auch von unterwegs Steuerung und Beobachtung möglich. <br>
-**Versorgung:** Mittlerweile wurde daraus ein autonom funktionierendes System, ausgestattet mit einem kleinen PV Modul einem Blei Akku und einem kleinen *100l* Wassertank. Je nach Temperatur muss nun nur noch einmal pro Woche daran gedacht werden den Tank zu füllen. <br>
 
 ### aktueller Aufbau
 - ESP32
@@ -75,6 +69,18 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
  Die bewässerung folgt einem Zeitplan. Der entweder mit einprogrammierten Werten arbeitet oder über das Netzwerk gesteuert werden kann. Mit einem [*MQTT*](#mqtt) messaging client ist möglich in die Bewässerung einzugreifen. Mit einem eingerichtetem [*VPN*](https://www.pivpn.io/) kann man auch von unterwegs seine Pflanzen im Auge behalten und bewässern.
 In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard und die Python scripts zur Verarbeitung der [*MQTT*](#mqtt) messages. Die verwendete Datenbank ist [*InfluxDB*](#influxdb) in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang. <br>
 
+<br>
+
+**Entstehung:** <br>
+Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balkonpflanzen ohne Versorgung gewesen wären. Das grün sollte mit einem Bewässerungsset, Schläuche und ein paar Düsen und einer Pumpe am Leben gehalten werden. Eine Reguläre Bewässerung wie bei einer Zeitschaltuhr kam mir jedoch zu langweilig vor und mein Interesse an einem kleinen Bastelprojekt war geweckt. Kapazitive Bodenfeuchte Sensoren und 4 kleine *12V* Ventile waren schnell bestellt, Arduinos hatte ich genug zu Hause, so kam es innerhalb einer Woche zu [Version 1](#v1) und das Überleben der Pflanzen war gesichert. Es entstand aus der Not ein Projekt das mich eine Weile Beschäftigt hat, kontinuierlich erweitert und verbessert erfüllt es nach momentanem Stand weit mehr als zuerst geplant. <br>
+<br>
+
+**Stand jetzt:** <br>
+
+**Technik:** Für die einfachere Handhabung wurde mit [fritzing](https://fritzing.org/) ein Plan für ein [PCB](#platinen) erstellt und gedruckt. Sensordaten von diversen Sensoren (Bodenfeuchte, Temperatur etc.) werden an einen [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet und dort in eine Datenbank gespeichert. Die Steuerung der Bewässerung funktioniert entweder automatisiert Sensorgesteuert oder über eine [MQTT-messaging App](#mqttdash-app-optional) über das Smartphone. Dank [VPN](https://www.pivpn.io/) sind auch von unterwegs Steuerung und Beobachtung möglich. <br>
+
+**Versorgung:** Mittlerweile wurde daraus ein autonom funktionierendes System, ausgestattet mit einem kleinen PV Modul einem Blei Akku und einem kleinen *100l* Wassertank. Je nach Temperatur muss nun nur noch einmal pro Woche daran gedacht werden den Tank zu füllen.
+<br>
 
 ## Systemdiagramm
 ### V3.0:
@@ -87,8 +93,10 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 
 - (Neu) getestet wird eine Steuerung über eine command funktion
 
+Grundsätzlich erlaubt es der **Zeitplan** das einmal pro stunde bewässert wird. Die **Wassermenge** in den einzelnen Bewässerungsgruppen wird über die **Zeit** gesteuert die Pumpe und das jeweilige Ventil arbeiten. Zu jeder eingetragenen Stunde im Zeitplan wird einmal die eingestellte Menge entlassen. <br>
+
 ### Steuerung mit Programmierung (Default):
-Grundsätzlich erlaubt es der **Zeitplan** das einmal pro stunde bewässert wird. Die Wassermenge in den einzelnen Bewässerungsgruppen wird über die **Zeit** gesteuert die Pumpe und das jeweilige Ventil arbeiten. <br>
+
 **ZEITPLAN:** bestehend aus einer *long* Zahl wobei jedes bit von rechts beginnend bei *0* für eine Stunde auf der Uhr steht. Im Beispiel wird somit um *10* und *20* Uhr bewässert. <br>
 ```
 //                                           2523211917151311 9 7 5 3 1
@@ -100,6 +108,7 @@ unsigned long int timetable_default = 0b00000000000100000000010000000000;
 <br>
 
 **MENGE:**
+Diese eintragung ist im code vorzunehmen siehe code Beispiel unten.
 Hierbei muss die Gruppe auf *true* gesetzt werden und der richtige pin und pumpe eingetragen werden. Nach der Bezeichnung (nicht notwendig) muss noch die Zeit in Sekunden eingetragen werden. Die restlichen Werte müssen auf *0* gesetzt werden da diese zur Laufzeit relevant werden.
 ```
 //is_set, pin, pump_pin, name, watering default, watering base, watering time, last act,
@@ -115,11 +124,14 @@ solenoid group[max_groups] =
 ```
 <br>
 
-### Steuerung über WLAN:
-Im *config.h* file muss *define RasPi 1* gesetzt sein und MQTT sowie WLAN einstellungen müssen richtig konfiguriert sein.
+### Steuerung über WLAN (APP, MQTT):
+Im *config.h* file muss *define RasPi 1* gesetzt sein und MQTT sowie WLAN einstellungen müssen richtig konfiguriert sein. Um mit dem System zu kommunizieren wird eine App aus dem Play-store [MQTT Dash](https://play.google.com/store/apps/details?id=net.routix.mqttdash&hl=en&gl=US) genutzt.
 
 **ZEITPLAN:**
-Über MQTT muss mit dem topic *home/nano/timetable* der Wert der *long* *int* Zahl als dezimal gesendet werden. Da die Binäre representation als string unnötig lange wäre. <br>
+Über MQTT muss mit dem topic *home/nano/timetable* der Wert der *long* *int* Zahl als dezimal gesendet werden. Da die Binäre representation als string unnötig lange wäre.
+<br>
+
+Diese Methode ist nicht benutzerfreundlich deshalb habe ich eine weiter Möglichkeit implementiert. Unter dem Topic: *home/nano/planed* können die geplanten vollen stunden als liste (Beispiel: *6,10,20*) gesendet werden. <br>
 
 **MENGE:**
 Es muss lediglich die anzahl an sekunden gesendet werden die die jeweilige Gruppe bewässert werden soll. Die Topics müssen dem unten angeführten schema entsprechen. <br>
@@ -133,7 +145,7 @@ home/grp6/water_time
 ```
 <br>
 
-### Steuerung über commands:
+### Steuerung über WLAN (commands):
 platzhalter
 
 # Details
