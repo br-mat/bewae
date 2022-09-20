@@ -147,7 +147,7 @@ home/grp6/water_time
 
 Gruppe eintragen:          |  Überblick:
 :-------------------------:|:-------------------------:
-![config](/docs/pictures/mqtt-app.jpg =250x125) |  ![config](/docs/pictures/watering-config.jpg =250x125)
+![config](/docs/pictures/mqtt-app.jpg) |  ![config](/docs/pictures/watering-config.jpg)
 
 
 
