@@ -36,7 +36,6 @@ void Helper::shiftvalue8b(uint8_t val){
   digitalWrite(st_cp_shft, LOW);
 }
 
-
 void Helper::system_sleep(){
   //Function: deactivate the modules, prepare for sleep & setting mux to "lowpower standby" mode:
   digitalWrite(vent_pwm, LOW);     //pulls vent pwm pin low
@@ -56,9 +55,6 @@ void Helper::system_sleep(){
   Serial.println(F("Output on standby"));
 }
 
-
-// Function to copy 'len' elements from 'src' to 'dst'
-// code: https://forum.arduino.cc/index.php?topic=274173.0
 void Helper::copy(int* src, int* dst, int len) {
   //Function description: copy strings
   //FUNCTION PARAMETER:
@@ -92,10 +88,10 @@ void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _ti
   #endif
   digitalWrite(en, HIGH);
   unsigned long time_s = (unsigned long)_time * 1000UL;
-  if (time_s > 60000UL){
-    time_s = 60000UL;
+  if (time_s > (unsigned long)max_active_time_sec * 1000UL){
+    time_s = (unsigned long)max_active_time_sec * 1000UL;
     #ifdef DEBUG
-    Serial.println(F("time warning: time exceeds 60 sec"));
+    Serial.println(F("time warning: time exceeds sec"));
     #endif
   }
 
@@ -149,8 +145,6 @@ void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _ti
 }
 
 
-//controll mux function
-//void Helper::controll_mux(uint8_t control_pins[], uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
 void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
   //Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
   //FUNCTION PARAMETER:
@@ -301,7 +295,6 @@ byte bcd_dec(byte val)
 }
 
 
-//took basically out of the librarys example as the rest of the time functions, slightly modded
 void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
 //Function: sets the time on the rtc module (iic)
 //FUNCTION PARAMETERS:
@@ -376,13 +369,6 @@ String Helper::timestamp(){
   return time_data;
 }
 
-/* //old original function
-void Helper::disableWiFi(){
-    WiFi.disconnect(true);  // Disconnect from the network
-    delayMicroseconds(100);
-    WiFi.mode(WIFI_OFF);    // Switch WiFi off
-}
-*/
 
 bool Helper::enableWifi(){
   WiFi.disconnect(true);  // Reconnect the network
