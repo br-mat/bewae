@@ -134,7 +134,7 @@ Im *config.h* file muss *define RasPi 1* gesetzt sein und MQTT sowie WLAN einste
 Diese Methode ist nicht benutzerfreundlich deshalb habe ich eine weiter Möglichkeit implementiert. Unter dem Topic: *home/nano/planed* können die geplanten vollen stunden als liste (Beispiel: *6,10,20*) gesendet werden. <br>
 
 **MENGE:**
-Es muss lediglich die anzahl an sekunden gesendet werden die die jeweilige Gruppe bewässert werden soll. Die Topics müssen dem unten angeführten schema entsprechen. <br>
+Es muss lediglich die anzahl an sekunden gesendet werden die die jeweilige Gruppe bewässert werden soll. Die Topics müssen dem unten angeführten schema entsprechen und in der App eingestellt werden. <br>
 Topics:
 ```
 home/grp1/water_time
@@ -144,6 +144,9 @@ home/grp2/water_time
 home/grp6/water_time
 ```
 <br>
+
+![config](/docs/pictures/mqtt-app)
+![config](/docs/pictures/watering-config)
 
 ### Steuerung über WLAN (commands):
 platzhalter
