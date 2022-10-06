@@ -83,8 +83,7 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
 <br>
 
 ## Systemdiagramm
-### V3.0:
-![System](/docs/pictures/Systemdiagramm.png "Systemdiagramm")
+
 ### V3.3 preview:
 ![System](/docs/pictures/Systemdiagramm3_3.png "Systemdiagramm 3.3")
 
