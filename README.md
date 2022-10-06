@@ -95,7 +95,9 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
 
 Grundsätzlich erlaubt es der **Zeitplan** das einmal pro stunde bewässert wird. Die **Wassermenge** in den einzelnen Bewässerungsgruppen wird über die **Zeit** gesteuert die Pumpe und das jeweilige Ventil arbeiten. Zu jeder eingetragenen Stunde im Zeitplan wird einmal die eingestellte Menge entlassen. <br>
 
-### Steuerung mit Programmierung (Default):
+### Steuerung über Programmierung (Default):
+
+Grundsätzlich erlaubt es der **Zeitplan** das einmal pro stunde bewässert wird. Die Wassermenge in den einzelnen Bewässerungsgruppen wird über die **Zeit** gesteuert die Pumpe und das jeweilige Ventil arbeiten. <br>
 
 **ZEITPLAN:** bestehend aus einer *long* Zahl wobei jedes bit von rechts beginnend bei *0* für eine Stunde auf der Uhr steht. Im Beispiel wird somit um *10* und *20* Uhr bewässert. <br>
 ```
