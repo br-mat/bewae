@@ -338,10 +338,14 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
 
 // Custom function to connet to the MQTT broker via WiFi
 bool connect_MQTT(){
+  //initial connect attempt
+  enableWifi();
+
+  //failure management
   if (WiFi.status() != WL_CONNECTED)
   {
     WiFi.mode(WIFI_STA);
-    delay(1);
+    delay(100);
     #ifdef DEBUG
     Serial.print("Connecting to ");
     Serial.println(ssid);
@@ -351,31 +355,43 @@ bool connect_MQTT(){
   }
   
   int tries = 0;
-  // Wait until the connection has been confirmed before continuing
+  //retry until the connection has been confirmed before continuing
   while ((WiFi.status() != WL_CONNECTED)) {
-    delay(500);
+    delay(1000);
     #ifdef DEBUG
     Serial.print(" . ");
     #endif
-    if(tries == 30) {
+    if(tries == 15) {
+      //try reactivate wifi
+      disableWiFi();
+      delay(100);
+      enableWifi();
+      delay(2500);
       WiFi.begin(ssid, wifi_password);
       #ifdef DEBUG
       Serial.print(F(" Trying again "));
-      Serial.print(tries);
+      Serial.println(tries);
       #endif
-      delay(5000);
+      
     }
     tries++;
-    if(tries > 20){
+    if(tries > 30){
+      #ifdef DEBUG
+      Serial.println();
+      Serial.print(F("Error: Wifi connection could not be established! "));
+      Serial.println(tries);
+      #endif
       return false;
     }
   }
+
   #ifdef DEBUG
   // Debugging - Output the IP Address of the ESP32
   Serial.println("WiFi connected");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
   #endif
+
   // Connect to MQTT Broker
   // client.connect returns a boolean value to let us know if the connection was successful.
   // If the connection is failing, make sure you are using the correct MQTT Username and Password (Setup Earlier in the Instructable)
@@ -385,39 +401,37 @@ bool connect_MQTT(){
   Serial.println(F("Connect to MQTT"));
   #endif
   while(!connection){
-    delay(500);
     connection = client.connect(clientID, mqtt_username, mqtt_password);
+      if(connection){
+        delay(100);
+        #ifdef DEBUG
+        Serial.println("Connected to MQTT Broker!");
+        #endif
+        //client.setCallback(callback);
+        //client.subscribe(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
+        client.subscribe(watering_topic, 1);  //watering values (val1, val2, val3, ...)
+        client.subscribe(bewae_sw, 1); //switch on/off default values for watering
+        client.subscribe(watering_sw, 1); //switch on/off watering procedure
+        client.subscribe(timetable_sw, 1); //switch on/off custom timetable
+        client.subscribe(timetable_content, 1); //change timetable
+        client.subscribe(testing, 1);
+        client.subscribe(comms, 1); //commands from Pi
+        client.setCallback(callback);
+        client.loop();
+        return true;
+      }
     #ifdef DEBUG
     Serial.print(F(" . "));
     #endif
-    if(mqtt_i>20){
-      break;
+    //timeout condition
+    if(mqtt_i>30){
+      #ifdef DEBUG
+      Serial.print("Connection to MQTT Broker failed: ");
+      Serial.println(connection);
+      #endif
+      return false;
     }
-  }
-  delay(500);
-  if (connection) {
-    #ifdef DEBUG
-    Serial.println("Connected to MQTT Broker!");
-    #endif
-    //client.setCallback(callback);
-    //client.subscribe(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
-    client.subscribe(watering_topic, 1);  //watering values (val1, val2, val3, ...)
-    client.subscribe(bewae_sw, 1); //switch on/off default values for watering
-    client.subscribe(watering_sw, 1); //switch on/off watering procedure
-    client.subscribe(timetable_sw, 1); //switch on/off custom timetable
-    client.subscribe(timetable_content, 1); //change timetable
-    client.subscribe(testing, 1);
-    client.subscribe(comms, 1); //commands from Pi
-    client.setCallback(callback);
-    client.loop();
-    return true;
-  }
-  else {
-    #ifdef DEBUG
-    Serial.print("Connection to MQTT Broker failed: ");
-    Serial.println(connection);
-    #endif
-    return false;
+    delay(1000);
   }
 }
 
@@ -430,10 +444,19 @@ bool msg_mqtt(String topic, String data){
   //return: false if everything ok otherwise true
 
   //unsigned int length = data.length(); //NEW IMPLEMENTATION SHOULD CORRECT BUG
-  client.loop();
   #ifdef DEBUG
   Serial.println(F("msg_mqtt func called"));
   #endif  
+
+  if(!client.connected()){
+    #ifdef DEBUG
+    Serial.print(F("Client not connected trying to reconnect!"));
+    #endif
+    wakeModemSleep();
+    connect_MQTT();
+    client.loop();
+  }
+
   if(client.publish(topic.c_str(), data.c_str())){
     #ifdef DEBUG
     Serial.print(F("Data sent: ")); Serial.println(data.c_str()); Serial.println(topic.c_str());
@@ -479,6 +502,14 @@ bool pub_data(struct sensors* output_data, unsigned int length){
   //This function should take an array and publish the content via mqtt
   //input: a pointer array of sensors struct, its unsigned int length
   //return: false on success, true if any problems occured
+  if(!client.connected()){
+    #ifdef DEBUG
+    Serial.print(F("Client not connected trying to reconnect!"));
+    #endif
+    wakeModemSleep();
+    connect_MQTT();
+    client.loop();
+  }
 
   #ifdef DEBUG
   Serial.println(F("pub_data func called"));
@@ -497,8 +528,8 @@ bool pub_data(struct sensors* output_data, unsigned int length){
     Serial.println(F("Problem occured while publishing data! count: ")); Serial.println(problem);
     #endif
   }
+
   return (bool)problem;
-  
 }
 
 //######################################################################################################################
@@ -1111,7 +1142,7 @@ if (loop_t + measure_intervall > millis()){
       break; //stop loop to start measuring
     }
   }
-  /* // old implementation
+  /*
   //sleep till next measure intervall + 2 times sleep time
   unsigned long sleep = loop_t + measure_intervall - millis() + TIME_TO_SLEEP * 1000UL * 2UL; 
   #ifdef DEBUG
