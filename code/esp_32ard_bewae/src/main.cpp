@@ -125,6 +125,7 @@ PubSubClient client(wificlient);
 void callback(char *topic, byte *payload, unsigned int msg_length);
 bool connect_MQTT();
 bool msg_mqtt();
+void sub_mqtt();
 
 //callback function to receive mqtt data
 //watering topic payload rules:
@@ -336,6 +337,21 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
 }
 
 
+void sub_mqtt(){
+  if(WiFi.status() != WL_CONNECTED){
+    client.subscribe(watering_topic, 1);  //watering values (val1, val2, val3, ...)
+    client.subscribe(bewae_sw, 1); //switch on/off default values for watering
+    client.subscribe(watering_sw, 1); //switch on/off watering procedure
+    client.subscribe(timetable_sw, 1); //switch on/off custom timetable
+    client.subscribe(timetable_content, 1); //change timetable
+    client.subscribe(testing, 1);
+    client.subscribe(comms, 1); //commands from Pi
+    client.setCallback(callback);
+    client.loop();
+  }
+}
+
+
 // Custom function to connet to the MQTT broker via WiFi
 bool connect_MQTT(){
   //initial connect attempt
@@ -409,15 +425,7 @@ bool connect_MQTT(){
         #endif
         //client.setCallback(callback);
         //client.subscribe(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
-        client.subscribe(watering_topic, 1);  //watering values (val1, val2, val3, ...)
-        client.subscribe(bewae_sw, 1); //switch on/off default values for watering
-        client.subscribe(watering_sw, 1); //switch on/off watering procedure
-        client.subscribe(timetable_sw, 1); //switch on/off custom timetable
-        client.subscribe(timetable_content, 1); //change timetable
-        client.subscribe(testing, 1);
-        client.subscribe(comms, 1); //commands from Pi
-        client.setCallback(callback);
-        client.loop();
+        sub_mqtt();
         return true;
       }
     #ifdef DEBUG
@@ -469,19 +477,7 @@ bool msg_mqtt(String topic, String data){
     Serial.println(F("Data failed to send. Reconnecting to MQTT Broker and trying again"));
     #endif
     client.connect(clientID, mqtt_username, mqtt_password);
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! REDOO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // FALLS ES RECONNECT GIBT DIESE NUTZEN ANSONSTEN anders lösen
-    //reconnect macht probleme, weiß aber nicht warum überhaupt notwendig, da eigentlich verbindung stehen sollte.
-    client.subscribe(watering_topic, 1); //(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
-    client.subscribe(bewae_sw, 1); //switch on/off default values for watering
-    client.subscribe(watering_sw, 1); //switch on/off watering procedure
-    client.subscribe(timetable_sw, 1); //switch on/off custom timetable
-    client.subscribe(timetable_content, 1); //change timetable
-    client.subscribe(testing, 1);
-    client.subscribe(comms, 1); //commands from Pi
-    client.setCallback(callback);
-    client.loop();
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! REDOO REDOO REDOO REDOO REDOO REDOO REDOO REDOO REDOO !!!!!!!!!!!!!!!!!!!!!!!!!
+    sub_mqtt();
     delay(2000); // This delay ensures that client.publish doesn't clash with the client.connect call
     if(!client.publish(topic.c_str(), data.c_str())){
       #ifdef DEBUG
