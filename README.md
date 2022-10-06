@@ -161,9 +161,12 @@ platzhalter
 ## Platinen
 Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen. Ab einer gewissen größe des Projekts ist fritzing allerdings nicht mehr ideal. <br>
 
+Board 1:          |  Board 2:
+:-------------------------:|:-------------------------:
+![config](/docs/pictures/bewae3_3_board1v3_7_Leiterplatte.png) |  ![config](/docs/pictures/bewae3_3_board2v6_Leiterplatte.png)
+
 ### **bewae3_3_board1v3_7.fzz** Hauptplatine (PCB)
 Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle relevanten Sensoren und Module sowie Steuerungen auf diese Platine zusammengeführt und von einem [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) verarbeitet.
-![Main PCB](/docs/pictures/bewae_v3_1.png "Main board")
 
 <br>
 
