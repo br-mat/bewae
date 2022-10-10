@@ -1,0 +1,19 @@
+Gruppen:
+Tom1 = 100
+Tom2 = 80
+Gewa = 30
+Chil = 40
+Krtr = 20
+Erdb = 50
+
+timetable = 0
+
+Bool:
+Main system switch
+sw = 1
+bewae switch
+sw0 = 1
+water time override
+sw1 = 0
+timetable override
+sw2 = 0
