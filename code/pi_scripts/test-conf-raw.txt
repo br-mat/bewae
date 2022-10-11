@@ -1,6 +1,16 @@
 group
-Tom1 1 2 60
-Tom2 2 2 55
-Chil 3 2 30
+Tom1 0 1 100
+Tom2 1 1 80
+Gewa 2 1 30
+Chil 3 1 40
+Krtr 4 1 20
+Erdb 5 1 50
+
+timetable
+timetable 10
+
 switches
-test 1
+sw 1
+sw0 1
+sw1 0
+sw2 0

@@ -1,24 +1,61 @@
 {
-    "grp0": {
-        "name": "Tom1",
-        "VPin": "1",
-        "Pump": "2",
-        "Time": "60"
+    "group": {
+        "grp0": {
+            "name": "Tom1",
+            "VPin": "0",
+            "Pump": "1",
+            "Time": "100"
+        },
+        "grp1": {
+            "name": "Tom2",
+            "VPin": "1",
+            "Pump": "1",
+            "Time": "80"
+        },
+        "grp2": {
+            "name": "Gewa",
+            "VPin": "2",
+            "Pump": "1",
+            "Time": "30"
+        },
+        "grp3": {
+            "name": "Chil",
+            "VPin": "3",
+            "Pump": "1",
+            "Time": "40"
+        },
+        "grp4": {
+            "name": "Krtr",
+            "VPin": "4",
+            "Pump": "1",
+            "Time": "20"
+        },
+        "grp5": {
+            "name": "Erdb",
+            "VPin": "5",
+            "Pump": "1",
+            "Time": "50"
+        }
     },
-    "grp1": {
-        "name": "Tom2",
-        "VPin": "2",
-        "Pump": "2",
-        "Time": "55"
+    "switches": {
+        "sw_0": {
+            "name": "sw",
+            "value": "1"
+        },
+        "sw_1": {
+            "name": "sw0",
+            "value": "1"
+        },
+        "sw_2": {
+            "name": "sw1",
+            "value": "0"
+        },
+        "sw_3": {
+            "name": "sw2",
+            "value": "0"
+        }
     },
-    "grp2": {
-        "name": "Chil",
-        "VPin": "3",
-        "Pump": "2",
-        "Time": "30"
-    },
-    "sw_0": {
-        "name": "test",
-        "value": "1"
-    }
+    "timetable": [
+        "10"
+    ]
 }

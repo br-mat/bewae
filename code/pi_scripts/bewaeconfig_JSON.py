@@ -2,15 +2,18 @@
 # file to JSON
 import os
 import json
+import re
 
 # the file to be converted
-filename = 'data2.txt'
+filename = 'test-conf-raw.txt'
+json_filename = 'test2.json'
+
 
 # resultant dictionary
-dict1 = {}
+dict1 = {'group': {},'switches':{}, 'timetable':[]}
 
 # fields in the sample file
-titles = ['group', 'switches']
+titles = list(dict1.keys())
 fields = ['name', 'VPin', 'Pump', 'Time']
 bool_f = ['name', 'value']
 
@@ -41,7 +44,7 @@ with open(filename) as fh:
                 dict2[fields[i]]= content[i]
                 i = i + 1
             # append it to the main dict
-            dict1[sno]= dict2
+            dict1[titles[0]].update({sno:dict2})
             l = l + 1
         
         if section == 'switches':
@@ -59,11 +62,23 @@ with open(filename) as fh:
                 dict2[bool_f[i]] = content[i]
                 i += 1
             # append it to the main dict
-            dict1[sno] = dict2
+            dict1[titles[1]].update({sno:dict2})
             l += 1
+            
+                    
+        if section == 'timetable':
+            pat = r'timetable'
+            result = re.sub(pat, "", line.strip())
+            if result:
+                dict1[titles[2]] = [result.strip()]
+                l += 1
+            print(content)
+            # append it to the main dict
 
+
+print(dict1)
 # creating new and remove old json file
-os.remove(filename)
-out_file = open("test2.json", "w")
+os.remove(json_filename)
+out_file = open(json_filename, "w")
 json.dump(dict1, out_file, indent = 4)
 out_file.close()
