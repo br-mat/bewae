@@ -1,0 +1,24 @@
+{
+    "grp0": {
+        "name": "Tom1",
+        "VPin": "1",
+        "Pump": "2",
+        "Time": "60"
+    },
+    "grp1": {
+        "name": "Tom2",
+        "VPin": "2",
+        "Pump": "2",
+        "Time": "55"
+    },
+    "grp2": {
+        "name": "Chil",
+        "VPin": "3",
+        "Pump": "2",
+        "Time": "30"
+    },
+    "sw_0": {
+        "name": "test",
+        "value": "1"
+    }
+}
