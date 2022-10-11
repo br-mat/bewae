@@ -1,0 +1,6 @@
+group
+Tom1 1 2 60
+Tom2 2 2 55
+Chil 3 2 30
+switches
+test 1
