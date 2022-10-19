@@ -6,7 +6,7 @@ import re
 
 # the file to be converted
 filename = 'test-conf-raw.txt'
-json_filename = 'test2.json'
+json_filename = 'bewae_config.json'
 
 
 # resultant dictionary
@@ -35,8 +35,8 @@ with open(filename) as fh:
                 continue
             #print(content)
             # for automatic creation of id for each
-            sno ='grp'+str(l)
-            i = 0
+            sno = content[0]
+            i = 1 # name of each becomes dictionary key
             # intermediate dictionary
             dict2 = {}
             while i<len(fields):
@@ -54,8 +54,8 @@ with open(filename) as fh:
             if len(content) != len(bool_f):
                 continue
             # generate id number (name)
-            sno = 'sw_' + str(l)
-            i=0
+            sno = content[0]
+            i = 1 # name of each becomes dictionary key
             dict2 = {}
             while i<len(bool_f):
                 # fill up dict
@@ -75,10 +75,9 @@ with open(filename) as fh:
             print(content)
             # append it to the main dict
 
-
+print('test')
 print(dict1)
 # creating new and remove old json file
 os.remove(json_filename)
-out_file = open(json_filename, "w")
-json.dump(dict1, out_file, indent = 4)
-out_file.close()
+with open(json_filename, "w") as out_file:
+    json.dump(dict1, out_file, indent = 4)

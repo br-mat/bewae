@@ -10,7 +10,7 @@ timetable
 timetable 10
 
 switches
-sw 1
+sw6 1
 sw0 1
 sw1 0
 sw2 0
