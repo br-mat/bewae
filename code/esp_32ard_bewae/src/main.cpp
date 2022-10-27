@@ -44,7 +44,7 @@ using namespace Helper;
 //group 6 - leer 4 brushes +3 small?        ~0.5l
 
 //stay global for access through more than one iteration of loop (keep memory in mind)
-//is_set, pin, pump_pin, name, watering default, watering base, watering time, last act,
+//is_set, v-pin, pump_pin, name, watering default, watering base, watering time, last act,
 solenoid group[max_groups] =
 { 
   {true, 0, pump1, "Tom1", 100, 0, 0 , 0}, //group1
@@ -97,7 +97,7 @@ int raspi_config[raspi_config_size]={0};
 
 bool post_DATA = true; //controlls if data is sent back to pi or not
 bool msg_stop = false; //is config finished or not
-bool sw = 1;  //system switch (ON/OFF) NOT IMPLEMENTED YET
+bool sw6 = 1;  //system switch (ON/OFF) NOT IMPLEMENTED YET
 bool sw0 = 1; //bewae switch (ON/OFF)
 bool sw1 = 0; //water time override condition
 bool sw2 = 0; //timetable override condition
@@ -239,11 +239,11 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
     {
       case 'S': //switch features ON/OFF - only take high (MSB) int part
         switch(high){
-          case 1:
+          case 6:
             #ifdef DEBUG
             Serial.print(F("System: ")); Serial.println(low);
             #endif
-            sw = low; //bewae ON
+            sw6 = low; //everything ON
             break;
 
           case 2:

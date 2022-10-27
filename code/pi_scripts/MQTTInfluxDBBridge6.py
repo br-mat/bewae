@@ -174,7 +174,7 @@ def config(name, filename, method, value=None):
         if value is None:
             raise ValueError(f'No value to change passed.')
         if not isinstance(value, (int, float)):
-            raise ValueError(f'Not a valid number, must be int float.')
+            raise ValueError(f'Not a valid number, must be int or float.')
         change=pat.sub(pat.search(content).group(1)+str(value), content)
         with open(filename, 'w') as f:
             f.write(change)
