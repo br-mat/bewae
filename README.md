@@ -6,13 +6,15 @@ v3.3 WIP versions now are not stable
 - added corresponding .sh launcher files
 - added ESP32 build
 - added 2nd circuit handling pumps & solenoids
+- updated (and tested) main circuit, corrected bugs & problems on ESP32 build
 
 todo:
 - add openwather forecast script
 - add dynamic watering controlled by Pi (using ML later)
-- updating main circuit, correct bugs & problems on ESP32 build
 - update english translation of new version
 - update documentation
+- reimplement SD card module
+- add new configuration file feature to replace default programming settings
 
 open problems:
 - sensor rail needs 5V not 3V! (hooked onto logic switch for now)
