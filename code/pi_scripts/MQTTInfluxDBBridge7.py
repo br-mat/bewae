@@ -1,20 +1,22 @@
-# Python program to handle MQTT traffic
+########################################################################################################################
+# Python program to handle MQTT traffic and save significant data to InfluxDB
 #
 # no waranty for the program
 #
 # Copyright (C) 2022  br-mat
+########################################################################################################################
 
-# importing the modules
+########################################################################################################################
+# Imports
+########################################################################################################################
+
 import re
 import json
 import os
 from typing import NamedTuple
-
 import paho.mqtt.client as mqtt
 from influxdb import InfluxDBClient
-
 import time
-
 
 ########################################################################################################################
 # conection details
@@ -91,16 +93,16 @@ def _parse_mqtt_message(topic, payload, client):
                 mqtt_msg = 'W'
                 mqtt_msg += f"{int(data['group'][entry]['VPin']):16d}"
                 mqtt_msg += f"{int(data['group'][entry]['Time']):16d}"
-                client.publish('home/bewae/comms', mqtt_msg) 
+                client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0")) 
             # switches
             for entry in list(data['switches'].keys()):
                 mqtt_msg = 'S'
-                mqtt_msg += F"{entry[2]:16d}"
-                mqtt_msg += f"{int(data['group'][entry]['value']):16d}"
-                client.publish('home/bewae/comms', mqtt_msg)
+                mqtt_msg += F"{int(entry[2]):16d}"
+                mqtt_msg += f"{int(data['switches'][entry]['value']):16d}"
+                client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0"))
             # timetable(s?)
             # hint arduino int 2 byte! python int 4 bytes!
-            client.publish('home/bewae/comms', 'T'+ f"{int(data['timetable'][0]):32d}")
+            client.publish('home/bewae/comms', 'T'+ f"{int(data['timetable'][0]):32d}".replace(" ", "0"))
             return None
 
         else: #real data
@@ -169,7 +171,7 @@ def config(name, filename, method, value=None):
 
 ########################################################################################################################
     # main
-    ########################################################################################################################
+########################################################################################################################
 
 def main():
     _init_influxdb_database()
