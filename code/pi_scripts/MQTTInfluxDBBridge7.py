@@ -1,8 +1,26 @@
-import re
-from typing import NamedTuple
+########################################################################################################################
+# Python program to handle MQTT traffic and save significant data to InfluxDB
+#
+# no waranty for the program
+#
+# Copyright (C) 2022  br-mat
+########################################################################################################################
 
+########################################################################################################################
+# Imports
+########################################################################################################################
+
+import re
+import json
+import os
+from typing import NamedTuple
 import paho.mqtt.client as mqtt
 from influxdb import InfluxDBClient
+import time
+
+########################################################################################################################
+# conection details
+########################################################################################################################
 
 INFLUXDB_ADDRESS = 'raspberrypi' #hostname or IP
 INFLUXDB_USER = '*********'
@@ -16,23 +34,29 @@ MQTT_TOPIC = 'home/+/+'
 MQTT_REGEX = 'home/([^/]+)/([^/]+)'
 MQTT_CLIENT_ID = 'MQTTInfluxDBBridge'
 
-
 influxdb_client = InfluxDBClient(INFLUXDB_ADDRESS, 8086, INFLUXDB_USER, INFLUXDB_PASSWORD, None)
 
+########################################################################################################################
+# Classes and Helper functions
+########################################################################################################################
+# Data class
 class SensorData(NamedTuple):
     location: str
     measurement: str
     value: float
 
+# on_connect handler
 def on_connect(client, userdata, flags, rc):
     """ The callback for when the client receives a CONNACK response from the server."""
     print('Connected with result code ' + str(rc))
     client.subscribe(MQTT_TOPIC)
 
+# on_publish handler
 def on_publish(client, userdata, result):
     print('data published \n')
     pass
 
+# mqtt message handler
 def _parse_mqtt_message(topic, payload, client):
     match = re.match(MQTT_REGEX, topic)
     if match:
@@ -56,72 +80,37 @@ def _parse_mqtt_message(topic, payload, client):
             except ValueError:
                 return None
             return SensorData(location, measurement, float(payload))
+        elif measurement == 'comms':
+            pass
         elif measurement == 'config_status':
-            # answer & repost config stats (bool switches & water_time configuration)
-            # search for latest topics and repost them too update bewae on config
-            query = influxdb_client.query("SELECT * from water_time LIMIT 1000") #limiting reduce time taken to gather data
-            if query is None:
-                return None
-            #print(list(query.get_points(measurement='water_time')))
-            #print(len(list(query.get_points(measurement='water_time'))))
-            query_l=list(query.get_points(measurement='water_time'))
-            unique_l=[]
-            for element in range((lambda x: x if x < 1000 else 1000)(len(query_l))): #lambda function to limit max iterations; already limited tho
-                if query_l[element]['location'] not in unique_l:
-                    unique_l.append(query_l[element]['location'])
-            water_time=[]
-            for element in unique_l:
-                query = influxdb_client.query("SELECT * FROM water_time WHERE location = '{}' ORDER BY time desc LIMIT 1".format(element))
-                item=list(query.get_points(measurement='water_time'))[0]['value']
-                water_time.append(item)
-                republish_data=SensorData(element ,'water_time' ,float(item)) #republish at every request (better readability with grafana)
-                if republish_data is not None:
-                     _send_sensor_data_to_influxdb(republish_data)
-            mqtt_msg=','.join(str(e) for e in water_time)
-            mqtt_msg+=','
-            client.publish('home/bewae/config', mqtt_msg)
-            #time.sleep(1) #give ESP some time to handle stuff
-            
-            query = influxdb_client.query("SELECT * FROM bewae_sw GROUP BY * ORDER BY DESC LIMIT 1".format(element))
-            #print(query)
-            if query:
-                query_msg=str(list(query.get_points(measurement='bewae_sw'))[0]['value'])
-                #print('test')
-                #print(query_msg)
-                client.publish('home/nano/bewae_sw', query_msg)
-            #time.sleep(1) #give ESP some time to handle stuff
-            
-            query = influxdb_client.query("SELECT * FROM watering_sw GROUP BY * ORDER BY DESC LIMIT 1".format(element))
-            #print(query)
-            if query:
-                query_msg=str(list(query.get_points(measurement='watering_sw'))[0]['value'])
-                #print('test')
-                #print(query_msg)
-                client.publish('home/nano/watering_sw', query_msg)
-            #time.sleep(1) #give ESP some time to handle stuff
-            
-            query = influxdb_client.query("SELECT * FROM timetable_sw GROUP BY * ORDER BY DESC LIMIT 1".format(element))
-            #print(query)
-            if query:
-                query_msg=str(list(query.get_points(measurement='timetable_sw'))[0]['value'])
-                #print('test')
-                #print(query_msg)
-                client.publish('home/nano/timetable_sw', query_msg)
-            #time.sleep(1) #give ESP some time to handle stuff
-            
-            query = influxdb_client.query("SELECT * FROM timetable GROUP BY * ORDER BY DESC LIMIT 1".format(element))
-            #print(query)
-            if query:
-               query_msg=str(list(query.get_points(measurement='timetable'))[0]['value'])
-               #print('test')
-               #print(query_msg)
-               client.publish('home/nano/timetable', query_msg)
+            # answer config status request from esp32
+            # open JSON config file read and send all data
+            with open('bewae_config.json') as json_file:
+                data = json.load(json_file)
+            # message command format (letter) + (32 digits)
+            # watering groups
+            for entry in list(data['group'].keys()):
+                mqtt_msg = 'W'
+                mqtt_msg += f"{int(data['group'][entry]['VPin']):16d}"
+                mqtt_msg += f"{int(data['group'][entry]['Time']):16d}"
+                client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0")) 
+            # switches
+            for entry in list(data['switches'].keys()):
+                mqtt_msg = 'S'
+                mqtt_msg += F"{int(entry[2]):16d}"
+                mqtt_msg += f"{int(data['switches'][entry]['value']):16d}"
+                client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0"))
+            # timetable(s?)
+            # hint arduino int 2 byte! python int 4 bytes!
+            client.publish('home/bewae/comms', 'T'+ f"{int(data['timetable'][0]):32d}".replace(" ", "0"))
             return None
+
         else: #real data
             return SensorData(location, measurement, float(payload))
     else:
         return None
-    
+
+# saving data to influxDB
 def _send_sensor_data_to_influxdb(sensor_data):
     json_body = [
         {
@@ -136,6 +125,7 @@ def _send_sensor_data_to_influxdb(sensor_data):
     ]
     influxdb_client.write_points(json_body)
 
+# message handler
 def on_message(client, userdata, msg):
     """The callback for when a PUBLISH message is received from the server."""
     print(msg.topic + ' ' + str(msg.payload))
@@ -148,7 +138,8 @@ def _init_influxdb_database():
     if len(list(filter(lambda x: x['name'] == INFLUXDB_DATABASE, databases))) == 0:
         influxdb_client.create_database(INFLUXDB_DATABASE)
     influxdb_client.switch_database(INFLUXDB_DATABASE)
-    
+
+# config handler (outdated? using JSON format now)
 def config(name, filename, method, value=None):
     #this function should be able to read and set elements in a config file
     #it only accepts numeric values
@@ -177,6 +168,10 @@ def config(name, filename, method, value=None):
             f.write(change)
             print(change)
         return None
+
+########################################################################################################################
+    # main
+########################################################################################################################
 
 def main():
     _init_influxdb_database()

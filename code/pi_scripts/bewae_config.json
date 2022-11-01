@@ -1,0 +1,51 @@
+{
+    "group": {
+        "Tom1": {
+            "VPin": "0",
+            "Pump": "1",
+            "Time": "100"
+        },
+        "Tom2": {
+            "VPin": "1",
+            "Pump": "1",
+            "Time": "80"
+        },
+        "Gewa": {
+            "VPin": "2",
+            "Pump": "1",
+            "Time": "30"
+        },
+        "Chil": {
+            "VPin": "3",
+            "Pump": "1",
+            "Time": "40"
+        },
+        "Krtr": {
+            "VPin": "4",
+            "Pump": "1",
+            "Time": "20"
+        },
+        "Erdb": {
+            "VPin": "5",
+            "Pump": "1",
+            "Time": "50"
+        }
+    },
+    "switches": {
+        "sw6": {
+            "value": "1"
+        },
+        "sw0": {
+            "value": "1"
+        },
+        "sw1": {
+            "value": "0"
+        },
+        "sw2": {
+            "value": "0"
+        }
+    },
+    "timetable": [
+        "10"
+    ]
+}

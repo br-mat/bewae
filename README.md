@@ -6,13 +6,15 @@ v3.3 WIP versions now are not stable
 - added corresponding .sh launcher files
 - added ESP32 build
 - added 2nd circuit handling pumps & solenoids
+- updated (and tested) main circuit, corrected bugs & problems on ESP32 build
 
 todo:
 - add openwather forecast script
 - add dynamic watering controlled by Pi (using ML later)
-- updating main circuit, correct bugs & problems on ESP32 build
 - update english translation of new version
 - update documentation
+- reimplement SD card module
+- add new configuration file feature to replace default programming settings
 
 open problems:
 - sensor rail needs 5V not 3V! (hooked onto logic switch for now)
@@ -83,8 +85,7 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
 <br>
 
 ## Systemdiagramm
-### V3.0:
-![System](/docs/pictures/Systemdiagramm.png "Systemdiagramm")
+
 ### V3.3 preview:
 ![System](/docs/pictures/Systemdiagramm3_3.png "Systemdiagramm 3.3")
 
@@ -161,9 +162,12 @@ platzhalter
 ## Platinen
 Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen. Ab einer gewissen größe des Projekts ist fritzing allerdings nicht mehr ideal. <br>
 
+Board 1:          |  Board 2:
+:-------------------------:|:-------------------------:
+![config](/docs/pictures/bewae3_3_board1v3_7_Leiterplatte.png) |  ![config](/docs/pictures/bewae3_3_board2v6_Leiterplatte.png)
+
 ### **bewae3_3_board1v3_7.fzz** Hauptplatine (PCB)
 Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle relevanten Sensoren und Module sowie Steuerungen auf diese Platine zusammengeführt und von einem [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) verarbeitet.
-![Main PCB](/docs/pictures/bewae_v3_1.png "Main board")
 
 <br>
 

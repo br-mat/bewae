@@ -4,6 +4,8 @@ from typing import NamedTuple
 import paho.mqtt.client as mqtt
 from influxdb import InfluxDBClient
 
+import time
+
 INFLUXDB_ADDRESS = 'raspberrypi' #hostname or IP
 INFLUXDB_USER = '*********'
 INFLUXDB_PASSWORD = '*********'
@@ -15,7 +17,6 @@ MQTT_PASSWORD = '*********'
 MQTT_TOPIC = 'home/+/+'
 MQTT_REGEX = 'home/([^/]+)/([^/]+)'
 MQTT_CLIENT_ID = 'MQTTInfluxDBBridge'
-
 
 influxdb_client = InfluxDBClient(INFLUXDB_ADDRESS, 8086, INFLUXDB_USER, INFLUXDB_PASSWORD, None)
 
@@ -56,6 +57,8 @@ def _parse_mqtt_message(topic, payload, client):
             except ValueError:
                 return None
             return SensorData(location, measurement, float(payload))
+        elif measurement == 'comms':
+            pass
         elif measurement == 'config_status':
             # answer & repost config stats (bool switches & water_time configuration)
             # search for latest topics and repost them too update bewae on config
@@ -65,11 +68,11 @@ def _parse_mqtt_message(topic, payload, client):
             #print(list(query.get_points(measurement='water_time')))
             #print(len(list(query.get_points(measurement='water_time'))))
             query_l=list(query.get_points(measurement='water_time'))
-            unique_l=[]
+            unique_l=[] #find unique topics
             for element in range((lambda x: x if x < 1000 else 1000)(len(query_l))): #lambda function to limit max iterations; already limited tho
                 if query_l[element]['location'] not in unique_l:
                     unique_l.append(query_l[element]['location'])
-            water_time=[]
+            water_time=[] #get latest water_time from each unique element and send data
             for element in unique_l:
                 query = influxdb_client.query("SELECT * FROM water_time WHERE location = '{}' ORDER BY time desc LIMIT 1".format(element))
                 item=list(query.get_points(measurement='water_time'))[0]['value']
@@ -171,7 +174,7 @@ def config(name, filename, method, value=None):
         if value is None:
             raise ValueError(f'No value to change passed.')
         if not isinstance(value, (int, float)):
-            raise ValueError(f'Not a valid number, must be int float.')
+            raise ValueError(f'Not a valid number, must be int or float.')
         change=pat.sub(pat.search(content).group(1)+str(value), content)
         with open(filename, 'w') as f:
             f.write(change)
