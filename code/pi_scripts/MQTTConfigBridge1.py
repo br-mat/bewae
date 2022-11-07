@@ -84,41 +84,89 @@ def _parse_mqtt_message(topic, payload, client):
             return SensorData(title, task, float(payload))
         
         elif task == 'set-water-time':
+            # set water time value and update JSON config data
             #print('hit watertime')
             #print(title)
             #print(payload)
-            # set water time value and update config data
+            # load config
             with open(configfile) as json_file:
                 dict1 = json.load(json_file)
             dict1['group'][title]['water-time'] = int(payload)
             os.remove(configfile)
             with open(configfile, "w") as out_file:
                 json.dump(dict1, out_file, indent = 4)
+            return None
+        
+        elif task == 'set-switch':
+            # set water time value and update JSON config data
+            #print('hit watertime')
+            #print(title)
+            #print(payload)
+            # load config
+            with open(configfile) as json_file:
+                dict1 = json.load(json_file)
+            dict1['switches'][title]['value'] = int(payload)
+            os.remove(configfile)
+            with open(configfile, "w") as out_file:
+                json.dump(dict1, out_file, indent = 4)
+            return None
+                
+        elif task == 'set-timetable':
+            # set water time value and update JSON config data
+            #print('hit watertime')
+            #print(title)
+            #print(payload)
+            # load config
+            with open(configfile) as json_file:
+                dict1 = json.load(json_file)
+            #format payload
+            payload = payload.replace(" ", "")
+            regex = r"([a-zA-Z0-9]+):([0-9|,]+|master)"
+            rematch = re.match(regex, test_str)
+            if rematch is not None:
+                name = rematch[1]
+                timeslots = rematch[2].replace(",", " ").strip().split()
+                dict1['group'][name]['timetable'] = int(payload)
+                os.remove(configfile)
+                with open(configfile, "w") as out_file:
+                    json.dump(dict1, out_file, indent = 4)
+                return None
+            else:
+                print('Warning: wrong message format.')
+                #TODO: not return None in case of warning
+                return None
 
         elif task == 'config-status':
-            #print('hit config status')
             # answer config status request from esp32
             # open JSON config file read and send all data
+            #print('hit config status')
+            # load config
             with open('bewae_config.json') as json_file:
                 data = json.load(json_file)
             # message command format (letter) + (32 digits)
             # watering groups
             for entry in list(data['group'].keys()):
                 mqtt_msg = 'W'
-                mqtt_msg += f"{int(data['group'][entry]['Vpin']):16d}"
+                mqtt_msg += f"{int(entry):16d}"
                 mqtt_msg += f"{int(data['group'][entry]['water-time']):16d}"
                 #print(mqtt_msg)
                 client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0")) 
             # switches
             for entry in list(data['switches'].keys()):
                 mqtt_msg = 'S'
+                #TODO: come up with more universal solution instead of picking 3rd char as id number
                 mqtt_msg += F"{int(entry[2]):16d}"
                 mqtt_msg += f"{int(data['switches'][entry]['value']):16d}"
                 #print(mqtt_msg)
                 client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0"))
             # timetable(s?)
             # hint arduino int 2 byte! python int 4 bytes!
-            client.publish('home/bewae/comms', 'T'+ f"{int(data['timetable'][0]):32d}".replace(" ", "0"))
+            for entry in list(data['group'].keys()):
+                mqtt_msg = 'T'
+                mqtt_msg += f"{int(entry):8d}"
+                mqtt_msg += f"{int(data['group'][entry]['water-time']):24d}"
+                #print(mqtt_msg)
+                client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0")) 
             #print(f"{int(data['timetable'][0]):32d}")
             return None
 
