@@ -1,34 +1,39 @@
 {
     "group": {
-        "Tom1": {
-            "VPin": "0",
-            "Pump": "1",
-            "Time": "100"
+        "99": {
+            "name": "master",
+            "water-time": "0",
+            "timetable": "0"
         },
-        "Tom2": {
-            "VPin": "1",
-            "Pump": "1",
-            "Time": "80"
+        "0": {
+            "name": "Tom1",
+            "water-time": "100",
+            "timetable": "0"
         },
-        "Gewa": {
-            "VPin": "2",
-            "Pump": "1",
-            "Time": "30"
+        "1": {
+            "name": "Tom2",
+            "water-time": "80",
+            "timetable": "0"
         },
-        "Chil": {
-            "VPin": "3",
-            "Pump": "1",
-            "Time": "40"
+        "2": {
+            "name": "Gewa",
+            "water-time": "30",
+            "timetable": "0"
         },
-        "Krtr": {
-            "VPin": "4",
-            "Pump": "1",
-            "Time": "20"
+        "3": {
+            "name": "Chil",
+            "water-time": "40",
+            "timetable": "0"
         },
-        "Erdb": {
-            "VPin": "5",
-            "Pump": "1",
-            "Time": "50"
+        "4": {
+            "name": "Krtr",
+            "water-time": "20",
+            "timetable": "0"
+        },
+        "5": {
+            "name": "Erdb",
+            "water-time": "50",
+            "timetable": "0"
         }
     },
     "switches": {
@@ -45,7 +50,5 @@
             "value": "0"
         }
     },
-    "timetable": [
-        "10"
-    ]
+    "timetable": []
 }

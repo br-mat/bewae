@@ -1,4 +1,14 @@
-# Python program to convert text
+
+########################################################################################################################
+# Python program to convert config file
+#
+# use this script tocreate the JSON file
+# no waranty for the program
+#
+# Copyright (C) 2022  br-mat
+########################################################################################################################
+
+
 # file to JSON
 import os
 import json
@@ -14,7 +24,7 @@ dict1 = {'group': {},'switches':{}, 'timetable':[]}
 
 # fields in the sample file
 titles = list(dict1.keys())
-fields = ['name', 'VPin', 'Pump', 'Time']
+fields = ['groupID', 'name', 'water-time', 'timetable']
 bool_f = ['name', 'value']
 
 with open(filename) as fh:
@@ -81,3 +91,4 @@ print(dict1)
 os.remove(json_filename)
 with open(json_filename, "w") as out_file:
     json.dump(dict1, out_file, indent = 4)
+
