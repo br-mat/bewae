@@ -57,10 +57,11 @@ def on_connect(client, userdata, flags, rc):
 def _parse_mqtt_message(topic, payload, client):
     #return data class object containing information to publish or none
     match = re.match(MQTT_REGEX, topic)
+    #print(topic)
     if match:
-        title = match.group(1)
-        task = match.group(2)
-        print(task)
+        title = match.group(2)
+        task = match.group(1)
+        #print(task)
         
         #some exceptions should be ignored
         if task in ['config', 'status', 'comms', 'test', 'tester']:
@@ -72,7 +73,7 @@ def _parse_mqtt_message(topic, payload, client):
             lst=payload.split(",")
             hours = [1<<int(x) for x in lst if int(x) in list(range(0,24))]
             plan_long = sum(hours)
-            print(float(plan_long))
+            #print(float(plan_long))
             return SensorData(title, 'timetable', float(plan_long))
         
         elif task == 'timetable':
@@ -82,19 +83,20 @@ def _parse_mqtt_message(topic, payload, client):
                 return None
             return SensorData(title, task, float(payload))
         
-        elif task == 'comms':
-            pass
-        
-        elif task == 'water-time':
+        elif task == 'set-water-time':
+            #print('hit watertime')
+            #print(title)
+            #print(payload)
             # set water time value and update config data
-            with open('bewae_config.json') as json_file:
+            with open(configfile) as json_file:
                 dict1 = json.load(json_file)
-            dict1['group'][title]['measurment'] = int(payload)
+            dict1['group'][title]['water-time'] = int(payload)
             os.remove(configfile)
             with open(configfile, "w") as out_file:
                 json.dump(dict1, out_file, indent = 4)
 
-        elif task == 'config_status':
+        elif task == 'config-status':
+            #print('hit config status')
             # answer config status request from esp32
             # open JSON config file read and send all data
             with open('bewae_config.json') as json_file:
@@ -103,18 +105,21 @@ def _parse_mqtt_message(topic, payload, client):
             # watering groups
             for entry in list(data['group'].keys()):
                 mqtt_msg = 'W'
-                mqtt_msg += f"{int(data['group'][entry]['VPin']):16d}"
-                mqtt_msg += f"{int(data['group'][entry]['Time']):16d}"
+                mqtt_msg += f"{int(data['group'][entry]['Vpin']):16d}"
+                mqtt_msg += f"{int(data['group'][entry]['water-time']):16d}"
+                #print(mqtt_msg)
                 client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0")) 
             # switches
             for entry in list(data['switches'].keys()):
                 mqtt_msg = 'S'
                 mqtt_msg += F"{int(entry[2]):16d}"
                 mqtt_msg += f"{int(data['switches'][entry]['value']):16d}"
+                #print(mqtt_msg)
                 client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0"))
             # timetable(s?)
             # hint arduino int 2 byte! python int 4 bytes!
             client.publish('home/bewae/comms', 'T'+ f"{int(data['timetable'][0]):32d}".replace(" ", "0"))
+            #print(f"{int(data['timetable'][0]):32d}")
             return None
 
         else: #final case
@@ -149,7 +154,7 @@ def on_message(client, userdata, msg):
         
 # on_publish handler
 def on_publish(client, userdata, result):
-    print('data published \n')
+    #print('data published \n' + str(userdata) + '\n' + str(result) + '\n')
     pass
         
 ########################################################################################################################
