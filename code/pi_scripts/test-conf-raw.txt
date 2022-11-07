@@ -1,13 +1,11 @@
 group
-Tom1 0 1 100
-Tom2 1 1 80
-Gewa 2 1 30
-Chil 3 1 40
-Krtr 4 1 20
-Erdb 5 1 50
-
-timetable
-timetable 10
+99 master 0 0
+0 Tom1 100 0
+1 Tom2 80 0
+2 Gewa 30 0
+3 Chil 40 0
+4 Krtr 20 0
+5 Erdb 50 0
 
 switches
 sw6 1
