@@ -18,7 +18,9 @@ from typing import NamedTuple
 import paho.mqtt.client as mqtt
 from influxdb import InfluxDBClient
 
+from datetime import datetime
 import time
+import argparse
 
 ########################################################################################################################
 # conection details
@@ -36,22 +38,56 @@ MQTT_TOPIC = 'home/+/+'
 MQTT_REGEX = 'home/([^/]+)/([^/]+)'
 MQTT_CLIENT_ID = 'MQTTConfBridge'
 
-configfile = 'bewae_config.json'
+configfile = '/home/pi/py_scripts/bewae_config.json'
 valid_tasks = ['set-water-time', 'set-switch', 'set-timetable', 'config-status']
+
+########################################################################################################################
+# get arguments
+########################################################################################################################
+
+parser = argparse.ArgumentParser(description='Program writes measurements data to specified influx db.')
+# Add arguments
+parser.add_argument('-l','--log', type=bool, help='log on/off', required=False, default=False)
+parser.add_argument('-d', '--details', type=bool,
+                    help='details turned on will print everything, off will only output warnings',
+                    required=False, default=False)
+# Array of all arguments passed to script
+args=parser.parse_args()
 
 ########################################################################################################################
 # Classes and Helper functions
 ########################################################################################################################
+
 # Data class
 class SensorData(NamedTuple):
     title: str
     task: str
     value: float
-    
+
+# log function
+def logger(text, detail=False):
+    # text should be a string
+    # detail specify if a message is important (True) or not (false)
+    # sanity check
+    if not isinstance(text, str):
+        return print('Warning: incorrect argument "text" passed to log is no string')
+    if not isinstance(detail, bool):
+        return print('Warning: incorrect argument "detail" passed to log is no bool')
+    # log
+    if args.log:
+        # Getting the current date and time
+        dt = datetime.now()
+        # getting the timestamp
+        ts = datetime.timestamp(dt)
+        # details true means return anything
+        if args.details or detail:
+            return print(str(dt) + ' ' + text)
+        return None
+
 # on_connect handler
 def on_connect(client, userdata, flags, rc):
     """ The callback for when the client receives a CONNACK response from the server."""
-    print('Connected with result code ' + str(rc))
+    logger('Connected with result code ' + str(rc), detail=False)
     client.subscribe(MQTT_TOPIC)
 
 # mqtt message handler
@@ -66,12 +102,12 @@ def _parse_mqtt_message(topic, payload, client):
         
         # check for valid task
         if task not in valid_tasks:
-            print(f'Warning: Ignored, sent incorrect task!')
+            logger(f'Warning: Ignored, sent incorrect task!', detail=True)
             return None
         
         # veriyfy payload value
         if not payload.isdigit():
-            print(f'Warning: Wrong payload number!')
+            logger(f'Warning: Wrong payload number!', detail=True)
             return None
 
         # task section
@@ -85,7 +121,7 @@ def _parse_mqtt_message(topic, payload, client):
                 dict1 = json.load(json_file)
             # sanity check
             if title not in list(dict1['group'].keys()):
-                print(f'Warning: Incorrect title sent!')
+                logger(f'Warning: Incorrect title sent!', detail=True)
                 return None
             dict1['group'][title]['water-time'] = int(payload)
             os.remove(configfile)
@@ -103,7 +139,7 @@ def _parse_mqtt_message(topic, payload, client):
                 dict1 = json.load(json_file)
             # sanity check
             if title not in list(dict1['switches'].keys()):
-                print(f'Warning: Incorrect title sent!')
+                logger(f'Warning: Incorrect title sent!', detail=True)
                 return None
             dict1['switches'][title]['value'] = int(payload)
             os.remove(configfile)
@@ -128,7 +164,7 @@ def _parse_mqtt_message(topic, payload, client):
                 timeslots = rematch[2].replace(",", " ").strip().split()
                 # sanity check
                 if title not in list(dict1['switches'].keys()):
-                    print(f'Warning: Incorrect title sent!')
+                    logger(f'Warning: Incorrect title sent!', detail=True)
                     return None
                 dict1['group'][name]['timetable'] = int(payload)
                 os.remove(configfile)
@@ -136,7 +172,7 @@ def _parse_mqtt_message(topic, payload, client):
                     json.dump(dict1, out_file, indent = 4)
                 return None
             else:
-                print('Warning: wrong message format.')
+                logger('Warning: wrong message format.', detail=True)
                 #TODO: not return None in case of warning
                 return None
 
@@ -175,7 +211,7 @@ def _parse_mqtt_message(topic, payload, client):
             return None
 
     else:
-        print("Warning: Wrong message format, Regex didn't find anything.")
+        logger("Warning: Wrong message format, Regex didn't find anything.", detail=True)
         return None
 
 
@@ -228,5 +264,5 @@ def main():
 
 
 if __name__ == '__main__':
-    print('MQTT to Config bridge')
+    logger('MQTT to Config bridge started', detail=True)
     main()
