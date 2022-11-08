@@ -34,9 +34,10 @@ MQTT_USER = '*********'
 MQTT_PASSWORD = '*********'
 MQTT_TOPIC = 'home/+/+'
 MQTT_REGEX = 'home/([^/]+)/([^/]+)'
-MQTT_CLIENT_ID = 'MQTTInfluxDBBridge'
+MQTT_CLIENT_ID = 'MQTTConfBridge'
 
 configfile = 'bewae_config.json'
+valid_tasks = ['set-water-time', 'set-switch', 'set-timetable', 'config-status']
 
 ########################################################################################################################
 # Classes and Helper functions
@@ -63,26 +64,17 @@ def _parse_mqtt_message(topic, payload, client):
         task = match.group(1)
         #print(task)
         
-        #some exceptions should be ignored
-        if task in ['config', 'status', 'comms', 'test', 'tester']:
+        # check for valid task
+        if task not in valid_tasks:
+            print(f'Warning: Ignored, sent incorrect task!')
             return None
         
-        #planed watering hours passed as lst [7, 10, 19]
-        elif task == 'planed':
-            payload=payload.replace(" ", "")
-            lst=payload.split(",")
-            hours = [1<<int(x) for x in lst if int(x) in list(range(0,24))]
-            plan_long = sum(hours)
-            #print(float(plan_long))
-            return SensorData(title, 'timetable', float(plan_long))
-        
-        elif task == 'timetable':
-            try:
-                float(payload)
-            except ValueError:
-                return None
-            return SensorData(title, task, float(payload))
-        
+        # veriyfy payload value
+        if not payload.isdigit():
+            print(f'Warning: Wrong payload number!')
+            return None
+
+        # task section
         elif task == 'set-water-time':
             # set water time value and update JSON config data
             #print('hit watertime')
@@ -91,6 +83,10 @@ def _parse_mqtt_message(topic, payload, client):
             # load config
             with open(configfile) as json_file:
                 dict1 = json.load(json_file)
+            # sanity check
+            if title not in list(dict1['group'].keys()):
+                print(f'Warning: Incorrect title sent!')
+                return None
             dict1['group'][title]['water-time'] = int(payload)
             os.remove(configfile)
             with open(configfile, "w") as out_file:
@@ -105,6 +101,10 @@ def _parse_mqtt_message(topic, payload, client):
             # load config
             with open(configfile) as json_file:
                 dict1 = json.load(json_file)
+            # sanity check
+            if title not in list(dict1['switches'].keys()):
+                print(f'Warning: Incorrect title sent!')
+                return None
             dict1['switches'][title]['value'] = int(payload)
             os.remove(configfile)
             with open(configfile, "w") as out_file:
@@ -126,6 +126,10 @@ def _parse_mqtt_message(topic, payload, client):
             if rematch is not None:
                 name = rematch[1]
                 timeslots = rematch[2].replace(",", " ").strip().split()
+                # sanity check
+                if title not in list(dict1['switches'].keys()):
+                    print(f'Warning: Incorrect title sent!')
+                    return None
                 dict1['group'][name]['timetable'] = int(payload)
                 os.remove(configfile)
                 with open(configfile, "w") as out_file:
@@ -155,7 +159,7 @@ def _parse_mqtt_message(topic, payload, client):
             for entry in list(data['switches'].keys()):
                 mqtt_msg = 'S'
                 #TODO: come up with more universal solution instead of picking 3rd char as id number
-                mqtt_msg += F"{int(entry[2]):16d}"
+                mqtt_msg += f"{int(entry[2]):16d}"
                 mqtt_msg += f"{int(data['switches'][entry]['value']):16d}"
                 #print(mqtt_msg)
                 client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0"))
@@ -170,9 +174,8 @@ def _parse_mqtt_message(topic, payload, client):
             #print(f"{int(data['timetable'][0]):32d}")
             return None
 
-        else: #final case
-            print(f'Warning: Ignored message, due to incorrect message.')
     else:
+        print("Warning: Wrong message format, Regex didn't find anything.")
         return None
 
 
@@ -209,7 +212,11 @@ def on_publish(client, userdata, result):
     # main
 ########################################################################################################################
 def main():
-    mqtt_client = mqtt.Client(MQTT_CLIENT_ID)
+    mqtt_client = mqtt.Client(MQTT_CLIENT_ID,
+                              transport = 'tcp',
+                              protocol = mqtt.MQTTv311,
+                              clean_session=True,
+                              )
     mqtt_client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
 
     mqtt_client.on_connect = on_connect

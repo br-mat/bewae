@@ -34,7 +34,8 @@ MQTT_USER = '*********'
 MQTT_PASSWORD = '*********'
 MQTT_TOPIC = 'home/+/+'
 MQTT_REGEX = 'home/([^/]+)/([^/]+)'
-MQTT_CLIENT_ID = 'MQTTInfluxDBBridge'
+
+MQTT_CLIENT_ID = 'MQTTInfluxDBBridge7'
 
 configfile = 'bewae_config.json'
 
@@ -195,7 +196,11 @@ def config(name, filename, method, value=None):
 
 def main():
     _init_influxdb_database()
-    mqtt_client = mqtt.Client(MQTT_CLIENT_ID)
+    mqtt_client = mqtt.Client(MQTT_CLIENT_ID,
+                              transport = 'tcp',
+                              protocol = mqtt.MQTTv311,
+                              clean_session=True,
+                              )
     mqtt_client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
 
     mqtt_client.on_connect = on_connect
