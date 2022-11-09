@@ -36,14 +36,16 @@ MQTT_USER = '*********'
 MQTT_PASSWORD = '*********'
 MQTT_TOPIC = 'home/+/+'
 MQTT_REGEX = 'home/([^/]+)/([^/]+)'
-MQTT_CLIENT_ID = 'MQTTConfBridge'
+MQTT_CLIENT_ID = 'MQTTConfBridge' #ID SHOULD BE UNIQUE
+
+########################################################################################################################
+# setup & get arguments
+########################################################################################################################
+
+# setup
 
 configfile = '/home/pi/py_scripts/bewae_config.json'
 valid_tasks = ['set-water-time', 'set-switch', 'set-timetable', 'config-status']
-
-########################################################################################################################
-# get arguments
-########################################################################################################################
 
 parser = argparse.ArgumentParser(description='Program writes measurements data to specified influx db.')
 # Add arguments
@@ -53,6 +55,9 @@ parser.add_argument('-d', '--details', type=bool,
                     required=False, default=False)
 # Array of all arguments passed to script
 args=parser.parse_args()
+# on true for debuging
+#args.log=True
+#args.details=True
 
 ########################################################################################################################
 # Classes and Helper functions
