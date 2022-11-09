@@ -1,5 +1,5 @@
 ########################################################################################################################
-# Python program to handle MQTT traffic and save significant data to InfluxDB
+# Python program to handle MQTT and save significant data to InfluxDB
 #
 # no waranty for the program
 #
@@ -14,9 +14,13 @@ import re
 import json
 import os
 from typing import NamedTuple
+
 import paho.mqtt.client as mqtt
 from influxdb import InfluxDBClient
+
+from datetime import datetime
 import time
+import argparse
 
 ########################################################################################################################
 # conection details
@@ -32,79 +36,87 @@ MQTT_USER = '*********'
 MQTT_PASSWORD = '*********'
 MQTT_TOPIC = 'home/+/+'
 MQTT_REGEX = 'home/([^/]+)/([^/]+)'
-MQTT_CLIENT_ID = 'MQTTInfluxDBBridge'
+MQTT_CLIENT_ID = 'MQTTInfluxBridge' #ID SHOULD BE UNIQUE
+
+########################################################################################################################
+# setup & get arguments
+########################################################################################################################
+
+# setup
+
+configfile = '/home/pi/py_scripts/bewae_config.json'
 
 influxdb_client = InfluxDBClient(INFLUXDB_ADDRESS, 8086, INFLUXDB_USER, INFLUXDB_PASSWORD, None)
+
+# get arguments
+
+parser = argparse.ArgumentParser(description='Program writes measurements data to specified influx db.')
+# Add arguments
+parser.add_argument('-l','--log', type=bool, help='log on/off', required=False, default=False)
+parser.add_argument('-d', '--details', type=bool,
+                    help='details turned on will print everything, off will only output warnings',
+                    required=False, default=False)
+# Array of all arguments passed to script
+args=parser.parse_args()
+# turn on for debuging
+#args.log=True
+#args.details=True
 
 ########################################################################################################################
 # Classes and Helper functions
 ########################################################################################################################
-# Data class
+
+# data class
 class SensorData(NamedTuple):
     location: str
     measurement: str
     value: float
 
+# log function
+def logger(text, detail=False):
+    # text should be a string
+    # detail specify if a message is important (True) or not (false)
+    # sanity check
+    if not isinstance(text, str):
+        return print('Warning: incorrect argument "text" passed to log is no string')
+    if not isinstance(detail, bool):
+        return print('Warning: incorrect argument "detail" passed to log is no bool')
+    # log
+    if args.log:
+        # Getting the current date and time
+        dt = datetime.now()
+        # getting the timestamp
+        ts = datetime.timestamp(dt)
+        # details true means return anything
+        if args.details or detail:
+            return print(str(dt) + ' ' + text)
+        return None
+
 # on_connect handler
 def on_connect(client, userdata, flags, rc):
     """ The callback for when the client receives a CONNACK response from the server."""
-    print('Connected with result code ' + str(rc))
+    logger('Connected with result code ' + str(rc), detail=False)
     client.subscribe(MQTT_TOPIC)
-
+    
 # on_publish handler
 def on_publish(client, userdata, result):
-    print('data published \n')
+    logger('data published \n', detail=False)
     pass
 
 # mqtt message handler
 def _parse_mqtt_message(topic, payload, client):
     match = re.match(MQTT_REGEX, topic)
     if match:
+        #base = match.group(0)
         location = match.group(1)
         measurement = match.group(2)
-        print(measurement)
+        #operation = match.group(3)
+        logger(f' incomming {location} {measurement} : {payload}', detail=False)
+        
         #some exceptions should not be parsed and stored in influxdb
-        if measurement in ['config','status','comms', 'test', 'tester']:
+        if measurement in ['config','status','comms', 'test', 'tester', 'water-time', 'timetable', 'config_status']:
             return None
-        #planed watering hours passed as lst [7, 10, 19]
-        elif measurement == 'planed':
-            payload=payload.replace(" ", "")
-            lst=payload.split(",")
-            hours = [1<<int(x) for x in lst if int(x) in list(range(0,24))]
-            plan_long = sum(hours)
-            print(float(plan_long))
-            return SensorData(location, 'timetable', float(plan_long))
-        elif measurement == 'timetable':
-            try:
-                float(payload)
-            except ValueError:
-                return None
-            return SensorData(location, measurement, float(payload))
-        elif measurement == 'comms':
-            pass
-        elif measurement == 'config_status':
-            # answer config status request from esp32
-            # open JSON config file read and send all data
-            with open('bewae_config.json') as json_file:
-                data = json.load(json_file)
-            # message command format (letter) + (32 digits)
-            # watering groups
-            for entry in list(data['group'].keys()):
-                mqtt_msg = 'W'
-                mqtt_msg += f"{int(data['group'][entry]['VPin']):16d}"
-                mqtt_msg += f"{int(data['group'][entry]['Time']):16d}"
-                client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0")) 
-            # switches
-            for entry in list(data['switches'].keys()):
-                mqtt_msg = 'S'
-                mqtt_msg += F"{int(entry[2]):16d}"
-                mqtt_msg += f"{int(data['switches'][entry]['value']):16d}"
-                client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0"))
-            # timetable(s?)
-            # hint arduino int 2 byte! python int 4 bytes!
-            client.publish('home/bewae/comms', 'T'+ f"{int(data['timetable'][0]):32d}".replace(" ", "0"))
-            return None
-
+        
         else: #real data
             return SensorData(location, measurement, float(payload))
     else:
@@ -127,8 +139,8 @@ def _send_sensor_data_to_influxdb(sensor_data):
 
 # message handler
 def on_message(client, userdata, msg):
-    """The callback for when a PUBLISH message is received from the server."""
-    print(msg.topic + ' ' + str(msg.payload))
+    # callback when a PUBLISH msg is received
+    logger(msg.topic + ' ' + str(msg.payload), detail = False)
     sensor_data = _parse_mqtt_message(msg.topic, msg.payload.decode('utf-8'), client)
     if sensor_data is not None:
         _send_sensor_data_to_influxdb(sensor_data)
@@ -139,43 +151,21 @@ def _init_influxdb_database():
         influxdb_client.create_database(INFLUXDB_DATABASE)
     influxdb_client.switch_database(INFLUXDB_DATABASE)
 
-# config handler (outdated? using JSON format now)
-def config(name, filename, method, value=None):
-    #this function should be able to read and set elements in a config file
-    #it only accepts numeric values
-    #type checks
-    for arg in [name, filename, method]:
-        if not isinstance(arg, str):
-            raise TypeError(f'Wrong argument: {arg} is not str.')
-    name = name.strip(' ')
-    
-    #hint: escape handles special characters in string
-    RE = r"(" + re.escape(name) + r"\s*=)(\s*[a-zA-Z0-9]*)"
-    pat = re.compile(RE)
-    with open(filename, 'r') as f:
-        content = f.read()
-    if method == 'get':
-        return pat.search(content).group(2)
-        
-    if method == 'set':
-        #sanity checks
-        if value is None:
-            raise ValueError(f'No value to change passed.')
-        if not isinstance(value, (int, float)):
-            raise ValueError(f'Not a valid number, must be int float.')
-        change=pat.sub(pat.search(content).group(1)+str(value), content)
-        with open(filename, 'w') as f:
-            f.write(change)
-            print(change)
-        return None
-
 ########################################################################################################################
     # main
 ########################################################################################################################
 
 def main():
+    #TODO: write handler for error case, influxdb seems to take long time for startup after boot process,
+    #      so the following call can result in an error. Which would stop the script eventually. BAD.
+    #    temporary solved by just shifting back start of this script within launcher1.sh script
     _init_influxdb_database()
-    mqtt_client = mqtt.Client(MQTT_CLIENT_ID)
+    
+    mqtt_client = mqtt.Client(MQTT_CLIENT_ID,
+                              transport = 'tcp',
+                              protocol = mqtt.MQTTv311,
+                              clean_session=True,
+                              )
     mqtt_client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
 
     mqtt_client.on_connect = on_connect
@@ -189,3 +179,4 @@ def main():
 if __name__ == '__main__':
     print('MQTT to InfluxDB bridge')
     main()
+
