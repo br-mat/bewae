@@ -56,8 +56,11 @@ parser.add_argument('-l','--log', type=bool, help='log on/off', required=False, 
 parser.add_argument('-d', '--details', type=bool,
                     help='details turned on will print everything, off will only output warnings',
                     required=False, default=False)
+parser.add_argument('-sn', '--sname', type=str, help='session name, defines mqtt client name it should be unique.',
+                    required=False, default=MQTT_CLIENT_ID)
 # Array of all arguments passed to script
 args=parser.parse_args()
+
 # turn on for debuging
 #args.log=True
 #args.details=True
@@ -161,7 +164,7 @@ def main():
     #    temporary solved by just shifting back start of this script within launcher1.sh script
     _init_influxdb_database()
     
-    mqtt_client = mqtt.Client(MQTT_CLIENT_ID,
+    mqtt_client = mqtt.Client(args.sname,
                               transport = 'tcp',
                               protocol = mqtt.MQTTv311,
                               clean_session=True,
@@ -177,6 +180,5 @@ def main():
 
 
 if __name__ == '__main__':
-    print('MQTT to InfluxDB bridge')
+    logger(f'start MQTT to InfluxDB bridge as {args.sname}', detail=True)
     main()
-
