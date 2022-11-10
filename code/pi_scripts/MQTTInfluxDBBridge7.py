@@ -21,6 +21,7 @@ from influxdb import InfluxDBClient
 from datetime import datetime
 import time
 import argparse
+import logging
 
 ########################################################################################################################
 # conection details
@@ -53,7 +54,7 @@ influxdb_client = InfluxDBClient(INFLUXDB_ADDRESS, 8086, INFLUXDB_USER, INFLUXDB
 parser = argparse.ArgumentParser(description='Program writes measurements data to specified influx db.')
 # Add arguments
 parser.add_argument('-l','--log', type=bool, help='log on/off', required=False, default=False)
-parser.add_argument('-d', '--details', type=bool,
+parser.add_argument('-d', '--debug', type=bool,
                     help='details turned on will print everything, off will only output warnings',
                     required=False, default=False)
 parser.add_argument('-sn', '--sname', type=str, help='session name, defines mqtt client name it should be unique.',
@@ -65,6 +66,13 @@ args=parser.parse_args()
 #args.log=True
 #args.details=True
 
+#init logging
+if parser.debug:
+    logging.basicConfig(filename="/home/pi/py_scripts/log/mqtt_data.log", level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
+else:
+    logging.basicConfig(filename="/home/pi/py_scripts/log/mqtt_data.log", level=logging.INFO, format="%(asctime)s:%(levelname)s:%(message)s")
+
+
 ########################################################################################################################
 # Classes and Helper functions
 ########################################################################################################################
@@ -75,35 +83,15 @@ class SensorData(NamedTuple):
     measurement: str
     value: float
 
-# log function
-def logger(text, detail=False):
-    # text should be a string
-    # detail specify if a message is important (True) or not (false)
-    # sanity check
-    if not isinstance(text, str):
-        return print('Warning: incorrect argument "text" passed to log is no string')
-    if not isinstance(detail, bool):
-        return print('Warning: incorrect argument "detail" passed to log is no bool')
-    # log
-    if args.log:
-        # Getting the current date and time
-        dt = datetime.now()
-        # getting the timestamp
-        ts = datetime.timestamp(dt)
-        # details true means return anything
-        if args.details or detail:
-            return print(str(dt) + ' ' + text)
-        return None
-
 # on_connect handler
 def on_connect(client, userdata, flags, rc):
     """ The callback for when the client receives a CONNACK response from the server."""
-    logger('Connected with result code ' + str(rc), detail=False)
+    logging.debug('Connected with result code ' + str(rc))
     client.subscribe(MQTT_TOPIC)
     
 # on_publish handler
 def on_publish(client, userdata, result):
-    logger('data published \n', detail=False)
+    logging.debug('data published \n')
     pass
 
 # mqtt message handler
@@ -114,7 +102,7 @@ def _parse_mqtt_message(topic, payload, client):
         location = match.group(1)
         measurement = match.group(2)
         #operation = match.group(3)
-        logger(f' incomming {location} {measurement} : {payload}', detail=False)
+        logging.debug(f' incomming {location} {measurement} : {payload}')
         
         #some exceptions should not be parsed and stored in influxdb
         if measurement in ['config','status','comms', 'test', 'tester', 'water-time', 'timetable', 'config_status']:
@@ -143,7 +131,7 @@ def _send_sensor_data_to_influxdb(sensor_data):
 # message handler
 def on_message(client, userdata, msg):
     # callback when a PUBLISH msg is received
-    logger(msg.topic + ' ' + str(msg.payload), detail = False)
+    logging.debug(msg.topic + ' ' + str(msg.payload))
     sensor_data = _parse_mqtt_message(msg.topic, msg.payload.decode('utf-8'), client)
     if sensor_data is not None:
         _send_sensor_data_to_influxdb(sensor_data)
@@ -180,5 +168,6 @@ def main():
 
 
 if __name__ == '__main__':
-    logger(f'start MQTT to InfluxDB bridge as {args.sname}', detail=True)
+    logging.info(f'Start MQTT to InfluxDB bridge as {args.sname}')
     main()
+
