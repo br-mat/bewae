@@ -67,7 +67,7 @@ args=parser.parse_args()
 #args.details=True
 
 #init logging
-if parser.debug:
+if args.debug:
     logging.basicConfig(filename="/home/pi/py_scripts/log/mqtt_data.log", level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
 else:
     logging.basicConfig(filename="/home/pi/py_scripts/log/mqtt_data.log", level=logging.INFO, format="%(asctime)s:%(levelname)s:%(message)s")
