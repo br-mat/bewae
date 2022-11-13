@@ -35,8 +35,8 @@ INFLUXDB_DATABASE = 'main'
 MQTT_ADDRESS = 'raspberrypi' #hostname or IP
 MQTT_USER = '*********'
 MQTT_PASSWORD = '*********'
-MQTT_TOPIC = 'home/+/+'
-MQTT_REGEX = 'home/([^/]+)/([^/]+)'
+MQTT_TOPIC = 'conf/+/+'
+MQTT_REGEX = 'conf/([^/]+)/([^/]+)'
 MQTT_CLIENT_ID = 'MQTTCommsBridge' #ID SHOULD BE UNIQUE
 
 ########################################################################################################################
@@ -116,7 +116,7 @@ def _parse_mqtt_message(topic, payload, client):
                 dict1 = json.load(json_file)
             # sanity check
             if title not in list(dict1['group'].keys()):
-                logging.warning(f'Warning: Incorrect title sent!')
+                logging.warning(f'Warning: Incorrect title/group-id sent! No water-time set.')
                 return None
             dict1['group'][title]['water-time'] = int(payload)
             os.remove(configfile)
@@ -134,7 +134,7 @@ def _parse_mqtt_message(topic, payload, client):
                 dict1 = json.load(json_file)
             # sanity check
             if title not in list(dict1['switches'].keys()):
-                logging.warning(f'Warning: Incorrect title sent!')
+                logging.warning(f'Warning: Incorrect title sent! No switch set.')
                 return None
             dict1['switches'][title]['value'] = int(payload)
             os.remove(configfile)
@@ -152,16 +152,26 @@ def _parse_mqtt_message(topic, payload, client):
                 dict1 = json.load(json_file)
             #format payload
             payload = payload.replace(" ", "")
-            regex = r"([a-zA-Z0-9]+):([0-9|,]+|master)"
+            regex = r"([0-9]+):([0-9|,]+|master)"
             rematch = re.match(regex, test_str)
             if rematch is not None:
-                name = rematch[1]
+                group_id = rematch[1]
                 timeslots = rematch[2].replace(",", " ").strip().split()
                 # sanity check
-                if title not in list(dict1['switches'].keys()):
-                    logging.warning(f'Warning: Incorrect title sent!')
+                if group_id not in list(dict1['group'].keys()):
+                    logging.warning(f'Warning: Incorrect group ID sent! No Timetable set.')
                     return None
-                dict1['group'][name]['timetable'] = int(payload)
+                result = int(group_id) << 24
+                if timeslots == 'master':
+                    master_id = list(dict1['group'].keys())[0]
+                    result = dict1['group'][master_id]['timetable']
+                if timeslots:
+                    for slot in timeslots:
+                        result += 1 << int(slot)
+                else:
+                    logging.warning(f'Warning: Empty timeslot sent! No action taken.')
+                    return None
+                dict1['group'][group_id]['timetable'] = result
                 os.remove(configfile)
                 with open(configfile, "w") as out_file:
                     json.dump(dict1, out_file, indent = 4)
@@ -199,7 +209,7 @@ def _parse_mqtt_message(topic, payload, client):
             for entry in list(data['group'].keys()):
                 mqtt_msg = 'T'
                 mqtt_msg += f"{int(entry):8d}"
-                mqtt_msg += f"{int(data['group'][entry]['water-time']):24d}"
+                mqtt_msg += f"{int(data['group'][entry]['timetable']):24d}"
                 #print(mqtt_msg)
                 client.publish('home/bewae/comms', mqtt_msg.replace(" ", "0")) 
             #print(f"{int(data['timetable'][0]):32d}")
