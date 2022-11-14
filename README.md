@@ -92,60 +92,74 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
 
 ## Steuerung der Bewässerung
 
-- (Neu) getestet wird eine Steuerung über eine command funktion
+To control the irrigation system 2 variables are used, timetable and water-time:
+-	timetable is represented by a 4 bytelong int number, where every bit stands for a clock hour. The 8 most significant bits represent the group id. It is possible to set an individual timetable for each group.
+-	water-time is used to set the active time in seconds for the specified group (solenoid and pump). It can be set individually for each group.
+The control itself can be set in 3 ways:
+-	Programming the microcontroller
+-	MQTT via W-LAN (phone or pi)
+-	Config file on SD-card (to be added)
 
-Grundsätzlich erlaubt es der **Zeitplan** das einmal pro stunde bewässert wird. Die **Wassermenge** in den einzelnen Bewässerungsgruppen wird über die **Zeit** gesteuert die Pumpe und das jeweilige Ventil arbeiten. Zu jeder eingetragenen Stunde im Zeitplan wird einmal die eingestellte Menge entlassen. <br>
+### control via programming (default):
 
-### Steuerung über Programmierung (Default):
+Open main.cpp file and search for the two code snippets below, there you can change the values directly in code. <br>
 
-Grundsätzlich erlaubt es der **Zeitplan** das einmal pro stunde bewässert wird. Die Wassermenge in den einzelnen Bewässerungsgruppen wird über die **Zeit** gesteuert die Pumpe und das jeweilige Ventil arbeiten. <br>
-
-**ZEITPLAN:** bestehend aus einer *long* Zahl wobei jedes bit von rechts beginnend bei *0* für eine Stunde auf der Uhr steht. Im Beispiel wird somit um *10* und *20* Uhr bewässert. <br>
+Timetable: 
 ```
-//                                           2523211917151311 9 7 5 3 1
+// change timetable                          2523211917151311 9 7 5 3 1
 //                                            | | | | | | | | | | | | |
 unsigned long int timetable_default = 0b00000000000100000000010000000000;
 //                                             | | | | | | | | | | | | |
 //                                            2422201816141210 8 6 4 2 0
 ```
+
 <br>
 
-**MENGE:**
-Diese eintragung ist im code vorzunehmen siehe code Beispiel unten.
-Hierbei muss die Gruppe auf *true* gesetzt werden und der richtige pin und pumpe eingetragen werden. Nach der Bezeichnung (nicht notwendig) muss noch die Zeit in Sekunden eingetragen werden. Die restlichen Werte müssen auf *0* gesetzt werden da diese zur Laufzeit relevant werden.
+Water-time, where the last 3 are just important during run time and should be set zero. With the first boolean entry we can switch this group on/off. The v-pin and pump pin depend on the setup at the boards.
+
 ```
-//is_set, pin, pump_pin, name, watering default, watering base, watering time, last act,
+// change water-time
+// is_set, v-pin, pump_pin, name, watering-time default, timetable, watering base, watering time, last act,
 solenoid group[max_groups] =
 { 
-  {true, 0, pump1, "Tom1", 100, 0, 0 , 0}, //group1
-  {true, 1, pump1, "Tom2", 80, 0, 0, 0}, //group2
-  {true, 2, pump1, "Gewa", 30, 0, 0, 0}, //group3
-  {true, 3, pump1, "Chil", 40, 0, 0, 0}, //group4
-  {true, 6, pump1, "Krtr", 20, 0, 0, 0}, //group5
-  {true, 7, pump1, "Erdb", 50, 0, 0, 0}, //group6
-};
+  {true, 0, pump1, "Tom1", 100, 0.0f, 0, 0, 0}, //group0 Tomaten 1
+  {true, 1, pump1, "Tom2", 80, 0.0f, 0, 0, 0}, //group1 Tomaten 2
+  {true, 2, pump1, "Gewa", 30, 0.0f, 0, 0, 0}, //group2 Gewaechshaus
+  {true, 3, pump1, "Chil", 40, 0.0f, 0, 0, 0}, //group3 Chillis
+  {true, 6, pump1, "Krtr", 20, 0.0f, 0, 0, 0}, //group4 Kraeuter
+  {true, 7, pump1, "Erdb", 50, 0.0f, 0, 0, 0}, //group5 Erdbeeren
+}
 ```
 <br>
 
-### Steuerung über WLAN (APP, MQTT):
-Im *config.h* file muss *define RasPi 1* gesetzt sein und MQTT sowie WLAN einstellungen müssen richtig konfiguriert sein. Um mit dem System zu kommunizieren wird eine App aus dem Play-store [MQTT Dash](https://play.google.com/store/apps/details?id=net.routix.mqttdash&hl=en&gl=US) genutzt.
+### controll via MQTT (phone or pi):
 
-**ZEITPLAN:**
-Über MQTT muss mit dem topic *home/nano/timetable* der Wert der *long* *int* Zahl als dezimal gesendet werden. Da die Binäre representation als string unnötig lange wäre.
-<br>
+If we want to set something via MQTT we must send it with the correct topic. These are conf/set-timetable/group-id and conf/set-water-time/group-id. <br>
 
-Diese Methode ist nicht benutzerfreundlich deshalb habe ich eine weiter Möglichkeit implementiert. Unter dem Topic: *home/nano/planed* können die geplanten vollen stunden als liste (Beispiel: *6,10,20*) gesendet werden. <br>
+#### **timetable**:
 
-**MENGE:**
-Es muss lediglich die anzahl an sekunden gesendet werden die die jeweilige Gruppe bewässert werden soll. Die Topics müssen dem unten angeführten schema entsprechen und in der App eingestellt werden. <br>
-Topics:
+To adjust the timetable use the general topic: 
 ```
-home/grp1/water_time
-home/grp2/water_time
-.
-.
-home/grp6/water_time
+conf/set-timetable/gerneral
 ```
+The value sent should be follow the following format:
+```
+#water group 0 at 7, 10 and 18 o'clock
+0:7,10,18
+#water group 2 at same time as master group (group 0)
+2:master
+```
+Important note:
+Only group 0 is master, you cannot let group 0 follow master this will be ignored and a warning will be printed into log file if configured. Keep Group Id numbers low and always start from 0! The transmitted value must follow the shown example, use "," as delimiter. Some strings are also possible: master (water time follow master), off (group turned off, NOT IMPLEMENTED YET).
+
+#### **water-time**:
+
+To adjust water-time of individual groups use topics of following scheme:
+```
+conf/set-water-time/groupID
+```
+Important note: Use the same ID starting from 0 as configured in the code, as the id will be used as an index. The value should be entered in seconds of active watering time. It will be watered at every selected full hour on timetable.
+
 <br>
 
 Gruppe eintragen:          |  Überblick:
