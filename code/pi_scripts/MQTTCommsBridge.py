@@ -1,6 +1,18 @@
 ########################################################################################################################
 # Python program to handle MQTT traffic regarding commands and controll
 #
+# ARGUMENTS
+# -l log specifies if log should be saved into a file
+# -d debug specifies verbose of log
+# -sn session name specifies the name of the mqtt client, should be unique
+#
+# ABOUT
+# This script should be called on reboot, i provided a basic shell script to launch it from crontab.
+# It creats a log into a specified file.
+# The mqtt-topics used to transmitt commands to the pi should be conf/*/*
+# purpose is to read from or change the config file,
+# this file contains the status information of the irrigation-system.
+# 
 # no waranty for the program
 #
 # Copyright (C) 2022  br-mat
@@ -51,7 +63,7 @@ valid_tasks = ['set-water-time', 'set-switch', 'set-timetable', 'config-status']
 
 parser = argparse.ArgumentParser(description='Program writes measurements data to specified influx db.')
 # Add arguments
-parser.add_argument('-l','--log', type=bool, help='log on/off', required=False, default=False)
+parser.add_argument('-l','--log', type=bool, help='log to file on/off', required=False, default=False)
 parser.add_argument('-d', '--debug', type=bool,
                     help='details turned on will print everything, off will only output warnings',
                     required=False, default=False)
@@ -61,8 +73,8 @@ parser.add_argument('-sn', '--sname', type=str, help='session name, defines mqtt
 args=parser.parse_args()
 
 # on true for debuging
-args.log=True
-args.debug=True
+#args.log=True
+#args.debug=True
 
 #init logging
 if args.debug:
@@ -71,7 +83,9 @@ if args.debug:
 else:
     logging.basicConfig(filename="/home/pi/py_scripts/log/bewae_config.log",
                         level=logging.INFO, format="%(asctime)s:%(levelname)s:%(message)s")
-
+if not args.log:
+    logging.disable(level=CRITICAL)
+    
 ########################################################################################################################
 # Classes and Helper functions
 ########################################################################################################################

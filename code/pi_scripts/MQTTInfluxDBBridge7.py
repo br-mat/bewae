@@ -1,6 +1,19 @@
 ########################################################################################################################
 # Python program to handle MQTT and save significant data to InfluxDB
 #
+# ARGUMENTS
+# -l log specifies if log should be saved into a file
+# -d debug specifies verbose of log
+# -sn session name specifies the name of the mqtt client, should be unique
+#
+# ABOUT
+# This script should be called on reboot, i provided a basic shell script to launch it from crontab.
+# Be aware that it should be delayed as some error occurs with influxdb if started too early.
+# It creats a log into a specified file.
+# The mqtt-topics used to transmitt data to the pi should be home/*/*
+# purpose is to read incomming data and store them into influx database,
+# if relevant.
+#
 # no waranty for the program
 #
 # Copyright (C) 2022  br-mat
@@ -53,7 +66,7 @@ influxdb_client = InfluxDBClient(INFLUXDB_ADDRESS, 8086, INFLUXDB_USER, INFLUXDB
 
 parser = argparse.ArgumentParser(description='Program writes measurements data to specified influx db.')
 # Add arguments
-parser.add_argument('-l','--log', type=bool, help='log on/off', required=False, default=False)
+parser.add_argument('-l','--log', type=bool, help='log to file on/off', required=False, default=False)
 parser.add_argument('-d', '--debug', type=bool,
                     help='details turned on will print everything, off will only output warnings',
                     required=False, default=False)
@@ -71,7 +84,8 @@ if args.debug:
     logging.basicConfig(filename="/home/pi/py_scripts/log/mqtt_data.log", level=logging.DEBUG, format="%(asctime)s:%(levelname)s:%(message)s")
 else:
     logging.basicConfig(filename="/home/pi/py_scripts/log/mqtt_data.log", level=logging.INFO, format="%(asctime)s:%(levelname)s:%(message)s")
-
+if not args.log:
+    logging.disable(level=CRITICAL)
 
 ########################################################################################################################
 # Classes and Helper functions
