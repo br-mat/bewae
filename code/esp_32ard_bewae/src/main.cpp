@@ -11,12 +11,14 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <SD.h>
+#include "SPIFFS.h"
 
 //external
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 
 #include <Helper.h>
 #include <config.h>
@@ -44,16 +46,25 @@ using namespace Helper;
 //group 6 - leer 4 brushes +3 small?        ~0.5l
 
 //stay global for access through more than one iteration of loop (keep memory in mind)
-//is_set, v-pin, pump_pin, name, watering default, watering base, watering time, last act,
+//is_set, v-pin, pump_pin, name, watering default, timetable, watering base, watering time, last act,
 solenoid group[max_groups] =
 { 
-  {true, 0, pump1, "Tom1", 100, 0, 0 , 0}, //group1
-  {true, 1, pump1, "Tom2", 80, 0, 0, 0}, //group2
-  {true, 2, pump1, "Gewa", 30, 0, 0, 0}, //group3
-  {true, 3, pump1, "Chil", 40, 0, 0, 0}, //group4
-  {true, 6, pump1, "Krtr", 20, 0, 0, 0}, //group5
-  {true, 7, pump1, "Erdb", 50, 0, 0, 0}, //group6
+  {true, 0, pump1, "Tom1", 100, 0.0f, 0, 0, 0}, //group0
+  {true, 1, pump1, "Tom2", 80, 0.0f, 0, 0, 0}, //group1
+  {true, 2, pump1, "Gewa", 30, 0.0f, 0, 0, 0}, //group2
+  {true, 3, pump1, "Chil", 40, 0.0f, 0, 0, 0}, //group3
+  {true, 6, pump1, "Krtr", 20, 0.0f, 0, 0, 0}, //group4
+  {true, 7, pump1, "Erdb", 50, 0.0f, 0, 0, 0}, //group5
 };
+
+//timetable storing watering hours
+//                                           2523211917151311 9 7 5 3 1
+//                                            | | | | | | | | | | | | |
+unsigned long int timetable_default = 0b00000000000000000000010000000000;
+//                                             | | | | | | | | | | | | |
+//                                            2422201816141210 8 6 4 2 0
+unsigned long int timetable = timetable_default; //initialize on default
+unsigned long int timetable_raspi = 0; //initialize on default
 
 //is_set, pin, name, val, group
 sensors measure_point[16] =
@@ -101,15 +112,6 @@ bool sw6 = 1;  //system switch (ON/OFF) NOT IMPLEMENTED YET
 bool sw0 = 1; //bewae switch (ON/OFF)
 bool sw1 = 0; //water time override condition
 bool sw2 = 0; //timetable override condition
-
-//timetable storing watering hours
-//                                           2523211917151311 9 7 5 3 1
-//                                            | | | | | | | | | | | | |
-unsigned long int timetable_default = 0b00000000000100000000010000000000;
-//                                             | | | | | | | | | | | | |
-//                                            2422201816141210 8 6 4 2 0
-unsigned long int timetable = timetable_default; //initialize on default
-unsigned long int timetable_raspi = 0; //initialize on default
 
 Adafruit_BME280 bme; // use I2C interface
 
@@ -283,8 +285,10 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
         break;
 
       case 'T':
-        timetable_raspi = 0;
-        timetable_raspi = (long)high<<16 + low;
+        int group_index;
+        group_index = (high & 0xFF00)>>8; //get high 8 bits as group index
+        high = high & 0x00FF; //get lower 8 bits as rest of timetable transmission
+        group[group_index].timetable = (long)high<<16 + low;
         #ifdef DEBUG
         Serial.print(F("Timetable set to: ")); Serial.println(timetable_raspi);
         #endif
@@ -418,16 +422,6 @@ bool connect_MQTT(){
   #endif
   while(!connection){
     connection = client.connect(clientID, mqtt_username, mqtt_password);
-      if(connection){
-        delay(100);
-        #ifdef DEBUG
-        Serial.println("Connected to MQTT Broker!");
-        #endif
-        //client.setCallback(callback);
-        //client.subscribe(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
-        sub_mqtt();
-        return true;
-      }
     #ifdef DEBUG
     Serial.print(F(" . "));
     #endif
@@ -441,6 +435,13 @@ bool connect_MQTT(){
     }
     delay(1000);
   }
+  #ifdef DEBUG
+  Serial.println("Connected to MQTT Broker!");
+  #endif
+  //client.setCallback(callback);
+  //client.subscribe(topic, qos) qos 0 fire and forget, qos 1 confirm at least once, qos 2 double confirmation reciever
+  sub_mqtt();
+  return true;
 }
 
 
@@ -576,6 +577,26 @@ void setup() {
   #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// initialize SPIFFS
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  if(!SPIFFS.begin(true)){
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+  
+  File file = SPIFFS.open("/config.JSON");
+  if(!file){
+    Serial.println("Failed to open file for reading");
+    return;
+  }
+  
+  Serial.println("File Content:");
+  while(file.available()){
+    Serial.write(file.read());
+  }
+  file.close();
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize bme280 sensor
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   digitalWrite(sw_3_3v, HIGH); delay(5);
@@ -663,8 +684,8 @@ void setup() {
   //hour_ = 0;
   //disableWiFi();
 
-  system_sleep(); //turn off all external transistors
-}
+    system_sleep(); //turn off all external transistors
+  }
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
