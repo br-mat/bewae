@@ -13,7 +13,8 @@ todo:
 - add dynamic watering controlled by Pi (using ML later)
 - update english translation of new version
 - update documentation
-- reimplement SD card module
+- reimplement SD card module?
+- implement config file using SPIFFS
 - add new configuration file feature to replace default programming settings
 
 open problems:
@@ -42,7 +43,7 @@ Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
   * [Code Arduino Nano](#code-arduino-nano)
   * [Code ESP8266-01](#code-esp8266-01)
   * [RaspberryPi](#raspberrypi)
-- [Bilder](#bilder)
+- [Bilder & Entstehung](#bilder--entstehung)
 
 ## Introduction (EN)
 This version is more of a test version. It has been reworked to fit a ESP32 board. <br>
@@ -73,9 +74,7 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 
 <br>
 
-**Entstehung:** <br>
-Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balkonpflanzen ohne Versorgung gewesen wären. Das grün sollte mit einem Bewässerungsset, Schläuche und ein paar Düsen und einer Pumpe am Leben gehalten werden. Eine Reguläre Bewässerung wie bei einer Zeitschaltuhr kam mir jedoch zu langweilig vor und mein Interesse an einem kleinen Bastelprojekt war geweckt. Kapazitive Bodenfeuchte Sensoren und 4 kleine *12V* Ventile waren schnell bestellt, Arduinos hatte ich genug zu Hause, so kam es innerhalb einer Woche zu [Version 1](#v1) und das Überleben der Pflanzen war gesichert. Es entstand aus der Not ein Projekt das mich eine Weile Beschäftigt hat, kontinuierlich erweitert und verbessert erfüllt es nach momentanem Stand weit mehr als zuerst geplant. <br>
-<br>
+
 
 **Stand jetzt:** <br>
 
@@ -132,44 +131,38 @@ solenoid group[max_groups] =
 ```
 <br>
 
-### controll via MQTT (phone or pi):
+### Controll via MQTT (phone or pi):
 
-If we want to set something via MQTT we must send it with the correct topic. These are conf/set-timetable/group-id and conf/set-water-time/group-id. <br>
+Um etwas über MQTT zu einstellen zu können müssen die Befehle unter dem richtigen Topic gesendet werden. Diese sind conf/set-timetable/group-id und conf/set-water-time/group-id. <br>
 
 #### **timetable**:
 
-To adjust the timetable use the general topic: 
+Um den Timetable einzustellen: 
 ```
 conf/set-timetable/gerneral
 ```
-The value sent should be follow the following format:
+Die Bewässerungswerte können wie folgt geändert werden:
 ```
 #water group 0 at 7, 10 and 18 o'clock
 0:7,10,18
 #water group 2 at same time as master group (group 0)
 2:master
 ```
-Important note:
-Only group 0 is master, you cannot let group 0 follow master this will be ignored and a warning will be printed into log file if configured. Keep Group Id numbers low and always start from 0! The transmitted value must follow the shown example, use "," as delimiter. Some strings are also possible: master (water time follow master), off (group turned off, NOT IMPLEMENTED YET).
+Wichtig:
+Gruppe 0 ist die "master" Gruppe, demnach kann gruppe 0 mit dem code master setzen. Die Gruppen ID müssen bei 0 beginnen und aufsteigend sein da diese nummern als indizes verwendet werden für den aufruf am Mikrocontroller. Die mitgesendeten werte stehen für die vollen Stunden an denne gegossen werden soll. Als trennzeichen wird ein "," akzeptiert. Es ist auch möglich die Gruppe an die master Gruppe anzupassen mit dem mitgesendet string "master", "off" umd den Kreis abzuschalten (noch nicht implementiert).
 
 #### **water-time**:
 
-To adjust water-time of individual groups use topics of following scheme:
+Um die water-time variable der einzelnen Gruppen einzustellen sollte dieses Schema verwendet werden:
 ```
 conf/set-water-time/groupID
 ```
-Important note: Use the same ID starting from 0 as configured in the code, as the id will be used as an index. The value should be entered in seconds of active watering time. It will be watered at every selected full hour on timetable.
-
+Wichtig: Auf die ID achten die auch am Mikrocontroller für die jeweilige Gruppe definiert ist. Die ID's müssen bei 0 beginnen und aufsteigend sein. Der Wert wird in sekunden die die Ventile arbeiten eingestellt.
 <br>
 
 Gruppe eintragen:          |  Überblick:
 :-------------------------:|:-------------------------:
 ![config](/docs/pictures/mqtt-app.jpg) |  ![config](/docs/pictures/watering-config.jpg)
-
-
-
-### Steuerung über WLAN (commands):
-platzhalter
 
 # Details
 
@@ -270,13 +263,6 @@ Zusätzlich zu diesem topic werden im Payload die Daten angehängt, der Inhalt a
 #subsciption topics to receive data
   watering_topic = "home/bewae/config";
   #bewae config recive watering instructions (as csv)
-
-  bewae_sw = "home/nano/bewae_sw";
-  #switching watering no/off
-
-  watering_sw = "home/nano/watering_sw";
-  #switching value override on/off (off - using default values on nano)
-
 ```
 
 #### Installation
@@ -301,8 +287,13 @@ Auf mein **Android** Smartphone habe ich die App [mqttdash](https://play.google.
 Ein Beispiel Screenshot aus der App, die Zahlen stehen für die Zeit (s) in der das jeweilige Ventil geöffnet ist und Wasser gepumpt wird (ca. 0.7l/min):
 ![mqttdash app](/docs/pictures/mqttdash.jpg) <br>
 
-## Bilder
-Kleine Sammlung von Fotos über mehrere Versionen des Projekts, die über die Zeit entstanden sind.
+## Bilder & Entstehung
+
+**Entstehung:** <br>
+Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balkonpflanzen ohne Versorgung gewesen wären. Das grün sollte mit einem Bewässerungsset, Schläuche und ein paar Düsen und einer Pumpe am Leben gehalten werden. Eine Reguläre Bewässerung wie bei einer Zeitschaltuhr kam mir jedoch zu langweilig vor und mein Interesse an einem kleinen Bastelprojekt war geweckt. Kapazitive Bodenfeuchte Sensoren und 4 kleine *12V* Ventile waren schnell bestellt, Arduinos hatte ich genug zu Hause, so kam es innerhalb einer Woche zu [Version 1](#v1) und das Überleben der Pflanzen war gesichert. Es entstand aus der Not ein Projekt das mich eine Weile Beschäftigt hat, kontinuierlich erweitert und verbessert erfüllt es nach momentanem Stand weit mehr als zuerst geplant. <br>
+<br>
+
+Zum abschluss eine kleine Sammlung von Fotos über mehrere Versionen des Projekts, die über die Zeit entstanden sind:
 
 ### V3
 

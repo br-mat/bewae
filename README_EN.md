@@ -69,6 +69,75 @@ Automated irrigation is currently *2* times daily in the morning and evening, cu
 In the other folders are the code for both controllers as well as the json export for the Grafana Dashboard and the Python scripts for processing the [*MQTT*](#mqtt) messages. Die verwendete Datenbank ist [*InfluxDB*](#influxdb) in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang. <br>
 Ursprünglich war das Projekt für den Offlinebetrieb gedacht, es wäre natürlich einfacher einen [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) zu verwenden anstatt einem [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) mit einem [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) ein "Upgrade" zu verpassen. Da die Platine für einen Arduino Nano konzipiert und schon bestellt wurde habe ich mich für die zweite Variante entschieden, ein Mehraufwand der nicht notwendig aber lehrreich gewesen ist. <br>
 
+## Steuerung der Bewässerung
+
+To control the irrigation system 2 variables are used, timetable and water-time:
+-	timetable is represented by a 4 bytelong int number, where every bit stands for a clock hour. The 8 most significant bits represent the group id. It is possible to set an individual timetable for each group.
+-	water-time is used to set the active time in seconds for the specified group (solenoid and pump). It can be set individually for each group.
+The control itself can be set in 3 ways:
+-	Programming the microcontroller
+-	MQTT via W-LAN (phone or pi)
+-	Config file on SD-card (to be added)
+
+### control via programming (default):
+
+Open main.cpp file and search for the two code snippets below, there you can change the values directly in code. <br>
+
+Timetable: 
+```
+// change timetable                          2523211917151311 9 7 5 3 1
+//                                            | | | | | | | | | | | | |
+unsigned long int timetable_default = 0b00000000000100000000010000000000;
+//                                             | | | | | | | | | | | | |
+//                                            2422201816141210 8 6 4 2 0
+```
+
+<br>
+
+Water-time, where the last 3 are just important during run time and should be set zero. With the first boolean entry we can switch this group on/off. The v-pin and pump pin depend on the setup at the boards.
+
+```
+// change water-time
+// is_set, v-pin, pump_pin, name, watering-time default, timetable, watering base, watering time, last act,
+solenoid group[max_groups] =
+{ 
+  {true, 0, pump1, "Tom1", 100, 0.0f, 0, 0, 0}, //group0 Tomaten 1
+  {true, 1, pump1, "Tom2", 80, 0.0f, 0, 0, 0}, //group1 Tomaten 2
+  {true, 2, pump1, "Gewa", 30, 0.0f, 0, 0, 0}, //group2 Gewaechshaus
+  {true, 3, pump1, "Chil", 40, 0.0f, 0, 0, 0}, //group3 Chillis
+  {true, 6, pump1, "Krtr", 20, 0.0f, 0, 0, 0}, //group4 Kraeuter
+  {true, 7, pump1, "Erdb", 50, 0.0f, 0, 0, 0}, //group5 Erdbeeren
+}
+```
+<br>
+
+### Controll via MQTT (phone or pi):
+
+If we want to change something via MQTT we must send it with the correct topic. These are conf/set-timetable/group-id and conf/set-water-time/group-id. <br>
+
+#### **timetable**:
+
+To adjust the timetable use the general topic: 
+```
+conf/set-timetable/gerneral
+```
+The value sent should be follow the following format:
+```
+#water group 0 at 7, 10 and 18 o'clock
+0:7,10,18
+#water group 2 at same time as master group (group 0)
+2:master
+```
+Important note:
+Only group 0 is master, you cannot let group 0 follow master this will be ignored and a warning will be printed into log file if configured. Keep Group Id numbers low and always start from 0! The transmitted value must follow the shown example, use "," as delimiter. Some strings are also possible: master (water time follow master), off (group turned off, NOT IMPLEMENTED YET).
+
+#### **water-time**:
+
+To adjust water-time of individual groups use topics of following scheme:
+```
+conf/set-water-time/groupID
+```
+Important note: Use the same ID starting from 0 as configured in the code, as the id will be used as an index. The value should be entered in seconds of active watering time. It will be watered at every selected full hour on timetable.
 
 ## Systemdiagramm
 ![System](/docs/pictures/Systemdiagramm.png "Systemdiagramm")
