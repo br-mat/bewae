@@ -79,6 +79,34 @@ The control itself can be set in 3 ways:
 -	MQTT via W-LAN (phone or pi)
 -	Config file on SD-card (to be added)
 
+### Controll via MQTT (phone or pi):
+
+If we want to change something via MQTT we must send it with the correct topic. These are conf/set-timetable/group-id and conf/set-water-time/group-id. <br>
+
+#### **timetable**:
+
+To adjust the timetable use the general topic: 
+```
+conf/set-timetable/gerneral
+```
+The value sent should be follow the following format:
+```
+#water group 0 at 7, 10 and 18 o'clock
+0:7,10,18
+#water group 2 at same time as master group (group 0)
+2:master
+```
+Important note:
+Only group 0 is master, you cannot let group 0 follow master this will be ignored and a warning will be printed into log file if configured. Keep Group Id numbers low and always start from 0! The transmitted value must follow the shown example, use "," as delimiter. Some strings are also possible: master (water time follow master), off (group turned off, NOT IMPLEMENTED YET).
+
+#### **water-time**:
+
+To adjust water-time of individual groups use topics of following scheme:
+```
+conf/set-water-time/groupID
+```
+Important note: Use the same ID starting from 0 as configured in the code, as the id will be used as an index. The value should be entered in seconds of active watering time. It will be watered at every selected full hour on timetable.
+
 ### control via programming (default):
 
 Open main.cpp file and search for the two code snippets below, there you can change the values directly in code. <br>
@@ -110,34 +138,6 @@ solenoid group[max_groups] =
 }
 ```
 <br>
-
-### Controll via MQTT (phone or pi):
-
-If we want to change something via MQTT we must send it with the correct topic. These are conf/set-timetable/group-id and conf/set-water-time/group-id. <br>
-
-#### **timetable**:
-
-To adjust the timetable use the general topic: 
-```
-conf/set-timetable/gerneral
-```
-The value sent should be follow the following format:
-```
-#water group 0 at 7, 10 and 18 o'clock
-0:7,10,18
-#water group 2 at same time as master group (group 0)
-2:master
-```
-Important note:
-Only group 0 is master, you cannot let group 0 follow master this will be ignored and a warning will be printed into log file if configured. Keep Group Id numbers low and always start from 0! The transmitted value must follow the shown example, use "," as delimiter. Some strings are also possible: master (water time follow master), off (group turned off, NOT IMPLEMENTED YET).
-
-#### **water-time**:
-
-To adjust water-time of individual groups use topics of following scheme:
-```
-conf/set-water-time/groupID
-```
-Important note: Use the same ID starting from 0 as configured in the code, as the id will be used as an index. The value should be entered in seconds of active watering time. It will be watered at every selected full hour on timetable.
 
 ## Systemdiagramm
 ![System](/docs/pictures/Systemdiagramm.png "Systemdiagramm")

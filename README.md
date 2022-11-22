@@ -74,8 +74,6 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 
 <br>
 
-
-
 **Stand jetzt:** <br>
 
 **Technik:** Für die einfachere Handhabung wurde mit [fritzing](https://fritzing.org/) ein Plan für ein [PCB](#platinen) erstellt und gedruckt. Sensordaten von diversen Sensoren (Bodenfeuchte, Temperatur etc.) werden an einen [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet und dort in eine Datenbank gespeichert. Die Steuerung der Bewässerung funktioniert entweder automatisiert Sensorgesteuert oder über eine [MQTT-messaging App](#mqttdash-app-optional) über das Smartphone. Dank [VPN](https://www.pivpn.io/) sind auch von unterwegs Steuerung und Beobachtung möglich. <br>
@@ -88,7 +86,6 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 ### V3.3 preview:
 ![System](/docs/pictures/Systemdiagramm3_3.png "Systemdiagramm 3.3")
 
-
 ## Steuerung der Bewässerung
 
 To control the irrigation system 2 variables are used, timetable and water-time:
@@ -98,38 +95,6 @@ The control itself can be set in 3 ways:
 -	Programming the microcontroller
 -	MQTT via W-LAN (phone or pi)
 -	Config file on SD-card (to be added)
-
-### control via programming (default):
-
-Open main.cpp file and search for the two code snippets below, there you can change the values directly in code. <br>
-
-Timetable: 
-```
-// change timetable                          2523211917151311 9 7 5 3 1
-//                                            | | | | | | | | | | | | |
-unsigned long int timetable_default = 0b00000000000100000000010000000000;
-//                                             | | | | | | | | | | | | |
-//                                            2422201816141210 8 6 4 2 0
-```
-
-<br>
-
-Water-time, where the last 3 are just important during run time and should be set zero. With the first boolean entry we can switch this group on/off. The v-pin and pump pin depend on the setup at the boards.
-
-```
-// change water-time
-// is_set, v-pin, pump_pin, name, watering-time default, timetable, watering base, watering time, last act,
-solenoid group[max_groups] =
-{ 
-  {true, 0, pump1, "Tom1", 100, 0.0f, 0, 0, 0}, //group0 Tomaten 1
-  {true, 1, pump1, "Tom2", 80, 0.0f, 0, 0, 0}, //group1 Tomaten 2
-  {true, 2, pump1, "Gewa", 30, 0.0f, 0, 0, 0}, //group2 Gewaechshaus
-  {true, 3, pump1, "Chil", 40, 0.0f, 0, 0, 0}, //group3 Chillis
-  {true, 6, pump1, "Krtr", 20, 0.0f, 0, 0, 0}, //group4 Kraeuter
-  {true, 7, pump1, "Erdb", 50, 0.0f, 0, 0, 0}, //group5 Erdbeeren
-}
-```
-<br>
 
 ### Controll via MQTT (phone or pi):
 
@@ -164,6 +129,38 @@ Gruppe eintragen:          |  Überblick:
 :-------------------------:|:-------------------------:
 ![config](/docs/pictures/mqtt-app.jpg) |  ![config](/docs/pictures/watering-config.jpg)
 
+### control via programming (default):
+
+Open main.cpp file and search for the two code snippets below, there you can change the values directly in code. <br>
+
+Timetable: 
+```
+// change timetable                          2523211917151311 9 7 5 3 1
+//                                            | | | | | | | | | | | | |
+unsigned long int timetable_default = 0b00000000000100000000010000000000;
+//                                             | | | | | | | | | | | | |
+//                                            2422201816141210 8 6 4 2 0
+```
+
+<br>
+
+Water-time, where the last 3 are just important during run time and should be set zero. With the first boolean entry we can switch this group on/off. The v-pin and pump pin depend on the setup at the boards.
+
+```
+// change water-time
+// is_set, v-pin, pump_pin, name, watering-time default, timetable, watering base, watering time, last act,
+solenoid group[max_groups] =
+{ 
+  {true, 0, pump1, "Tom1", 100, 0.0f, 0, 0, 0}, //group0 Tomaten 1
+  {true, 1, pump1, "Tom2", 80, 0.0f, 0, 0, 0}, //group1 Tomaten 2
+  {true, 2, pump1, "Gewa", 30, 0.0f, 0, 0, 0}, //group2 Gewaechshaus
+  {true, 3, pump1, "Chil", 40, 0.0f, 0, 0, 0}, //group3 Chillis
+  {true, 6, pump1, "Krtr", 20, 0.0f, 0, 0, 0}, //group4 Kraeuter
+  {true, 7, pump1, "Erdb", 50, 0.0f, 0, 0, 0}, //group5 Erdbeeren
+}
+```
+<br>
+
 # Details
 
 ## Platinen
@@ -179,7 +176,9 @@ Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle re
 <br>
 
 ### **bewae3_3_board2v6.fzz** als Erweiterung (PCB)
-Sie ist als Erweiterung gedacht. Die Platine bietet 13 Steckplätze für sensoren sowie 2 Pumpen (*12V*) und 6 Ventile (*12V*). Die Spannung der Bleibatterie (Akku) soll über den Spannungsteiler abgegriffen werden können. 
+Sie ist als Erweiterung gedacht. Die Platine bietet 13 Steckplätze für sensoren sowie 2 Pumpen (*12V*) und 6 Ventile (*12V*). Die Spannung der Bleibatterie (Akku) soll über den Spannungsteiler abgegriffen werden können.
+<br> 
+Diese Platine könnte individuell angepasst werden, um geänderte Anforderungen zu genügen. Beispielsweiße könnte man anstatt der aufwendigen (aber sparsamen) Logik Beschaltung zu Steuerung der Transistoren auch Relais nutzten um die einzelnen Komponenten zu schalten.
 <br>
 
 
@@ -305,7 +304,6 @@ Zum abschluss eine kleine Sammlung von Fotos über mehrere Versionen des Projekt
 ### V2
 
 ![Bild](/docs/pictures/bewaeV2.jpg) <br>
-
 
 ### V1
 
