@@ -7,12 +7,12 @@ v3.3 WIP versions now are not stable
 - added ESP32 build
 - added 2nd circuit handling pumps & solenoids
 - updated (and tested) main circuit, corrected bugs & problems on ESP32 build
+- updated english translation of new version
+- updated documentation
 
 todo:
 - add openwather forecast script
 - add dynamic watering controlled by Pi (using ML later)
-- update english translation of new version
-- update documentation
 - reimplement SD card module?
 - implement config file using SPIFFS
 - add new configuration file feature to replace default programming settings
@@ -46,12 +46,12 @@ Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
 - [Bilder & Entstehung](#bilder--entstehung)
 
 ## Introduction (EN)
-This version is more of a test version. It has been reworked to fit a ESP32 board. <br>
+This version is more of a test version. It has been reworked to fit an ESP32 board. <br>
 This is **not** a step-by-step guide - a little basic knowledge in dealing with Linux and microcontrollers is required. It should only be given an insight into the project and make it easier for me to rebuild in spring or at new locations. That's why I decided to use German, but I would like to add an English version later. <br>
 
 ## Einleitung (DE)
 Diese Version ist eher als Testversion zu sehen. <br>
-Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorausgesetzt. Es soll lediglich ein Einblick in das Projekt gegeben werden und mir den Wiederaufbau im Frühjahr oder an neuen Standorten erleichtern. Deshalb habe ich mich auch für Deutsch entschieden, möchte jedoch noch eine Englische Version ergänzen. <br>
+Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorausgesetzt. Es soll lediglich ein Einblick in das Projekt gegeben werden und mir den Wiederaufbau im Frühjahr oder an neuen Standorten erleichtern. Deshalb habe ich mich auch für Deutsch entschieden, möchte jedoch noch eine englische Version ergänzen. <br>
 
 ### aktueller Aufbau
 - ESP32
@@ -69,7 +69,7 @@ Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step A
 
 ### Beschreibung
 Übersicht des Schaltungsaufbaus im beigefügten [*Systemdiagramm.png*](#systemdiagramm) als Blockschaltbild. Zur Steuerung wird ein [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) verwendet. Sensoren und Module zeichnen jede Menge Daten auf, dazu zählen Bodenfeuchtigkeits Sensoren, Temperatur-, Luftfeuchte- und Luftdruckdaten sowie Sonnenscheindauer. Die Daten werden via [*MQTT*](#mqtt) an den [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt. <br> 
- Die bewässerung folgt einem Zeitplan. Der entweder mit einprogrammierten Werten arbeitet oder über das Netzwerk gesteuert werden kann. Mit einem [*MQTT*](#mqtt) messaging client ist möglich in die Bewässerung einzugreifen. Mit einem eingerichtetem [*VPN*](https://www.pivpn.io/) kann man auch von unterwegs seine Pflanzen im Auge behalten und bewässern.
+ Die Bewässrung folgt einem Zeitplan. Der entweder mit einprogrammierten Werten arbeitet oder über das Netzwerk gesteuert werden kann. Mit einem [*MQTT*](#mqtt) messaging client ist möglich in die Bewässerung einzugreifen. Mit einem eingerichtetem [*VPN*](https://www.pivpn.io/) kann man auch von unterwegs seine Pflanzen im Auge behalten und bewässern.
 In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard und die Python scripts zur Verarbeitung der [*MQTT*](#mqtt) messages. Die verwendete Datenbank ist [*InfluxDB*](#influxdb) in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang. <br>
 
 <br>
