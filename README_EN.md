@@ -25,7 +25,7 @@ open problems:
 
 ### About
 
-Automated Sensor Controlled Irrigation with Raspberry Pi & Arduino < br>
+Automated Sensor Controlled Irrigation with Raspberry Pi & Arduino <br>
 **Targets:**
 + Sensor controlled Automated watering of the balcony plants.
 + Store & display sensor data
@@ -197,7 +197,7 @@ For debugging purposes it is recommended to tap RX and TX pins on the microcontr
 
 ## Raspberrypi
 ### General
-Personally, I am currently using a [**RaspberryPi 4B**](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) with *4GB* Ram on which a [*VPN*](https://www.pivpn.io/) (**wireguard**) and [*Pihole*](https://pi-hole.net/) are also installed. Through the [*VPN*](https://www.pivpn.io/) I can also access the data on the road or if necessary intervene in the irrigation. I do not go into further detail on the installation, but it is relatively simple and well described in numerous tutorials. < br>For the operation is also sufficient the availability in the local network, here are necessary:
+Personally, I am currently using a [**RaspberryPi 4B**](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) with *4GB* Ram on which a [*VPN*](https://www.pivpn.io/) (**wireguard**) and [*Pihole*](https://pi-hole.net/) are also installed. Through the [*VPN*](https://www.pivpn.io/) I can also access the data on the road or if necessary intervene in the irrigation. I do not go into further detail on the installation, but it is relatively simple and well described in numerous tutorials. <br>For the operation is also sufficient the availability in the local network, here are necessary:
 - SSid (network name): ExampleNetworkXY
 - Password: Example passwordXY
 - IP or hostname of the RaspberryPi (IP statically assigned)
