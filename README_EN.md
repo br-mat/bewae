@@ -85,7 +85,7 @@ The other folders contain the code for both controllers as well as the json expo
 ## System diagram
 
 ### V3.3 preview:
-![System](/docs/pictures/Systemdiagram3_3.png "System diagram 3.3")
+![System](/docs/pictures/Systemdiagramm3_3.png "Systemdiagramm 3.3")
 
 ## Irrigation control
 
@@ -99,7 +99,7 @@ The control itself can be set in 3 ways:
 
 ### Control via MQTT (phone or pi):
 
-To be able to set something via MQTT the commands must be sent under the correct topic. These are conf/set-timetable/group-id and conf/set-water-time/group-id. < br>
+To be able to set something via MQTT the commands must be sent under the correct topic. These are conf/set-timetable/group-id and conf/set-water-time/group-id. <br>
 
 #### **timetable**:
 
@@ -160,7 +160,7 @@ solenoid group[max_groups] =
   {true, 7, pump1, "earthb", 50, 0.0f, 0, 0, 0}, //group5 strawberries
 }
 ```
-< br>
+<br>
 
 # Details
 
@@ -181,7 +181,6 @@ It is intended as an extension. The board offers 13 slots for sensors as well as
 <br> 
 This board could be individually adapted to meet changed requirements. For example, instead of the complex (but economical) logic circuitry to control the transistors, relays could be used to switch the individual components.
 <br>
-
 
 ## Code ESP32
 [Arduino-Nano Code](/code/bewae_main_nano/bewae_v3_nano/src/main.cpp)
