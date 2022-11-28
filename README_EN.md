@@ -75,7 +75,7 @@ The other folders contain the code for both controllers as well as the json expo
 
 <br>
 
-**Status now:** < br>
+**Status now:** <br>
 
 **Technique:** For easier handling a plan for a [PCB](#boards) was created and printed with [fritzing](https://fritzing.org/). Sensor data from various sensors (soil moisture, temperature, etc.) are sent to a [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) where they are stored in a database. Irrigation control works either automated sensor-controlled or via a [MQTT-messaging app](#mqttdash-app-optional) via smartphone. Thanks to [VPN](https://www.pivpn.io/), control and monitoring are also possible while on the road. <br>
 
@@ -288,7 +288,7 @@ An example screenshot from the app, the numbers stand for the time (s) in which 
 
 ## Pictures & Origin
 
-**Evolution:** < br>
+**Evolution:** <br>
 The project itself arose from an absence of several weeks in which the balcony plants would have been without supply. The green should be kept alive with a watering kit, hoses and a few nozzles and a pump. A regular watering like a timer seemed too boring to me and my interest in a small tinkering project was aroused. Capacitive soil moisture sensors and 4 small *12V* valves were quickly ordered, Arduinos I had enough at home, so it came within a week to [version 1](#v1) and the survival of the plants was secured. Out of necessity a project was born that kept me busy for a while, continuously extended and improved it fulfills far more than first planned. <br>
 <br>
 
