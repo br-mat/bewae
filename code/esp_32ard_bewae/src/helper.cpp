@@ -441,3 +441,39 @@ bool Helper::find_element(int *array, int item){
   return false;
 }
 
+bool Helper::load_conf(const char path[20], DynamicJsonDocument &doc){
+  // function load Json data from file
+  // path - const char array max 20 chars
+  // doc - buffer document (memory &address needed)
+  File file = SPIFFS.open(path, "r");
+  if (!file) {
+    #ifdef DEBUG
+    Serial.println(F("error in load_conf file creation failed"));
+    #endif
+    return false;
+  }
+  deserializeJson(doc, file);
+  file.close();
+  return true;
+}
+
+bool Helper::save_conf(const char path[20], DynamicJsonDocument &doc){
+  // function saves Json data to file
+  // path - const char array max 20 chars
+  // doc - json buffer document holding content (memory &address needed)
+  SPIFFS.remove(path);
+  File file = SPIFFS.open(path, "w");
+  if (!file) {
+    #ifdef DEBUG
+    Serial.println(F("error in save_conf file creation failed"));
+    #endif
+    return false;
+  }
+  if (serializeJson(doc, file) == 0) {
+    #ifdef DEBUG
+    Serial.println(F("Failed to write to file"));
+    #endif
+  }
+  file.close();
+  return true;
+}

@@ -14,8 +14,7 @@ MQTT_USER = '*********'
 MQTT_PASSWORD = '*********'
 MQTT_TOPIC = 'home/+/+'
 MQTT_REGEX = 'home/([^/]+)/([^/]+)'
-MQTT_CLIENT_ID = 'MQTTInfluxDBBridge'
-
+MQTT_CLIENT_ID = 'MQTTInfluxDBBridge5'
 
 influxdb_client = InfluxDBClient(INFLUXDB_ADDRESS, 8086, INFLUXDB_USER, INFLUXDB_PASSWORD, None)
 
@@ -148,39 +147,14 @@ def _init_influxdb_database():
     if len(list(filter(lambda x: x['name'] == INFLUXDB_DATABASE, databases))) == 0:
         influxdb_client.create_database(INFLUXDB_DATABASE)
     influxdb_client.switch_database(INFLUXDB_DATABASE)
-    
-def config(name, filename, method, value=None):
-    #this function should be able to read and set elements in a config file
-    #it only accepts numeric values
-    #type checks
-    for arg in [name, filename, method]:
-        if not isinstance(arg, str):
-            raise TypeError(f'Wrong argument: {arg} is not str.')
-    name = name.strip(' ')
-    
-    #hint: escape handles special characters in string
-    RE = r"(" + re.escape(name) + r"\s*=)(\s*[a-zA-Z0-9]*)"
-    pat = re.compile(RE)
-    with open(filename, 'r') as f:
-        content = f.read()
-    if method == 'get':
-        return pat.search(content).group(2)
-        
-    if method == 'set':
-        #sanity checks
-        if value is None:
-            raise ValueError(f'No value to change passed.')
-        if not isinstance(value, (int, float)):
-            raise ValueError(f'Not a valid number, must be int float.')
-        change=pat.sub(pat.search(content).group(1)+str(value), content)
-        with open(filename, 'w') as f:
-            f.write(change)
-            print(change)
-        return None
 
 def main():
     _init_influxdb_database()
-    mqtt_client = mqtt.Client(MQTT_CLIENT_ID)
+    mqtt_client = mqtt.Client(MQTT_CLIENT_ID,
+                              transport = 'tcp',
+                              protocol = mqtt.MQTTv311,
+                              clean_session=True,
+                              )
     mqtt_client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
 
     mqtt_client.on_connect = on_connect

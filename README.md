@@ -7,13 +7,14 @@ v3.3 WIP versions now are not stable
 - added ESP32 build
 - added 2nd circuit handling pumps & solenoids
 - updated (and tested) main circuit, corrected bugs & problems on ESP32 build
+- updated english translation of new version
+- updated documentation
 
 todo:
 - add openwather forecast script
 - add dynamic watering controlled by Pi (using ML later)
-- update english translation of new version
-- update documentation
-- reimplement SD card module
+- reimplement SD card module?
+- implement config file using SPIFFS
 - add new configuration file feature to replace default programming settings
 
 open problems:
@@ -42,15 +43,15 @@ Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
   * [Code Arduino Nano](#code-arduino-nano)
   * [Code ESP8266-01](#code-esp8266-01)
   * [RaspberryPi](#raspberrypi)
-- [Bilder](#bilder)
+- [Bilder & Entstehung](#bilder--entstehung)
 
 ## Introduction (EN)
-This version is more of a test version. It has been reworked to fit a ESP32 board. <br>
+This version is more of a test version. It has been reworked to fit an ESP32 board. <br>
 This is **not** a step-by-step guide - a little basic knowledge in dealing with Linux and microcontrollers is required. It should only be given an insight into the project and make it easier for me to rebuild in spring or at new locations. That's why I decided to use German, but I would like to add an English version later. <br>
 
 ## Einleitung (DE)
 Diese Version ist eher als Testversion zu sehen. <br>
-Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorausgesetzt. Es soll lediglich ein Einblick in das Projekt gegeben werden und mir den Wiederaufbau im Frühjahr oder an neuen Standorten erleichtern. Deshalb habe ich mich auch für Deutsch entschieden, möchte jedoch noch eine Englische Version ergänzen. <br>
+Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorausgesetzt. Es soll lediglich ein Einblick in das Projekt gegeben werden und mir den Wiederaufbau im Frühjahr oder an neuen Standorten erleichtern. Deshalb habe ich mich auch für Deutsch entschieden, möchte jedoch noch eine englische Version ergänzen. <br>
 
 ### aktueller Aufbau
 - ESP32
@@ -68,13 +69,9 @@ Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step A
 
 ### Beschreibung
 Übersicht des Schaltungsaufbaus im beigefügten [*Systemdiagramm.png*](#systemdiagramm) als Blockschaltbild. Zur Steuerung wird ein [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) verwendet. Sensoren und Module zeichnen jede Menge Daten auf, dazu zählen Bodenfeuchtigkeits Sensoren, Temperatur-, Luftfeuchte- und Luftdruckdaten sowie Sonnenscheindauer. Die Daten werden via [*MQTT*](#mqtt) an den [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt. <br> 
- Die bewässerung folgt einem Zeitplan. Der entweder mit einprogrammierten Werten arbeitet oder über das Netzwerk gesteuert werden kann. Mit einem [*MQTT*](#mqtt) messaging client ist möglich in die Bewässerung einzugreifen. Mit einem eingerichtetem [*VPN*](https://www.pivpn.io/) kann man auch von unterwegs seine Pflanzen im Auge behalten und bewässern.
+ Die Bewässrung folgt einem Zeitplan. Der entweder mit einprogrammierten Werten arbeitet oder über das Netzwerk gesteuert werden kann. Mit einem [*MQTT*](#mqtt) messaging client ist möglich in die Bewässerung einzugreifen. Mit einem eingerichtetem [*VPN*](https://www.pivpn.io/) kann man auch von unterwegs seine Pflanzen im Auge behalten und bewässern.
 In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard und die Python scripts zur Verarbeitung der [*MQTT*](#mqtt) messages. Die verwendete Datenbank ist [*InfluxDB*](#influxdb) in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang. <br>
 
-<br>
-
-**Entstehung:** <br>
-Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balkonpflanzen ohne Versorgung gewesen wären. Das grün sollte mit einem Bewässerungsset, Schläuche und ein paar Düsen und einer Pumpe am Leben gehalten werden. Eine Reguläre Bewässerung wie bei einer Zeitschaltuhr kam mir jedoch zu langweilig vor und mein Interesse an einem kleinen Bastelprojekt war geweckt. Kapazitive Bodenfeuchte Sensoren und 4 kleine *12V* Ventile waren schnell bestellt, Arduinos hatte ich genug zu Hause, so kam es innerhalb einer Woche zu [Version 1](#v1) und das Überleben der Pflanzen war gesichert. Es entstand aus der Not ein Projekt das mich eine Weile Beschäftigt hat, kontinuierlich erweitert und verbessert erfüllt es nach momentanem Stand weit mehr als zuerst geplant. <br>
 <br>
 
 **Stand jetzt:** <br>
@@ -89,73 +86,80 @@ Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balko
 ### V3.3 preview:
 ![System](/docs/pictures/Systemdiagramm3_3.png "Systemdiagramm 3.3")
 
-
 ## Steuerung der Bewässerung
 
-- (Neu) getestet wird eine Steuerung über eine command funktion
+To control the irrigation system 2 variables are used, timetable and water-time:
+-	timetable is represented by a 4 bytelong int number, where every bit stands for a clock hour. The 8 most significant bits represent the group id. It is possible to set an individual timetable for each group.
+-	water-time is used to set the active time in seconds for the specified group (solenoid and pump). It can be set individually for each group.
+The control itself can be set in 3 ways:
+-	Programming the microcontroller
+-	MQTT via W-LAN (phone or pi)
+-	Config file on SD-card (to be added)
 
-Grundsätzlich erlaubt es der **Zeitplan** das einmal pro stunde bewässert wird. Die **Wassermenge** in den einzelnen Bewässerungsgruppen wird über die **Zeit** gesteuert die Pumpe und das jeweilige Ventil arbeiten. Zu jeder eingetragenen Stunde im Zeitplan wird einmal die eingestellte Menge entlassen. <br>
+### Controll via MQTT (phone or pi):
 
-### Steuerung über Programmierung (Default):
+Um etwas über MQTT zu einstellen zu können müssen die Befehle unter dem richtigen Topic gesendet werden. Diese sind conf/set-timetable/group-id und conf/set-water-time/group-id. <br>
 
-Grundsätzlich erlaubt es der **Zeitplan** das einmal pro stunde bewässert wird. Die Wassermenge in den einzelnen Bewässerungsgruppen wird über die **Zeit** gesteuert die Pumpe und das jeweilige Ventil arbeiten. <br>
+#### **timetable**:
 
-**ZEITPLAN:** bestehend aus einer *long* Zahl wobei jedes bit von rechts beginnend bei *0* für eine Stunde auf der Uhr steht. Im Beispiel wird somit um *10* und *20* Uhr bewässert. <br>
+Um den Timetable einzustellen: 
 ```
-//                                           2523211917151311 9 7 5 3 1
-//                                            | | | | | | | | | | | | |
-unsigned long int timetable_default = 0b00000000000100000000010000000000;
-//                                             | | | | | | | | | | | | |
-//                                            2422201816141210 8 6 4 2 0
+conf/set-timetable/gerneral
 ```
-<br>
-
-**MENGE:**
-Diese eintragung ist im code vorzunehmen siehe code Beispiel unten.
-Hierbei muss die Gruppe auf *true* gesetzt werden und der richtige pin und pumpe eingetragen werden. Nach der Bezeichnung (nicht notwendig) muss noch die Zeit in Sekunden eingetragen werden. Die restlichen Werte müssen auf *0* gesetzt werden da diese zur Laufzeit relevant werden.
+Die Bewässerungswerte können wie folgt geändert werden:
 ```
-//is_set, pin, pump_pin, name, watering default, watering base, watering time, last act,
-solenoid group[max_groups] =
-{ 
-  {true, 0, pump1, "Tom1", 100, 0, 0 , 0}, //group1
-  {true, 1, pump1, "Tom2", 80, 0, 0, 0}, //group2
-  {true, 2, pump1, "Gewa", 30, 0, 0, 0}, //group3
-  {true, 3, pump1, "Chil", 40, 0, 0, 0}, //group4
-  {true, 6, pump1, "Krtr", 20, 0, 0, 0}, //group5
-  {true, 7, pump1, "Erdb", 50, 0, 0, 0}, //group6
-};
+#water group 0 at 7, 10 and 18 o'clock
+0:7,10,18
+#water group 2 at same time as master group (group 0)
+2:master
 ```
-<br>
+Wichtig:
+Gruppe 0 ist die "master" Gruppe, demnach kann gruppe 0 mit dem code master setzen. Die Gruppen ID müssen bei 0 beginnen und aufsteigend sein da diese nummern als indizes verwendet werden für den aufruf am Mikrocontroller. Die mitgesendeten werte stehen für die vollen Stunden an denne gegossen werden soll. Als trennzeichen wird ein "," akzeptiert. Es ist auch möglich die Gruppe an die master Gruppe anzupassen mit dem mitgesendet string "master", "off" umd den Kreis abzuschalten (noch nicht implementiert).
 
-### Steuerung über WLAN (APP, MQTT):
-Im *config.h* file muss *define RasPi 1* gesetzt sein und MQTT sowie WLAN einstellungen müssen richtig konfiguriert sein. Um mit dem System zu kommunizieren wird eine App aus dem Play-store [MQTT Dash](https://play.google.com/store/apps/details?id=net.routix.mqttdash&hl=en&gl=US) genutzt.
+#### **water-time**:
 
-**ZEITPLAN:**
-Über MQTT muss mit dem topic *home/nano/timetable* der Wert der *long* *int* Zahl als dezimal gesendet werden. Da die Binäre representation als string unnötig lange wäre.
-<br>
-
-Diese Methode ist nicht benutzerfreundlich deshalb habe ich eine weiter Möglichkeit implementiert. Unter dem Topic: *home/nano/planed* können die geplanten vollen stunden als liste (Beispiel: *6,10,20*) gesendet werden. <br>
-
-**MENGE:**
-Es muss lediglich die anzahl an sekunden gesendet werden die die jeweilige Gruppe bewässert werden soll. Die Topics müssen dem unten angeführten schema entsprechen und in der App eingestellt werden. <br>
-Topics:
+Um die water-time variable der einzelnen Gruppen einzustellen sollte dieses Schema verwendet werden:
 ```
-home/grp1/water_time
-home/grp2/water_time
-.
-.
-home/grp6/water_time
+conf/set-water-time/groupID
 ```
+Wichtig: Auf die ID achten die auch am Mikrocontroller für die jeweilige Gruppe definiert ist. Die ID's müssen bei 0 beginnen und aufsteigend sein. Der Wert wird in sekunden die die Ventile arbeiten eingestellt.
 <br>
 
 Gruppe eintragen:          |  Überblick:
 :-------------------------:|:-------------------------:
 ![config](/docs/pictures/mqtt-app.jpg) |  ![config](/docs/pictures/watering-config.jpg)
 
+### control via programming (default):
 
+Open main.cpp file and search for the two code snippets below, there you can change the values directly in code. <br>
 
-### Steuerung über WLAN (commands):
-platzhalter
+Timetable: 
+```
+// change timetable                          2523211917151311 9 7 5 3 1
+//                                            | | | | | | | | | | | | |
+unsigned long int timetable_default = 0b00000000000100000000010000000000;
+//                                             | | | | | | | | | | | | |
+//                                            2422201816141210 8 6 4 2 0
+```
+
+<br>
+
+Water-time, where the last 3 are just important during run time and should be set zero. With the first boolean entry we can switch this group on/off. The v-pin and pump pin depend on the setup at the boards.
+
+```
+// change water-time
+// is_set, v-pin, pump_pin, name, watering-time default, timetable, watering base, watering time, last act,
+solenoid group[max_groups] =
+{ 
+  {true, 0, pump1, "Tom1", 100, 0.0f, 0, 0, 0}, //group0 Tomaten 1
+  {true, 1, pump1, "Tom2", 80, 0.0f, 0, 0, 0}, //group1 Tomaten 2
+  {true, 2, pump1, "Gewa", 30, 0.0f, 0, 0, 0}, //group2 Gewaechshaus
+  {true, 3, pump1, "Chil", 40, 0.0f, 0, 0, 0}, //group3 Chillis
+  {true, 6, pump1, "Krtr", 20, 0.0f, 0, 0, 0}, //group4 Kraeuter
+  {true, 7, pump1, "Erdb", 50, 0.0f, 0, 0, 0}, //group5 Erdbeeren
+}
+```
+<br>
 
 # Details
 
@@ -172,7 +176,9 @@ Hat den Zweck das System zu Steuern und alle Daten zu Sammeln. Es werden alle re
 <br>
 
 ### **bewae3_3_board2v6.fzz** als Erweiterung (PCB)
-Sie ist als Erweiterung gedacht. Die Platine bietet 13 Steckplätze für sensoren sowie 2 Pumpen (*12V*) und 6 Ventile (*12V*). Die Spannung der Bleibatterie (Akku) soll über den Spannungsteiler abgegriffen werden können. 
+Sie ist als Erweiterung gedacht. Die Platine bietet 13 Steckplätze für sensoren sowie 2 Pumpen (*12V*) und 6 Ventile (*12V*). Die Spannung der Bleibatterie (Akku) soll über den Spannungsteiler abgegriffen werden können.
+<br> 
+Diese Platine könnte individuell angepasst werden, um geänderte Anforderungen zu genügen. Beispielsweiße könnte man anstatt der aufwendigen (aber sparsamen) Logik Beschaltung zu Steuerung der Transistoren auch Relais nutzten um die einzelnen Komponenten zu schalten.
 <br>
 
 
@@ -256,13 +262,6 @@ Zusätzlich zu diesem topic werden im Payload die Daten angehängt, der Inhalt a
 #subsciption topics to receive data
   watering_topic = "home/bewae/config";
   #bewae config recive watering instructions (as csv)
-
-  bewae_sw = "home/nano/bewae_sw";
-  #switching watering no/off
-
-  watering_sw = "home/nano/watering_sw";
-  #switching value override on/off (off - using default values on nano)
-
 ```
 
 #### Installation
@@ -287,8 +286,13 @@ Auf mein **Android** Smartphone habe ich die App [mqttdash](https://play.google.
 Ein Beispiel Screenshot aus der App, die Zahlen stehen für die Zeit (s) in der das jeweilige Ventil geöffnet ist und Wasser gepumpt wird (ca. 0.7l/min):
 ![mqttdash app](/docs/pictures/mqttdash.jpg) <br>
 
-## Bilder
-Kleine Sammlung von Fotos über mehrere Versionen des Projekts, die über die Zeit entstanden sind.
+## Bilder & Entstehung
+
+**Entstehung:** <br>
+Das Projekt selbst entstand aus einer mehrwöchigen Abwesenheit in der die Balkonpflanzen ohne Versorgung gewesen wären. Das grün sollte mit einem Bewässerungsset, Schläuche und ein paar Düsen und einer Pumpe am Leben gehalten werden. Eine Reguläre Bewässerung wie bei einer Zeitschaltuhr kam mir jedoch zu langweilig vor und mein Interesse an einem kleinen Bastelprojekt war geweckt. Kapazitive Bodenfeuchte Sensoren und 4 kleine *12V* Ventile waren schnell bestellt, Arduinos hatte ich genug zu Hause, so kam es innerhalb einer Woche zu [Version 1](#v1) und das Überleben der Pflanzen war gesichert. Es entstand aus der Not ein Projekt das mich eine Weile Beschäftigt hat, kontinuierlich erweitert und verbessert erfüllt es nach momentanem Stand weit mehr als zuerst geplant. <br>
+<br>
+
+Zum abschluss eine kleine Sammlung von Fotos über mehrere Versionen des Projekts, die über die Zeit entstanden sind:
 
 ### V3
 
@@ -300,7 +304,6 @@ Kleine Sammlung von Fotos über mehrere Versionen des Projekts, die über die Ze
 ### V2
 
 ![Bild](/docs/pictures/bewaeV2.jpg) <br>
-
 
 ### V1
 
