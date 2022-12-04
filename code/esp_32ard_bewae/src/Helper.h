@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include "driver/adc.h"
 #include <config.h>
+#include <ArduinoJson.h>
+#include <SPIFFS.h>
 
 namespace Helper{
     String timestamp();
@@ -22,12 +24,15 @@ namespace Helper{
     void wakeModemSleep();
     void disableBluetooth();
     bool find_element(int *array, int item);
+    bool load_conf(const char path[20], DynamicJsonDocument &doc);
+    bool save_conf(const char path[20], DynamicJsonDocument &doc);
     struct solenoid{
                     bool is_set; //activate deactivate group
                     uint8_t pin; //pin of the solenoid (virtual pin!)
                     uint8_t pump_pin; //pump pin (virtual pin!)
                     String name; //name of the group
                     int watering_default; //defualt value of watering amount set for group (should not be changed)
+                    double timetable;
                     int watering_mqtt; //base value of watering time sent from RaspPi
                     unsigned int watering_time; //initialize on 0 always! variable will be set during watering procedure and reduced untill 0
                     unsigned long last_t; //last activation time

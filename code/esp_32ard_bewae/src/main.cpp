@@ -584,17 +584,18 @@ void setup() {
     return;
   }
   
-  File file = SPIFFS.open("/config.JSON");
+  File file = SPIFFS.open(CONFIG_FILE_PATH);
   if(!file){
     Serial.println("Failed to open file for reading");
     return;
   }
-  
+  #ifdef DEBUG
   Serial.println("File Content:");
   while(file.available()){
     Serial.write(file.read());
   }
   file.close();
+  #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize bme280 sensor
@@ -630,7 +631,8 @@ void setup() {
     Serial.print(F("Temperature reading: ")); Serial.println(temp_test);
   }
   #endif
-  delay(1000);
+  delay(500);
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize PWM:
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
