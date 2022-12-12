@@ -20,7 +20,9 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 
+#include <connection.h>
 #include <Helper.h>
+#include <IrrigationController.h>
 #include <config.h>
 
 using namespace std;
@@ -49,13 +51,34 @@ using namespace Helper;
 //is_set, v-pin, pump_pin, name, watering default, timetable, watering base, watering time, last act,
 solenoid group[max_groups] =
 { 
-  {true, 0, pump1, "Tom1", 100, 0.0f, 0, 0, 0}, //group0
-  {true, 1, pump1, "Tom2", 80, 0.0f, 0, 0, 0}, //group1
-  {true, 2, pump1, "Gewa", 30, 0.0f, 0, 0, 0}, //group2
-  {true, 3, pump1, "Chil", 40, 0.0f, 0, 0, 0}, //group3
-  {true, 6, pump1, "Krtr", 20, 0.0f, 0, 0, 0}, //group4
-  {true, 7, pump1, "Erdb", 50, 0.0f, 0, 0, 0}, //group5
+  {true, 0, pump1, "Tom1", 100, 0, 0, 0, 0}, //group0
+  {true, 1, pump1, "Tom2", 80, 0, 0, 0, 0}, //group1
+  {true, 2, pump1, "Gewa", 30, 0, 0, 0, 0}, //group2
+  {true, 3, pump1, "Chil", 40, 0, 0, 0, 0}, //group3
+  {true, 6, pump1, "Krtr", 20, 0, 0, 0, 0}, //group4
+  {true, 7, pump1, "Erdb", 50, 0, 0, 0, 0}, //group5
 };
+
+
+//NEW IMPLEMENTATION
+
+
+
+Solenoid controller_sollenoids[6] =
+{
+  {0}, //solenoid 0
+  {1}, //solenoid 1
+  {2}, //solenoid 2
+  {3}, //solenoid 3
+  {6}, //solenoid 4
+  {7}, //solenoid 5
+};
+
+// Create a new Pump struct and initialize its member variables
+Pump pump_main{pump1};
+
+//IrrigationController
+
 
 //timetable storing watering hours
 //                                           2523211917151311 9 7 5 3 1
@@ -124,6 +147,7 @@ Adafruit_BME280 bme; // use I2C interface
 WiFiClient wificlient;
 PubSubClient client(wificlient);
 
+//define skeletton
 void callback(char *topic, byte *payload, unsigned int msg_length);
 bool connect_MQTT();
 bool msg_mqtt();
@@ -358,7 +382,8 @@ void sub_mqtt(){
 
 // Custom function to connet to the MQTT broker via WiFi
 bool connect_MQTT(){
-  //initial connect attempt
+  // initial connect attempt
+  // return true when everything went well, false if not
   enableWifi();
 
   //failure management
@@ -445,6 +470,7 @@ bool connect_MQTT(){
 }
 
 
+/* //original
 bool msg_mqtt(String topic, String data){
   //This function take topic and data as String and publishes it via MQTT
   //it returns a bool value, where 0 means success and 1 is a failed attemt
@@ -494,6 +520,70 @@ bool msg_mqtt(String topic, String data){
     }
   }
 }
+*/
+
+
+bool msg_mqtt(String topic, String data){
+  //This function take topic and data as String and publishes it via MQTT
+  //it returns a bool value, where 0 means success and 1 is a failed attemt
+
+  //input: String topic, String data
+  //return: false if everything ok otherwise true
+
+  #ifdef DEBUG
+  Serial.println(F("msg_mqtt func called"));
+  #endif
+
+  // Try to reconnect to the MQTT broker if not already connected
+  int reconnectAttempts = 0;
+  const int MAX_RECONNECT_ATTEMPTS = 5;
+  while(!client.connected() && reconnectAttempts < MAX_RECONNECT_ATTEMPTS){
+    #ifdef DEBUG
+    Serial.print(F("Client not connected trying to reconnect!"));
+    #endif
+    wakeModemSleep();
+    if(!connect_MQTT()){
+      reconnectAttempts++;
+    }
+    else{
+      client.loop();
+      break;
+    }
+  }
+
+  // If the MQTT client failed to reconnect to the broker after multiple attempts, return a failure
+  if(!client.connected()){
+    #ifdef DEBUG
+    Serial.println(F("ERROR: failed to reconnect to MQTT broker"));
+    #endif
+    return false;
+  }
+
+  // Attempt to publish the data
+  if(client.publish(topic.c_str(), data.c_str())){
+    #ifdef DEBUG
+    Serial.print(F("Data sent: ")); Serial.println(data.c_str()); Serial.println(topic.c_str());
+    #endif
+    return false;
+  }
+  else{
+    // Attempt to reconnect to the broker and publish the data again
+    if(connect_MQTT()){
+      sub_mqtt();
+      if(client.publish(topic.c_str(), data.c_str())){
+        #ifdef DEBUG
+        Serial.println(F("Data sent!"));
+        #endif
+        return false;
+      }
+    }
+    #ifdef DEBUG
+    Serial.println(F("ERROR no data sent!"));
+    #endif
+    return true;
+  }
+}
+
 
 bool pub_data(struct sensors* output_data, unsigned int length){
   //This function should take an array and publish the content via mqtt
