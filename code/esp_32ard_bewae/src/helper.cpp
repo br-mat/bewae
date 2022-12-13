@@ -1,3 +1,6 @@
+
+
+
 //Standard
 //#include <ArduinoSTL.h>
 #include <Arduino.h>
@@ -12,7 +15,7 @@
 
 #include <Helper.h>
 
-#define DEBUG
+//#define DEBUG
 
 #define SD_MOSI      13
 #define SD_MISO      5

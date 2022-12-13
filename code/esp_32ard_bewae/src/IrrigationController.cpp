@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <IrrigationController.h>
 
+
 // Define constants
 // Define the number of solenoids to create
 const int maxSolenoids = max_groups;
@@ -124,7 +125,6 @@ solenoid->lastActivation = currentMillis;
 return remainingTime; //return active time
 }
 
-
 bool IrrigationController::loadFromConfig(const char path[], int pin) {
   //INPUT: group_index refers to the hardware pin of the corresponding solenoid
   // Read the config file
@@ -138,7 +138,7 @@ bool IrrigationController::loadFromConfig(const char path[], int pin) {
   DynamicJsonDocument jsonDoc(1024);
   DeserializationError error = deserializeJson(jsonDoc, configFile);
 
-  // Close the config file
+  // Close the config file and open it again later to prevent problems in error case
   configFile.close();
 
   if (error) {
@@ -161,8 +161,70 @@ bool IrrigationController::loadFromConfig(const char path[], int pin) {
   return true;
 }
 
-
 bool IrrigationController::saveToConfig(const char path[], int pin) {
+  // Open the config file for reading
+  File configFile = SPIFFS.open(path, "r");
+  if (!configFile) {
+    Serial.println("Failed to open config file for reading");
+    configFile.close();
+    return false;
+  }
+
+  // Load the JSON data from the config file
+  DynamicJsonDocument jsonDoc(1024);
+  DeserializationError error = deserializeJson(jsonDoc, configFile);
+  if (error) {
+    Serial.println("Failed to parse config file");
+    configFile.close();
+    return false;
+  }
+  configFile.close();
+
+  // Check if the group and pin exist in the JSON data
+  if (!jsonDoc["group"].containsKey(String(pin))) {
+    // If the group and pin do not exist, create them
+    jsonDoc["group"][String(pin)] = JsonObject();
+    return false;
+  }
+
+
+  // TODO: create new json file with group and pin for easier reading and addapt code below
+
+  // Update the JSON data with the irrigation controller's information
+  jsonDoc["group"][String(pin)]["is_set"] = this->is_set;
+  jsonDoc["group"][String(pin)]["name"] = this->name;
+  jsonDoc["group"][String(pin)]["timetable"] = this->timetable;
+  jsonDoc["group"][String(pin)]["watering_default"] = this->watering_default;
+  jsonDoc["group"][String(pin)]["watering_mqtt"] = this->watering_mqtt;
+  jsonDoc["group"][String(pin)]["water_time"] = this->water_time;
+  jsonDoc["group"][String(pin)]["solenoid_pin"] = this->solenoid->pin;
+  jsonDoc["group"][String(pin)]["pump_pin"] = this->pump->pin;
+
+  // Open the config file for writing
+  File newFile = SPIFFS.open(path, "w");
+  if (!newFile) {
+    Serial.println("Failed to open config file for writing");
+    newFile.close();
+    return false;
+  }
+  
+  // Serialize the JSON object to the config file
+  if (serializeJson(jsonDoc, newFile) == 0) {
+    newFile.close();
+    Serial.println("Failed to serialize JSON data to config file");
+    return false;
+  }
+
+  newFile.close();
+  return true;
+}
+
+/*
+bool IrrigationController::saveToConfig(const char path[], int pin) {
+  //TODO: rework function, first open config and load json data, then check if group and pins is available
+  //      and check all the other posible keys like is_set , name ... 
+  //      the next step is to update these keys like shown below ...
+
   // Create a JSON object to hold the irrigation controller's information
   DynamicJsonDocument jsonDoc(1024);
   jsonDoc["group"][String(pin)]["is_set"] = this->is_set;
@@ -186,9 +248,12 @@ bool IrrigationController::saveToConfig(const char path[], int pin) {
   configFile.close();
   return true;
 }
-
+*/
 
 void IrrigationController::updateController(){
   //TODO: implement function to update controller status data regarding watering system
-  //call this function once per hour
+  // call this function once per hour it uses timetable to determine if it should set water_time variable with content either
+  // watering_default or watering_mqtt depending on a modus variable past with the function (this can be an integer about 0-5)
+  // water time variable holds information about the water cycle for the active hour if its 0 theres nothing to do
+  // if its higher then it should be recognized by the readyToWater function, this value 
 }

@@ -1,6 +1,7 @@
 #ifndef IRRIGATIONCONTROLLER_H
 #define IRRIGATIONCONTROLLER_H
 
+
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <Helper.h>
@@ -47,8 +48,8 @@ class IrrigationController {
     int watering_default; //defualt value of watering amount set for group (should not be changed), value will get saved to config
     int watering_mqtt; //base value of watering time sent from RaspPi, value will get saved to config
     int water_time; //holds value of how long it should water, value will get saved to config
-    int solenoid_pin; //storing registered solenoid pin, value will get saved to config
-    int pump_pin; //storing registered pump pin, value will get saved to config
+    int solenoid_pin; //storing registered struct solenoid pin, value will get saved to config
+    int pump_pin; //storing registered struct pump pin, value will get saved to config
 
     //METHODS:
 

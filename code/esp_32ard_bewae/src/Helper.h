@@ -1,11 +1,13 @@
 #ifndef __Helper_H__
 #define __Helper_H__
 
+
 #include <Arduino.h>
 #include "driver/adc.h"
 #include <config.h>
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
+#include <connection.h>
 
 namespace Helper{
     String timestamp();
@@ -32,7 +34,7 @@ namespace Helper{
                     uint8_t pump_pin; //pump pin (virtual pin!)
                     String name; //name of the group
                     int watering_default; //defualt value of watering amount set for group (should not be changed)
-                    double timetable;
+                    unsigned long timetable;
                     int watering_mqtt; //base value of watering time sent from RaspPi
                     unsigned int watering_time; //initialize on 0 always! variable will be set during watering procedure and reduced untill 0
                     unsigned long last_t; //last activation time
@@ -42,8 +44,7 @@ namespace Helper{
                     byte pin; //virtual pin number, read function will handle that (0-15)
                     String name; //name of the measurement
                     float val; //storing measurement
-                    uint8_t group_vpin; //solenoid group virtual pin
-                    
+                    uint8_t group_vpin; //solenoid group virtual pin         
     };
 };
 
