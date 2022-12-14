@@ -1,15 +1,17 @@
 #include <Arduino.h>
 #include <IrrigationController.h>
+#include <SPIFFS.h>
 
+#define DEBUG
 
 // Define constants
 // Define the number of solenoids to create
-const int maxSolenoids = max_groups;
+//const int maxSolenoids = max_groups;
 
 // Define the number of solenoids to create
-const int maxPumps = MAX_PUMPS;
-
-void IrrigationHardware(){
+//const int maxPumps = MAX_PUMPS;
+/*
+void IrrigationHardware(int maxSolenoids, int maxPumps){
   // create hardware components and asign corresponding pins
 
   // Declare the array of Solenoid objects
@@ -25,6 +27,7 @@ void IrrigationHardware(){
     pumps[i].setup(i);
   }
 }
+*/
 
 void Solenoid::setup(int pin){
   // Initialize solenoid
@@ -61,7 +64,7 @@ IrrigationController::IrrigationController(const char path[],
 void IrrigationController::createNewController(
                         bool is_set, //activate deactivate group
                         String name, //name of the group
-                        double timetable,
+                        unsigned long timetable,
                         int watering_default, //defualt value of watering amount set for group (should not be changed)
                         Solenoid* solenoid, //attatched solenoid
                         Pump* pump, //attatched pump
@@ -89,39 +92,63 @@ void IrrigationController::createNewController(
   //to prevent unexpected behaviour its important to pass only valid hours
 
   if(!is_set){ //return 0 if the group is not set
+    #ifdef DEBUG
+    Serial.println("not set");
+    #endif
     return 0;
   }
 
     // check if the corresponding bit is set in the timetable value
-  if ((timetable & (1 << currentHour)) == 0) {
+  if ((timetable & (1UL << currentHour)) == 0) {
+    #ifdef DEBUG
+    Serial.println("not correct time");
+    #endif
     return 0; // not ready to water
   }
 
   // get the current time in milliseconds
+  //unsigned long currentMillis = millis();
   unsigned long currentMillis = millis();
 
   // check if the solenoid has been active for too long, max_axtive_time_sec have to be multiplied as lastActivation is ms
-  if (currentMillis - solenoid->lastActivation < max_active_time_sec*1000) {
+  if (currentMillis - solenoid->lastActivation < SOLENOID_COOLDOWN) {
+    #ifdef DEBUG
+    Serial.println("solenoid not cooled down");
+    #endif
     return 0; // not ready to water
   }
 
   // check if the pump has been active for too long
   if (currentMillis - pump->lastActivation < pump_cooldown_sec) {
+    #ifdef DEBUG
+    Serial.println("pump not cooled down");
+    #endif
     return 0; // not ready to water
   }
 
   // check if there is enough water time left
   if (water_time <= 0) {
+    #ifdef DEBUG
+    Serial.println("no time left");
+    #endif
     return 0; // not ready to water
   }
 
-// both the solenoid and pump are ready, so calculate the remaining watering time, return seconds
-int remainingTime = min((unsigned long)water_time, (max_active_time_sec - (currentMillis - solenoid->lastActivation)/1000));
+// both the solenoid and pump are ready, so calculate the remaining watering time,
+// return seconds using min function
+// to minimize stress to hardware part,
+// ignore how long the part was active previously and let it cd always the full time!
+int remainingTime = min(water_time, max_active_time_sec);
+remainingTime = max(remainingTime, (int)0); //avoid values beyond 0
 this->water_time -= remainingTime; // update the water time
 
-// update the last activation time of the solenoid
+// update the last activation time of the solenoid and pump
 solenoid->lastActivation = currentMillis;
+pump->lastActivation = currentMillis;
 
+#ifdef DEBUG
+Serial.print("remaining time: "); Serial.println(remainingTime);
+#endif
 return remainingTime; //return active time
 }
 
@@ -130,7 +157,9 @@ bool IrrigationController::loadFromConfig(const char path[], int pin) {
   // Read the config file
   File configFile = SPIFFS.open(path, "r");
   if (!configFile) {
+    #ifdef DEBUG
     Serial.println("Failed to open config file");
+    #endif
     return false;
   }
 
@@ -142,7 +171,9 @@ bool IrrigationController::loadFromConfig(const char path[], int pin) {
   configFile.close();
 
   if (error) {
+    #ifdef DEBUG
     Serial.println("Failed to parse config file");
+    #endif
     return false;
   }
   // Set the values of the private member variables
@@ -165,7 +196,9 @@ bool IrrigationController::saveToConfig(const char path[], int pin) {
   // Open the config file for reading
   File configFile = SPIFFS.open(path, "r");
   if (!configFile) {
+    #ifdef DEBUG
     Serial.println("Failed to open config file for reading");
+    #endif
     configFile.close();
     return false;
   }
@@ -174,7 +207,9 @@ bool IrrigationController::saveToConfig(const char path[], int pin) {
   DynamicJsonDocument jsonDoc(1024);
   DeserializationError error = deserializeJson(jsonDoc, configFile);
   if (error) {
+    #ifdef DEBUG
     Serial.println("Failed to parse config file");
+    #endif
     configFile.close();
     return false;
   }
@@ -182,8 +217,10 @@ bool IrrigationController::saveToConfig(const char path[], int pin) {
 
   // Check if the group and pin exist in the JSON data
   if (!jsonDoc["group"].containsKey(String(pin))) {
-    // If the group and pin do not exist, create them
-    jsonDoc["group"][String(pin)] = JsonObject();
+    // If the group and pin do not exist, return error
+    #ifdef DEBUG
+    Serial.println(F("Error: missing json object, no data found under provided keys"));
+    #endif
     return false;
   }
 
@@ -203,7 +240,9 @@ bool IrrigationController::saveToConfig(const char path[], int pin) {
   // Open the config file for writing
   File newFile = SPIFFS.open(path, "w");
   if (!newFile) {
+    #ifdef DEBUG
     Serial.println("Failed to open config file for writing");
+    #endif
     newFile.close();
     return false;
   }
@@ -211,7 +250,9 @@ bool IrrigationController::saveToConfig(const char path[], int pin) {
   // Serialize the JSON object to the config file
   if (serializeJson(jsonDoc, newFile) == 0) {
     newFile.close();
+    #ifdef DEBUG
     Serial.println("Failed to serialize JSON data to config file");
+    #endif
     return false;
   }
 

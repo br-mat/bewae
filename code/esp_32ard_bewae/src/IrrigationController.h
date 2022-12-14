@@ -4,12 +4,11 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <Helper.h>
 #include <config.h>
 
 
 // Define a setupfunction for Hardware
-void IrrigationHardware();
+//void IrrigationHardware();
 
 // Define a struct to store the information for a solenoid
 // this should be constructed as an array the index of the array should be assigned
@@ -57,7 +56,7 @@ class IrrigationController {
     void createNewController(
                           bool is_set, //activate deactivate group
                           String name, //name of the group
-                          double timetable,
+                          unsigned long timetable,
                           int watering_default, //defualt value of watering amount set for group (should not be changed)
                           Solenoid* solenoid, //attatched solenoid
                           Pump* pump, //attatched pump
