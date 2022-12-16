@@ -165,8 +165,8 @@
     #define measure_intervall 600000UL //~10 min, measurement intervall ==> MILLISECOND
     #endif
 
-    #ifndef cooldown
-    #define cooldown 30000UL //min cooldown time of each solenoid ==> MILLISECOND
+    #ifndef SOLENOID_COOLDOWN
+    #define SOLENOID_COOLDOWN 30000UL //min cooldown time of each solenoid ==> MILLISECOND
     #endif
     
     //pump & transistor max on time

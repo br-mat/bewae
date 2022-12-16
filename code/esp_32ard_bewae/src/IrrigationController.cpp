@@ -77,6 +77,8 @@ void IrrigationController::createNewController(
   this->watering_default = watering_default;
   this->solenoid = solenoid;
   this->pump = pump;
+  this->solenoid_pin = solenoid->pin;
+  this->pump_pin = pump->pin;
   this->watering_mqtt = watering_mqtt;
   this->water_time = water_time;
   }
