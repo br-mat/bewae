@@ -172,7 +172,7 @@ bool IrrigationController::loadFromConfig(const char path[], int pin) {
   // Close the config file and open it again later to prevent problems in error case
   configFile.close();
 
-  if (error) {
+  if (!error) {
     #ifdef DEBUG
     Serial.println("Failed to parse config file");
     #endif
@@ -180,16 +180,16 @@ bool IrrigationController::loadFromConfig(const char path[], int pin) {
   }
   // Set the values of the private member variables
   // using the values from the JSON document
-  is_set = jsonDoc["group"][String(pin)]["is_set"];
-  name = jsonDoc["group"][String(pin)]["name"].as<String>();
-  timetable = jsonDoc["group"][String(pin)]["timetable"];
-  watering_default = jsonDoc["group"][String(pin)]["watering_default"];
-  watering_mqtt = jsonDoc["group"][String(pin)]["watering_mqtt"];
-  water_time = jsonDoc["group"][String(pin)]["water_time"];
+  this->is_set = jsonDoc["group"][String(pin)]["is_set"].as<int16_t>();
+  this->name = jsonDoc["group"][String(pin)]["name"].as<String>();
+  this->timetable = jsonDoc["group"][String(pin)]["timetable"].as<uint32_t>();
+  this->watering_default = jsonDoc["group"][String(pin)]["watering_default"].as<int16_t>();
+  this->watering_mqtt = jsonDoc["group"][String(pin)]["watering_mqtt"].as<int16_t>();
+  this->water_time = jsonDoc["group"][String(pin)]["water_time"].as<int16_t>();
 
   //just store pin information as its identical with the index of the solenoids
-  solenoid_pin = jsonDoc["group"][String(pin)]["solenoid_pin"];
-  pump_pin = jsonDoc["group"][String(pin)]["pump_pin"];
+  this->solenoid_pin = jsonDoc["group"][String(pin)]["solenoid_pin"].as<int16_t>();
+  this->pump_pin = jsonDoc["group"][String(pin)]["pump_pin"].as<int16_t>();
 
   return true;
 }
@@ -208,7 +208,7 @@ bool IrrigationController::saveToConfig(const char path[], int pin) {
   // Load the JSON data from the config file
   DynamicJsonDocument jsonDoc(1024);
   DeserializationError error = deserializeJson(jsonDoc, configFile);
-  if (error) {
+  if (!error) {
     #ifdef DEBUG
     Serial.println("Failed to parse config file");
     #endif
