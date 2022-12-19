@@ -6,6 +6,10 @@
 //#define SD_log 1
 #define RasPi 1
 
+#ifndef CONFIG_FILE_PATH
+#define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
+#endif
+
 #ifndef DS3231_I2C_ADDRESS
 #define DS3231_I2C_ADDRESS 0x68 //adress rtc module
 #endif
@@ -35,31 +39,7 @@
                                             //resolution of adc
 #endif
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Wifi Constants
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // WiFi
-    #ifndef ssid
-    #define ssid "XXX"         // Your personal network SSID
-    #endif
 
-    #ifndef wifi_password
-    #define wifi_password "XXX" // Your personal network password
-    #endif
-
-    // MQTT
-    #ifndef mqtt_server
-    #define mqtt_server "XXX"  // IP of the MQTT broker
-    #endif
-
-    #ifndef mqtt_username
-    #define mqtt_username "XXX" // MQTT username
-    #endif
-
-    #ifndef mqtt_password
-    #define mqtt_password "XXX" // MQTT password
-    #endif
-    
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // MQTT topics
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -174,15 +154,19 @@
     #endif
 
     #ifndef max_groups
-    #define max_groups 6 //number of plant groups
+    #define max_groups 6 //number of possible solenoids (v-pins)
+    #endif
+
+    #ifndef MAX_PUMPS
+    #define MAX_PUMPS 2 //number of possible pumps (v-pins)
     #endif
 
     #ifndef measure_intervall
     #define measure_intervall 600000UL //~10 min, measurement intervall ==> MILLISECOND
     #endif
 
-    #ifndef cooldown
-    #define cooldown 30000UL //min cooldown time of each solenoid ==> MILLISECOND
+    #ifndef SOLENOID_COOLDOWN
+    #define SOLENOID_COOLDOWN 30000UL //min cooldown time of each solenoid ==> MILLISECOND
     #endif
     
     //pump & transistor max on time
@@ -216,11 +200,11 @@
 
     // moisture sensors
     #ifndef low_lim
-    #define low_lim 300  //lower limitations, values lower are not realistic
+    #define low_lim 1000  //(m Volt) lower limitations, values lower are not realistic
     #endif
     
     #ifndef high_lim
-    #define high_lim 600 //high limitation, values passed that threshold are not realistic
+    #define high_lim 1500 //(m Volt)high limitation, values passed that threshold are not realistic
     #endif
 
     //commands

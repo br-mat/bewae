@@ -1,3 +1,6 @@
+
+
+
 //Standard
 //#include <ArduinoSTL.h>
 #include <Arduino.h>
@@ -12,7 +15,7 @@
 
 #include <Helper.h>
 
-#define DEBUG
+//#define DEBUG
 
 #define SD_MOSI      13
 #define SD_MISO      5
@@ -461,7 +464,7 @@ bool Helper::save_conf(const char path[20], DynamicJsonDocument &doc){
   // function saves Json data to file
   // path - const char array max 20 chars
   // doc - json buffer document holding content (memory &address needed)
-  SPIFFS.remove(path);
+  //SPIFFS.remove(path); //remove is not necessary serialize should handle this
   File file = SPIFFS.open(path, "w");
   if (!file) {
     #ifdef DEBUG
