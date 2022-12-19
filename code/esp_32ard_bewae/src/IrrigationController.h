@@ -32,7 +32,6 @@ struct Pump {
 
 class IrrigationController {
   private:
-    bool is_set; //activate deactivate group, value will get saved to config
     Solenoid* solenoid; //attatched solenoid
     Pump* pump; //attatched pump
 
@@ -42,6 +41,7 @@ class IrrigationController {
                           Solenoid* solenoid, //attatched solenoid
                           Pump* pump //attatched pump
                           );
+    bool is_set; //activate deactivate group, value will get saved to config
     String name; //name of the group, value will get saved to config
     unsigned long timetable; //timetable special formated, value will get saved to config
     int watering_default; //defualt value of watering amount set for group (should not be changed), value will get saved to config

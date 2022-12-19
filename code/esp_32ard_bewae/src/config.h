@@ -7,7 +7,7 @@
 #define RasPi 1
 
 #ifndef CONFIG_FILE_PATH
-#define CONFIG_FILE_PATH "/config.json" //specifies name of config file stored within spiffs
+#define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
 #endif
 
 #ifndef DS3231_I2C_ADDRESS

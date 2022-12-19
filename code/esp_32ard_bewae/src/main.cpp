@@ -1164,7 +1164,7 @@ if(thirsty){
       }
       delay(10);
       //start watering process
-      if((ptr->last_t + cooldown < millis()) & (ptr->watering_time > 0) & (ptr->is_set)) //minimum cooldown of 30 sec
+      if((ptr->last_t + SOLENOID_COOLDOWN < millis()) & (ptr->watering_time > 0) & (ptr->is_set)) //minimum cooldown of 30 sec
       {
         unsigned int water_timer = 0;
         //set ptr variable to 0 when finished
