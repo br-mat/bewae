@@ -1,3 +1,22 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// br-mat (c) 2022
+// email: matthiasbraun@gmx.at
+//
+// This file contains a collection of helper functions for the irrigation system. It includes functions for
+// generating timestamps, controlling solenoids and pumps, reading and writing to config files, and interacting
+// with various hardware components.
+//
+// Dependencies:
+// - Arduino.h
+// - driver/adc.h
+// - config.h
+// - ArduinoJson.h
+// - SPIFFS.h
+// - connection.h
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #ifndef __Helper_H__
 #define __Helper_H__
 

@@ -1,3 +1,19 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// br-mat (c) 2022
+// email: matthiasbraun@gmx.at
+//
+// This file contains the functionality for the IrrigationController class, which is responsible for managing and
+// controlling an irrigation system. It includes functions for creating and configuring irrigation controllers,
+// updating the controller based on current conditions, and determining when it is time to water.
+//
+// Dependencies:
+// - Arduino.h
+// - IrrigationController.h
+// - SPIFFS.h
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #include <Arduino.h>
 #include <IrrigationController.h>
 #include <SPIFFS.h>

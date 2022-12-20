@@ -3,7 +3,25 @@
 // br-mat (c) 2022
 // email: matthiasbraun@gmx.at
 //
-// Monitor all sensor values, handle watering procedure and get/send data to RasPi                                      
+// This is the main source file for the irrigation system. It is responsible for monitoring all sensor values,
+// handling the watering procedure, and communicating with the Raspberry Pi to get and send data.
+//
+// Dependencies:
+// - Arduino.h
+// - Wire.h
+// - SPI.h
+// - SD.h
+// - SPIFFS.h
+// - Adafruit_Sensor.h
+// - Adafruit_BME280.h
+// - WiFi.h
+// - PubSubClient.h
+// - ArduinoJson.h
+// - connection.h
+// - Helper.h
+// - IrrigationController.h
+// - config.h
+//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Standard

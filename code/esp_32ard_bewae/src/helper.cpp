@@ -1,5 +1,23 @@
-
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// br-mat (c) 2022
+// email: matthiasbraun@gmx.at
+//
+// This file contains a collection of helper functions for the irrigation system. It includes functions for
+// generating timestamps, controlling solenoids and pumps, reading and writing to config files, and interacting
+// with various hardware components.
+//
+// Dependencies:
+// - Arduino.h
+// - Wire.h
+// - SPI.h
+// - SD.h
+// - Adafruit_Sensor.h
+// - Adafruit_BME280.h
+// - WiFi.h
+// - Helper.h
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Standard
 //#include <ArduinoSTL.h>
