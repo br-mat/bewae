@@ -79,9 +79,12 @@ solenoid group[max_groups] =
 
 
 //NEW IMPLEMENTATION
+// The idea is to use the config file to controll the watering groups. This way 
+// with sending the JSON data we can adjust and initialize new groups over the air.
+// The switch conditions and timetables get reduced too as there is no need for handling outages of
+// wifi controll as the controller will then use what is stored locally in the config file.
 
-
-
+// Create new solenoid struct and initialize their corresponding virtual pins
 Solenoid controller_sollenoids[6] =
 {
   {0}, //solenoid 0
@@ -92,10 +95,15 @@ Solenoid controller_sollenoids[6] =
   {7}, //solenoid 5
 };
 
-// Create a new Pump struct and initialize its member variables
-Pump pump_main{pump1};
+// Create a new Pump struct and initialize their corresponding virtual pins
+Pump pump_main[2] = 
+{
+  pump1,
+  pump2,
+};
 
 //IrrigationController
+// No need for initialization as it will be loaded from config file
 
 
 //timetable storing watering hours
@@ -144,8 +152,8 @@ bool config = false;  //handle wireless configuration
 
 //wireless config array to switch on/off functions
 // watering time of specific group; binary values;
-const int raspi_config_size = max_groups+2; //6 groups + 2 binary
-int raspi_config[raspi_config_size]={0};
+//const int raspi_config_size = max_groups+2; //6 groups + 2 binary
+//int raspi_config[raspi_config_size]={0};
 
 bool post_DATA = true; //controlls if data is sent back to pi or not
 bool msg_stop = false; //is config finished or not
@@ -1154,6 +1162,7 @@ if(thirsty){
   Serial.println(F("start watering phase"));
   #endif
   delay(30);
+
   // --- Watering ---
   //description: trigger at specific time
   //             alternate the solenoids to avoid heat damage, let cooldown time if only one remains
@@ -1161,6 +1170,49 @@ if(thirsty){
   //        pause procedure when measure events needs to happen
   //        NEVER INTERUPT WHILE WATERING!
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  while((loop_t + measure_intervall > millis()) & (thirsty)){
+
+    // Parse the JSON string using a JSON object
+    DynamicJsonDocument doc(1028);
+    if (!(Helper::load_conf(CONFIG_FILE_PATH, doc))){
+      #ifdef DEBUG
+      Serial.println(F("Error during watering procedure: Happened when loading config file!"));
+      #endif
+      break;
+    }
+    // Access the "groups" object
+    JsonObject groups = doc["groups"];
+    doc.clear();
+
+    int numgroups = groups.size();
+    IrrigationController Group[numgroups];
+    int j = 0;
+    // Iterate through all keys in the "groups" object and initialize the class instance
+    for (JsonPair kv : groups) {
+      // get the index of the group
+      int solenoid_index = 0;
+      if (groups[kv.key()].is<int>()) {
+        // This will execute because "1" is a valid uint16_t value
+        solenoid_index = groups[kv.key()].as<int>();
+        Group[j].loadFromConfig(CONFIG_FILE_PATH, solenoid_index);
+      }
+      else{
+        Group[j].reset();
+      }
+      // Initialize Group
+      // Access the value of the current key-value pair
+      j++;
+    }
+
+    // Iterate over all irrigation controller objects in the Group array
+    for (int i = 0; i < numgroups; i++) {
+      // ACTIVATE SOLENOID AND/OR PUMP
+      // The method checks if the instance is ready for watering
+      // if not it will return early, else it will use delay to wait untill the process has finished
+      Group[i].waterOn(hour1);
+    }
+  }
+
   while((loop_t + measure_intervall > millis()) & (thirsty)){
     int len = sizeof(group)/sizeof(group[0]);
     int finish = 0; //finished groups
@@ -1269,21 +1321,6 @@ if (loop_t + measure_intervall > millis()){
       break; //stop loop to start measuring
     }
   }
-  /*
-  //sleep till next measure intervall + 2 times sleep time
-  unsigned long sleep = loop_t + measure_intervall - millis() + TIME_TO_SLEEP * 1000UL * 2UL; 
-  #ifdef DEBUG
-  Serial.print(F("sleep in s: ")); Serial.println(sleep / 1000);
-  #endif
-  delay(10);
-  for(unsigned long i = 0; i < (unsigned long) (sleep / TIME_TO_SLEEP * 1000); i++){
-    system_sleep(); //turn off all external transistors
-    esp_light_sleep_start();
-    if(loop_t + measure_intervall < millis()){
-      break; //stop loop to start measuring
-    }
-  }
-  */
 }
 #ifdef DEBUG
 Serial.println(F("End loop!"));
