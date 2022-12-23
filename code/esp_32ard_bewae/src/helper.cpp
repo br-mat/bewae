@@ -473,8 +473,14 @@ bool Helper::load_conf(const char path[20], DynamicJsonDocument &doc){
     #endif
     return false;
   }
-  deserializeJson(doc, file);
+  DeserializationError error = deserializeJson(doc, file);
   file.close();
+  if (!error) {
+    #ifdef DEBUG
+    Serial.println("Failed to parse config file");
+    #endif
+    return false;
+  }
   return true;
 }
 
