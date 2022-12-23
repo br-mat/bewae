@@ -29,6 +29,7 @@
 // Define a struct to store the information for a solenoid
 // this should be constructed as an array the index of the array should be assigned
 // to the pin lastActivation should be millis() this will prevent watering on reset in the programm
+// Define a struct to store the information for a solenoid
 struct Solenoid {
   int pin;
   long lastActivation;
@@ -51,42 +52,55 @@ class IrrigationController {
     Solenoid* solenoid; //attatched solenoid
     Pump* pump; //attatched pump
 
+    // METHODS:
+    // Member function to activate watering using PWM
+    void activatePWM(int time_s);
+    // Member function to activate watering
+    void activate(int time_s);
+
   public:
+    // Default constructor
+    IrrigationController() : solenoid(nullptr), pump(nullptr) {}
+
+    // Constructor that takes a file path, a solenoid object, and a pump object as input
     IrrigationController(
-                          const char path[],
+                          const char path[20],
                           Solenoid* solenoid, //attatched solenoid
                           Pump* pump //attatched pump
                           );
+
     bool is_set; //activate deactivate group, value will get saved to config
     String name; //name of the group, value will get saved to config
     unsigned long timetable; //timetable special formated, value will get saved to config
-    int watering_default; //defualt value of watering amount set for group (should not be changed), value will get saved to config
-    int watering_mqtt; //base value of watering time sent from RaspPi, value will get saved to config
+    int watering; //defualt value of watering amount set for group, value will get saved to config
     int water_time; //holds value of how long it should water, value will get saved to config
     int solenoid_pin; //storing registered struct solenoid pin, value will get saved to config
     int pump_pin; //storing registered struct pump pin, value will get saved to config
 
     //METHODS:
-
     // Member function will create a new member and take all attributes manually
     void createNewController(
                           bool is_set, //activate deactivate group
                           String name, //name of the group
                           unsigned long timetable,
-                          int watering_default, //defualt value of watering amount set for group (should not be changed)
+                          int watering, //defualt value of watering amount set for group (should not be changed)
                           Solenoid* solenoid, //attatched solenoid
                           Pump* pump, //attatched pump
-                          int watering_mqtt=0, //base value of watering time sent from RaspPi
                           int water_time=0 //holds value of how long it should water
                           );
     // Member function loads config from file
-    bool loadFromConfig(const char path[], int pin);
-    // Member function
-    bool saveToConfig(const char path[], int pin);
-    // Member function
+    bool loadFromConfig(const char path[20], int pin);
+    // Member function saves config to file
+    bool saveToConfig(const char path[20], int pin);
+    // Member function currently unused
     void updateController();
-    // Member function
+    // Member function checks if a group is ready,
+    // returns part of the watering time the group is allowed to be active
     int readyToWater(int currentHour);
+    // Method to start watering process
+    void waterOn(int hour);
+    // Resets all member variables to their default values
+    void reset();
 };
 
 #endif
