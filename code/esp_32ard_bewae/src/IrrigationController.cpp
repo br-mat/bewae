@@ -21,11 +21,28 @@
 
 #define DEBUG
 
-// Member function to initialize Solenoid object by assigning a pin
-void Solenoid::setup(int pin){
-  // Initialize solenoid
+// Initialize the static variable
+int Solenoid::activeInstances = 0;
+
+// Default constructor
+Solenoid::Solenoid() : pin(-1), lastActivation(0) {
+  activeInstances++;
+}
+
+// Constructor that takes a pin number as input
+Solenoid::Solenoid(int pin) : pin(pin), lastActivation(0) {
+  activeInstances++;
+}
+
+// Destructor
+Solenoid::~Solenoid() {
+  activeInstances--;
+}
+
+// Member function to initialize the solenoid
+void Solenoid::setup(int pin) {
   this->pin = pin;
-  this->lastActivation = 0;
+  pinMode(pin, OUTPUT);
 }
 
 // Member function to initialize Pump object by assigning a pin
@@ -302,7 +319,10 @@ void IrrigationController::activatePWM(int time_s) {
   Serial.println(vent_pin); Serial.print(F("time: ")); Serial.println(time_ms);
   #endif
   // perform actual function
-  byte value = (1 << vent_pin) + (1 << pump_pin);
+  //byte value = (1 << vent_pin) + (1 << pump_pin);
+
+  byte value = solenoid == nullptr ? 0 : ((1 << solenoid->pin) | (pump == nullptr ? 0 : (1 << pump->pin)));
+
   #ifdef DEBUG
   Serial.print(F("shiftout value: ")); Serial.println(value);
   #endif
@@ -380,7 +400,10 @@ void IrrigationController::activate(int time_s) {
   Serial.println(vent_pin); Serial.print(F("time: ")); Serial.println(time_ms);
   #endif
   // perform actual function
-  byte value = (1 << vent_pin) + (1 << pump_pin);
+  //byte value = (1 << vent_pin) + (1 << pump_pin);
+
+  byte value = solenoid == nullptr ? 0 : ((1 << solenoid->pin) | (pump == nullptr ? 0 : (1 << pump->pin)));
+
   #ifdef DEBUG
   Serial.print(F("shiftout value: ")); Serial.println(value);
   #endif
@@ -421,4 +444,21 @@ void IrrigationController::updateController(){
   // watering_default or watering_mqtt depending on a modus variable past with the function (this can be an integer about 0-5)
   // water time variable holds information about the water cycle for the active hour if its 0 theres nothing to do
   // if its higher then it should be recognized by the readyToWater function, this value 
+}
+
+// Define the implementation of the combineTimetables() static member function
+long IrrigationController::combineTimetables(IrrigationController* controllers, size_t size)
+{
+  // Initialize the combined timetable to 0
+  long combinedTimetable = 0;
+
+  // Iterate through the array of controllers
+  for (size_t i = 0; i < size; ++i)
+  {
+    // Combine the timetable of the current controller with the combined timetable using the "or" operator
+    combinedTimetable |= controllers[i].timetable;
+  }
+
+  // Return the combined timetable
+  return combinedTimetable;
 }

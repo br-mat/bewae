@@ -33,12 +33,23 @@
 struct Solenoid {
   int pin;
   long lastActivation;
+  static int activeInstances;
+
+  // Default constructor
+  Solenoid();
+
+  // Constructor that takes a pin number as input
+  Solenoid(int pin);
+
+  // Destructor
+  ~Solenoid();
 
   // Member function to initialize the solenoid
   void setup(int pin);
 };
 
 // Define a struct to store the information for a pump
+// It's basically the same
 struct Pump {
   int pin;
   long lastActivation;
@@ -92,8 +103,6 @@ class IrrigationController {
     bool loadFromConfig(const char path[20], int pin);
     // Member function saves config to file
     bool saveToConfig(const char path[20], int pin);
-    // Member function currently unused
-    void updateController();
     // Member function checks if a group is ready,
     // returns part of the watering time the group is allowed to be active
     int readyToWater(int currentHour);
@@ -101,6 +110,10 @@ class IrrigationController {
     void waterOn(int hour);
     // Resets all member variables to their default values
     void reset();
+    // Member function currently unused probably use it later to update static variables storing state of switches?
+    void updateController();
+    // Define a static member function to combine the timetables of an array of IrrigationController objects using a loop
+    static long combineTimetables(IrrigationController* controllers, size_t size);
 };
 
 #endif
