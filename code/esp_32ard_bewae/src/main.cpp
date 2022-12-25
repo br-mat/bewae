@@ -780,7 +780,7 @@ void setup() {
   Serial.println(F("debug 0"));
   #endif
 
-  delay(500);  //make TX pin Blink 2 times, visualize end of setup
+  delay(500);  //make TX pin Blink 2 times
   Serial.print(measure_intervall);
   delay(500);
   Serial.println(measure_intervall);
@@ -1045,7 +1045,7 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   }
 
   int data2[28] = {0}; //create data array
-  controll_mux(11, sig_mux_1, en_mux_1, "read", &value); //take battery measurement bevore devices are switched on
+  controll_mux(11, sig_mux_1, en_mux_1, "read", &value); //take battery measurement before devices are switched on
 
   data2[4] = value;                                       //--> battery voltage (low load)
   delay(100); //give sensor time to stabilize voltage
@@ -1212,7 +1212,11 @@ if(thirsty){
       Group[i].waterOn(hour1);
     }
   }
-
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
+  delay(10);
+  digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
+}
+/*
   while((loop_t + measure_intervall > millis()) & (thirsty)){
     int len = sizeof(group)/sizeof(group[0]);
     int finish = 0; //finished groups
@@ -1301,6 +1305,7 @@ if(thirsty){
   }
   digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
 }
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // sleep
