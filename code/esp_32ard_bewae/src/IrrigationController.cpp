@@ -21,6 +21,10 @@
 
 #define DEBUG
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// HARDWARE STRUCTS
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Initialize the static variable
 int Solenoid::activeInstances = 0;
 
@@ -52,13 +56,17 @@ void Pump::setup(int pin){
   this->lastActivation = 0;
 }
 
-IrrigationController::IrrigationController(const char path[20], 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// CLASS IrrigationController
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+IrrigationController::IrrigationController(const char path[PATH_LENGTH], 
                         Solenoid* solenoid, //attatched solenoid
                         Pump* pump //attatched pump
                         ){
   this->solenoid = solenoid;
   this->pump = pump;
-  bool cond = this->loadFromConfig(path, solenoid->pin);
+  bool cond = this->loadScheduleConfig(path, solenoid->pin);
   if(cond){
     return;
   }
@@ -161,89 +169,43 @@ Serial.print("remaining time: "); Serial.println(remainingTime);
 return remainingTime; //return active time
 }
 
-bool IrrigationController::loadFromConfig(const char path[20], int pin) {
-  //INPUT: group_index refers to the hardware pin of the corresponding solenoid
-  // Read the config file
-  File configFile = SPIFFS.open(path, "r");
-  if (!configFile) {
-    #ifdef DEBUG
-    Serial.println("Failed to open config file");
-    #endif
-    return false;
-  }
-
-  // Parse the JSON from the config file
+DynamicJsonDocument IrrigationController::readConfigFile(const char path[PATH_LENGTH]) {
+  // create JSON doc, if an error occurs it will retor nan empty jsonDoc
+  // this could be checked using jsonDoc.isNull();
   DynamicJsonDocument jsonDoc(1024);
-  DeserializationError error = deserializeJson(jsonDoc, configFile);
 
-  // Close the config file and open it again later to prevent problems in error case
-  configFile.close();
-
-  if (!error) {
+  // check for valid path
+  if (path == nullptr) {
     #ifdef DEBUG
-    Serial.println("Failed to parse config file");
+    Serial.println("Invalid file path");
     #endif
-    return false;
+    return jsonDoc;
   }
-  // Set the values of the private member variables
-  // using the values from the JSON document
-  this->is_set = jsonDoc["group"][String(pin)]["is_set"].as<int16_t>();
-  this->name = jsonDoc["group"][String(pin)]["name"].as<String>();
-  this->timetable = jsonDoc["group"][String(pin)]["timetable"].as<uint32_t>();
-  this->watering = jsonDoc["group"][String(pin)]["watering"].as<int16_t>();
-  this->water_time = jsonDoc["group"][String(pin)]["water_time"].as<int16_t>();
 
-  //just store pin information as its identical with the index of the solenoids
-  this->solenoid_pin = jsonDoc["group"][String(pin)]["solenoid_pin"].as<int16_t>();
-  this->pump_pin = jsonDoc["group"][String(pin)]["pump_pin"].as<int16_t>();
-
-  return true;
-}
-
-bool IrrigationController::saveToConfig(const char path[20], int pin) {
   // Open the config file for reading
   File configFile = SPIFFS.open(path, "r");
   if (!configFile) {
     #ifdef DEBUG
     Serial.println("Failed to open config file for reading");
     #endif
-    configFile.close();
-    return false;
+    return jsonDoc;
   }
 
   // Load the JSON data from the config file
-  DynamicJsonDocument jsonDoc(1024);
   DeserializationError error = deserializeJson(jsonDoc, configFile);
+  configFile.close();
   if (!error) {
     #ifdef DEBUG
     Serial.println("Failed to parse config file");
     #endif
-    configFile.close();
-    return false;
+    jsonDoc.clear();
+    return jsonDoc;
   }
-  configFile.close();
+  
+  return jsonDoc;
+}
 
-  // Check if the group and pin exist in the JSON data
-  if (!jsonDoc["group"].containsKey(String(pin))) {
-    // If the group and pin do not exist, return error
-    #ifdef DEBUG
-    Serial.println(F("Error: missing json object, no data found under provided keys"));
-    #endif
-    return false;
-  }
-
-
-  // TODO: create new json file with group and pin for easier reading and addapt code below
-
-  // Update the JSON data with the irrigation controller's information
-  jsonDoc["group"][String(pin)]["is_set"] = this->is_set;
-  jsonDoc["group"][String(pin)]["name"] = this->name;
-  jsonDoc["group"][String(pin)]["timetable"] = this->timetable;
-  jsonDoc["group"][String(pin)]["watering"] = this->watering;
-  jsonDoc["group"][String(pin)]["water_time"] = this->water_time;
-  jsonDoc["group"][String(pin)]["solenoid_pin"] = this->solenoid->pin;
-  jsonDoc["group"][String(pin)]["pump_pin"] = this->pump->pin;
-
+bool IrrigationController::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
   // Open the config file for writing
   File newFile = SPIFFS.open(path, "w");
   if (!newFile) {
@@ -253,18 +215,54 @@ bool IrrigationController::saveToConfig(const char path[20], int pin) {
     newFile.close();
     return false;
   }
-  
-  // Serialize the JSON object to the config file
-  if (serializeJson(jsonDoc, newFile) == 0) {
-    newFile.close();
-    #ifdef DEBUG
-    Serial.println("Failed to serialize JSON data to config file");
-    #endif
+
+  // Write the JSON data to the config file
+  serializeJson(jsonDoc, newFile);
+  newFile.close();
+  return true;
+}
+
+bool IrrigationController::loadScheduleConfig(const char path[PATH_LENGTH], int pin) {
+  // Read the config file
+  DynamicJsonDocument jsonDoc = readConfigFile(path);
+  if (jsonDoc.isNull()) {
     return false;
   }
 
-  newFile.close();
+  // Set the values of the private member variables
+  // using the values from the JSON document
+  this->is_set = jsonDoc["group"][String(pin)]["is_set"].as<bool>();
+  this->name = jsonDoc["group"][String(pin)]["name"].as<String>();
+  this->timetable = jsonDoc["group"][String(pin)]["timetable"].as<uint32_t>();
+  this->watering = jsonDoc["group"][String(pin)]["watering"].as<int16_t>();
+  this->water_time = jsonDoc["group"][String(pin)]["water_time"].as<int16_t>();
+
+  // just store pin information as its identical with the index of the solenoids
+  this->solenoid_pin = jsonDoc["group"][String(pin)]["solenoid_pin"].as<int16_t>();
+  this->pump_pin = jsonDoc["group"][String(pin)]["pump_pin"].as<int16_t>();
+
   return true;
+}
+
+bool IrrigationController::saveScheduleConfig(const char path[20], int pin) {
+  // Read the config file
+  DynamicJsonDocument jsonDoc = readConfigFile(path);
+  if (jsonDoc.isNull()) {
+    return false;
+  }
+
+  // Update the values in the configuration file
+  // with the values of the private member variables
+  jsonDoc["group"][String(pin)]["is_set"] = this->is_set;
+  jsonDoc["group"][String(pin)]["name"] = this->name;
+  jsonDoc["group"][String(pin)]["timetable"] = this->timetable;
+  jsonDoc["group"][String(pin)]["watering"] = this->watering;
+  jsonDoc["group"][String(pin)]["water_time"] = this->water_time;
+  jsonDoc["group"][String(pin)]["solenoid_pin"] = this->solenoid_pin;
+  jsonDoc["group"][String(pin)]["pump_pin"] = this->pump_pin;
+
+  // Write the updated JSON data to the config file
+  return writeConfigFile(jsonDoc, path);
 }
 
 // Resets all member variables to their default values
@@ -462,3 +460,13 @@ long IrrigationController::combineTimetables(IrrigationController* controllers, 
   // Return the combined timetable
   return combinedTimetable;
 }
+
+// Getter & Setters
+bool IrrigationController::getMainSwitch() const { return main_switch; }
+void IrrigationController::setMainSwitch(bool value) { main_switch = value; }
+bool IrrigationController::getSwitch3() const { return placeholder3; }
+void IrrigationController::setSwitch3(bool value) { placeholder3 = value; }
+bool IrrigationController::getDataloggingSwitch() const { return dataloging_switch; }
+void IrrigationController::setDataloggingSwitch(bool value) { dataloging_switch = value; }
+bool IrrigationController::getIrrigationSystemSwitch() const { return irrigation_system_switch; }
+void IrrigationController::setIrrigationSystemSwitch(bool value) { irrigation_system_switch = value; }

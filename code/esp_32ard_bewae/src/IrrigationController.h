@@ -22,9 +22,13 @@
 #include <ArduinoJson.h>
 #include <config.h>
 
+#ifndef PATH_LENGTH
+#define PATH_LENGTH 25
+#endif
 
-// Define a setupfunction for Hardware
-//void IrrigationHardware();
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// HARDWARE STRUCTS
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Define a struct to store the information for a solenoid
 // this should be constructed as an array the index of the array should be assigned
@@ -58,10 +62,20 @@ struct Pump {
   void setup(int pin);
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// CLASS IrrigationController
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 class IrrigationController {
   private:
     Solenoid* solenoid; //attatched solenoid
     Pump* pump; //attatched pump
+
+    // SWITCH VARIABLES:
+    bool main_switch; // main switch
+    bool dataloging_switch; // dataloging switch
+    bool irrigation_system_switch; // irrigation system switch
+    bool placeholder3; // switch
 
     // METHODS:
     // Member function to activate watering using PWM
@@ -75,11 +89,12 @@ class IrrigationController {
 
     // Constructor that takes a file path, a solenoid object, and a pump object as input
     IrrigationController(
-                          const char path[20],
+                          const char path[PATH_LENGTH],
                           Solenoid* solenoid, //attatched solenoid
                           Pump* pump //attatched pump
                           );
 
+    // TODO: SHIFT this variables into private as soon as testing is done
     bool is_set; //activate deactivate group, value will get saved to config
     String name; //name of the group, value will get saved to config
     unsigned long timetable; //timetable special formated, value will get saved to config
@@ -99,10 +114,10 @@ class IrrigationController {
                           Pump* pump, //attatched pump
                           int water_time=0 //holds value of how long it should water
                           );
-    // Member function loads config from file
-    bool loadFromConfig(const char path[20], int pin);
-    // Member function saves config to file
-    bool saveToConfig(const char path[20], int pin);
+    // Member function loads schedule config from file
+    bool loadScheduleConfig(const char path[PATH_LENGTH], int pin);
+    // Member function saves schedule config to file
+    bool saveScheduleConfig(const char path[PATH_LENGTH], int pin);
     // Member function checks if a group is ready,
     // returns part of the watering time the group is allowed to be active
     int readyToWater(int currentHour);
@@ -114,6 +129,21 @@ class IrrigationController {
     void updateController();
     // Define a static member function to combine the timetables of an array of IrrigationController objects using a loop
     static long combineTimetables(IrrigationController* controllers, size_t size);
+
+    // Loads the config file and sets the values of the member variables
+    DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
+    // Saves the values of the member variables to the config file
+    bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
+
+    // Getter & Setters
+    bool getMainSwitch() const;
+    void setMainSwitch(bool value);
+    bool getSwitch3() const;
+    void setSwitch3(bool value);
+    bool getDataloggingSwitch() const;
+    void setDataloggingSwitch(bool value);
+    bool getIrrigationSystemSwitch() const;
+    void setIrrigationSystemSwitch(bool value);
 };
 
 #endif
