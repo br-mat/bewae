@@ -86,7 +86,7 @@ void Helper::copy(int* src, int* dst, int len) {
   memcpy(dst, src, sizeof(src[0])*len);
 }
 
-
+// OLD FUNCTION NOW HANDLED IN IRRIGATIONCONTROLLER CLASS
 void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _time, uint8_t vent_pin, uint8_t pump_pin, uint8_t en, uint8_t pwm){
   //Function description: Controlls the watering procedure on valves and pump
   // Careful with interupts! To avoid unwanted flooding.
@@ -391,29 +391,57 @@ String Helper::timestamp(){
 }
 
 
+// Attempts to enable the WiFi and connect to a specified network.
+// Returns true if the connection was successful, false if not.
 bool Helper::enableWifi(){
-  WiFi.disconnect(true);  // Reconnect the network
+  // Disconnect from any current WiFi connection and set the WiFi mode to station mode.
+  WiFi.disconnect(true);  
   delayMicroseconds(100);
-  WiFi.mode(WIFI_STA);    // Switch WiFi on
-  #ifdef DEBUG
-  Serial.println("START WIFI");
-  #endif
+  WiFi.mode(WIFI_STA);    
+
+  // Begin the process of connecting to the specified WiFi network.
   WiFi.begin(ssid, wifi_password);
 
-  int iterator = 0;
+  // Initialize a counter to keep track of the number of connection attempts.
+  int tries = 0;
+
+  // Loop until the WiFi connection is established or the maximum number of attempts is reached.
   while (WiFi.status() != WL_CONNECTED) {
+      // Wait 1 second before trying again.
       delay(1000);
-      Serial.print(".");
-      if(iterator > 30){
+
+      // Increment the counter.
+      tries++;
+
+      // If 15 attempts have been made, disable and re-enable the WiFi and try to reconnect.
+      if(tries == 15) {
+        disableWiFi();
+        delay(100);
+        enableWifi();
+        delay(2500);
+        WiFi.begin(ssid, wifi_password);
+      }
+
+      // If 30 attempts have been made, exit the loop and return false.
+      if(tries > 30){
         #ifdef DEBUG
-        Serial.print(F("Connection failed"));
+        Serial.println();
+        Serial.print(F("Error: Wifi connection could not be established! "));
+        Serial.println(tries);
         #endif
         return false;
       }
-      iterator++;
   }
+
+  // If the loop exits normally, the WiFi connection was successful. Print the IP address of the device and return true.
+  #ifdef DEBUG
+  Serial.println("WiFi connected");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  #endif
   return true;
 }
+
 
 void Helper::setModemSleep() {
     WiFi.setSleep(true);
@@ -424,16 +452,30 @@ void Helper::setModemSleep() {
     // setCpuFrequencyMhz(80); //(40) also possible
 }
 
-void Helper::disableWiFi(){
-    //adc_power_off();
-    WiFi.disconnect(true);  // Disconnect from the network
-    WiFi.mode(WIFI_OFF);    // Switch WiFi off
+// Disables the WiFi on the device.
+// Returns true if the WiFi was successfully disabled, false if an error occurred.
+bool Helper::disableWiFi(){
+  // Disconnect from the WiFi network.
+  WiFi.disconnect(true);  
+  // Set the WiFi mode to off.
+  WiFi.mode(WIFI_OFF);    
+
+  // Check the WiFi status to make sure that it was successfully disabled.
+  if (WiFi.status() == WL_DISCONNECTED) {
     Serial.println("");
     Serial.println("WiFi disconnected!");
+    // Set the CPU frequency to 80 MHz.
     if (!setCpuFrequencyMhz(80)){
-        Serial.println("Not valid frequency!");
+      Serial.println("Error: Not valid frequency!");
+      return false;
     }
+    return true;
+  } else {
+    Serial.println("Error: WiFi could not be disabled!");
+    return false;
+  }
 }
+
 
 void Helper::disableBluetooth(){
     // Quite unusefully, no relevable power consumption

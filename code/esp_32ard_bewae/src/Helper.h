@@ -39,7 +39,7 @@ namespace Helper{
     bool save_datalog(String data, uint8_t cs, const char * file);
     void set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year);
     void read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year);
-    void disableWiFi();
+    bool disableWiFi();
     bool enableWifi();
     void setModemSleep();
     void wakeModemSleep();
