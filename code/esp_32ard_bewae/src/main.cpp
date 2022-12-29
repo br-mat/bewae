@@ -496,59 +496,6 @@ bool connect_MQTT(){
 }
 
 
-/* //original
-bool msg_mqtt(String topic, String data){
-  //This function take topic and data as String and publishes it via MQTT
-  //it returns a bool value, where 0 means success and 1 is a failed attemt
-
-  //input: String topic, String data
-  //return: false if everything ok otherwise true
-
-  //unsigned int length = data.length(); //NEW IMPLEMENTATION SHOULD CORRECT BUG
-  #ifdef DEBUG
-  Serial.println(F("msg_mqtt func called"));
-  #endif  
-
-  if(!client.connected()){
-    #ifdef DEBUG
-    Serial.print(F("Client not connected trying to reconnect!"));
-    #endif
-    wakeModemSleep();
-    connect_MQTT();
-    client.loop();
-  }
-
-  if(client.publish(topic.c_str(), data.c_str())){
-    #ifdef DEBUG
-    Serial.print(F("Data sent: ")); Serial.println(data.c_str()); Serial.println(topic.c_str());
-    #endif
-    return false;
-  }
-  else{
-    //handle retry
-    #ifdef DEBUG
-    Serial.println(F("Data failed to send. Reconnecting to MQTT Broker and trying again"));
-    #endif
-    client.connect(clientID, mqtt_username, mqtt_password);
-    sub_mqtt();
-    delay(2000); // This delay ensures that client.publish doesn't clash with the client.connect call
-    if(!client.publish(topic.c_str(), data.c_str())){
-      #ifdef DEBUG
-      Serial.println(F("ERROR no data sent!"));
-      #endif
-      return true;
-    }
-    else{
-      #ifdef DEBUG
-      Serial.println(F("Data sent!"));
-      #endif
-      return false;
-    }
-  }
-}
-*/
-
-
 bool msg_mqtt(String topic, String data){
   //This function take topic and data as String and publishes it via MQTT
   //it returns a bool value, where 0 means success and 1 is a failed attemt
@@ -1194,7 +1141,7 @@ if(thirsty){
       if (groups[kv.key()].is<int>()) {
         // This will execute because "1" is a valid uint16_t value
         solenoid_index = groups[kv.key()].as<int>();
-        Group[j].loadFromConfig(CONFIG_FILE_PATH, solenoid_index);
+        Group[j].loadScheduleConfig(CONFIG_FILE_PATH, solenoid_index);
       }
       else{
         Group[j].reset();
@@ -1216,96 +1163,7 @@ if(thirsty){
   delay(10);
   digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
 }
-/*
-  while((loop_t + measure_intervall > millis()) & (thirsty)){
-    int len = sizeof(group)/sizeof(group[0]);
-    int finish = 0; //finished groups
-    int set = 0; //groups set
-    unsigned int pump_t = 0;
-    struct solenoid* ptr = group;
 
-    for (int i=0; i<len; i++, ptr++) {
-      Serial.print("Temp statment watertime: "); Serial.println(ptr->watering_time);
-      if(ptr->is_set){
-        set+=1;
-      }
-      //check if procedure finished
-      if(ptr->watering_time == 0){
-        finish+=1;
-        #ifdef DEBUG
-        Serial.println(ptr->watering_time == 0);
-        #endif
-      }
-      delay(10);
-      //start watering process
-      if((ptr->last_t + SOLENOID_COOLDOWN < millis()) & (ptr->watering_time > 0) & (ptr->is_set)) //minimum cooldown of 30 sec
-      {
-        unsigned int water_timer = 0;
-        //set ptr variable to 0 when finished
-        if (ptr->watering_time < max_active_time_sec)
-        {
-          water_timer = ptr->watering_time;
-          ptr->watering_time = 0;
-        }
-        else{ //reduce ptr variable with max active time
-          water_timer = (unsigned int) max_active_time_sec;
-          ptr->watering_time -= (unsigned int) max_active_time_sec;
-        }
-        if(water_timer > (unsigned int) max_active_time_sec){ //sanity check
-          #ifdef DEBUG
-          Serial.println(F("Warning watering timer over 60!"));
-          #endif
-          water_timer = (unsigned int) max_active_time_sec;
-        }
-        //perform watering
-        #ifdef DEBUG
-        Serial.print(F("Watering group: ")); Serial.print(ptr->name); Serial.println(F(";  "));
-        Serial.print(water_timer); Serial.print(F(" seconds")); Serial.println(F(";  "));
-        #endif
-        pump_t += water_timer;
-        watering(data_shft, sh_cp_shft, st_cp_shft, water_timer, ptr->pin, ptr->pump_pin, sw_3_3v, vent_pwm);
-        ptr->last_t = millis();
-        #ifdef DEBUG
-        Serial.println(F("Done!"));
-        delay(10);
-        #endif
-      }
-
-      #ifdef DEBUG
-      Serial.println(F("----------------------"));
-      #endif
-
-      //let electronics cool down
-      if(pump_t > (unsigned int) max_active_time_sec){
-        pump_t = 0;
-        #ifdef DEBUG
-        Serial.print(F("cooling down: ")); Serial.println(2UL + (unsigned long) (pump_cooldown_sec / ((unsigned long) TIME_TO_SLEEP * 1000UL)));
-        delay(100);
-        #endif
-        for(unsigned long i = 0; i < 2UL + (unsigned long) (pump_cooldown_sec / ((unsigned long) TIME_TO_SLEEP * 1000UL)); i++){
-          delay(TIME_TO_SLEEP*1000);
-        }
-      }
-      else{
-      //send esp to sleep
-      delay(TIME_TO_SLEEP*1000);
-      }
-    }
-
-    if(finish == set){
-      #ifdef DEBUG
-      Serial.print("Finished and set: "); Serial.print(finish); Serial.print("::"); Serial.println(set);
-      #endif
-      thirsty = false;
-      break;
-    }
-    #ifdef DEBUG
-    Serial.println(F("++++++++++++++++++++++++++++"));
-    #endif
-  }
-  digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
-}
-*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // sleep
