@@ -14,12 +14,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
 #ifndef IRRIGATIONCONTROLLER_H
 #define IRRIGATIONCONTROLLER_H
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <HTTPClient.h>
+#include <SPIFFS.h>
 #include <config.h>
 
 #ifndef PATH_LENGTH
@@ -134,6 +135,8 @@ class IrrigationController {
     DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
     // Saves the values of the member variables to the config file
     bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
+    // sends GET request to RaspberryPi and store response in json doc
+    bool getJSONData(DynamicJsonDocument& doc, const char* server, int serverPort, const char* serverPath);
 
     // Getter & Setters
     bool getMainSwitch() const;

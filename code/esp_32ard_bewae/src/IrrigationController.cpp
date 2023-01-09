@@ -14,10 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <Arduino.h>
 #include <IrrigationController.h>
-#include <SPIFFS.h>
-#include <config.h>
 
 #define DEBUG
 
@@ -478,6 +475,36 @@ long IrrigationController::combineTimetables(IrrigationController* controllers, 
 
   // Return the combined timetable
   return combinedTimetable;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool getJSONData(DynamicJsonDocument& doc, const char* server, int serverPort, const char* serverPath) {
+  // Send the HTTP GET request to the Raspberry Pi server
+  HTTPClient http;
+  http.begin(server, serverPort, serverPath);
+  int httpCode = http.GET();
+
+  // Check the status code
+  if (httpCode == HTTP_CODE_OK) {
+    // Parse the JSON data
+    DeserializationError error = deserializeJson(doc, http.getString());
+
+    if (error) {
+      #ifdef DEBUG
+      Serial.println(F("Error parsing JSON data"));
+      #endif
+      return false;
+    } else {
+      return true;
+    }
+  } else {
+    #ifdef DEBUG
+    Serial.println(F("Error sending request to server"));
+    #endif
+    return false;
+  }
+
+  http.end();
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
