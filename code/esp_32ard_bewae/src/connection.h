@@ -35,4 +35,17 @@
     #define mqtt_password "************" // MQTT password
     #endif
 
+    // HTTP
+    #ifndef SERVER
+    #define SERVER "************" // IP of http server
+    #endif
+
+    #ifndef SERVER_PATH
+    #define SERVER_PATH "/get-conf" // server path
+    #endif
+
+    #ifndef SERVER_PORT
+    #define SERVER_PORT 1234
+    #endif
+
 #endif

@@ -10,7 +10,10 @@
 // Dependencies:
 // - Arduino.h
 // - ArduinoJson.h
+// - HTTPClient.h
+// - SPIFFS.h
 // - config.h
+// - connection.h
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -22,6 +25,7 @@
 #include <HTTPClient.h>
 #include <SPIFFS.h>
 #include <config.h>
+#include <connection.h>
 
 #ifndef PATH_LENGTH
 #define PATH_LENGTH 25
@@ -127,7 +131,7 @@ class IrrigationController {
     // Resets all member variables to their default values
     void reset();
     // Member function currently unused probably use it later to update static variables storing state of switches?
-    void updateController();
+    bool updateController();
     // Define a static member function to combine the timetables of an array of IrrigationController objects using a loop
     static long combineTimetables(IrrigationController* controllers, size_t size);
 

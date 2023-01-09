@@ -172,7 +172,7 @@ int IrrigationController::readyToWater(int currentHour) {
 // Reads the JSON file at the specified file path and returns the data as a DynamicJsonDocument.
 // If the file path is invalid or if there is an error reading or parsing the file, an empty DynamicJsonDocument is returned.
 DynamicJsonDocument IrrigationController::readConfigFile(const char path[PATH_LENGTH]) {
-  DynamicJsonDocument jsonDoc(1024); // create JSON doc, if an error occurs it will return an empty jsonDoc
+  DynamicJsonDocument jsonDoc(CONF_FILE_SIZE); // create JSON doc, if an error occurs it will return an empty jsonDoc
                                      // which can be checked using jsonDoc.isNull()
 
   if (path == nullptr) { // check for valid path
@@ -451,12 +451,31 @@ void IrrigationController::waterOn(int hour) {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void IrrigationController::updateController(){
+bool IrrigationController::updateController(){
   //TODO: implement function to update controller status data regarding watering system
   // call this function once per hour it uses timetable to determine if it should set water_time variable with content either
   // watering_default or watering_mqtt depending on a modus variable past with the function (this can be an integer about 0-5)
   // water time variable holds information about the water cycle for the active hour if its 0 theres nothing to do
-  // if its higher then it should be recognized by the readyToWater function, this value 
+  // if its higher then it should be recognized by the readyToWater function, this value
+  DynamicJsonDocument newdoc(CONF_FILE_SIZE);
+  bool success = getJSONData(newdoc, SERVER, SERVER_PORT, SERVER_PATH);
+
+  if(!success){
+    #ifdef DEBUG
+    Serial.println(F("Error retrieving or parsing data from server"));
+    #endif
+    return false;
+  }
+  DynamicJsonDocument jsonDoc = readConfigFile(CONFIG_FILE_PATH); // read the config file
+  if(jsonDoc.isNull()){
+    #ifdef DEBUG
+    Serial.println(F("Error reading local file"));
+    #endif
+    return false;
+  }
+  jsonDoc = newdoc;
+
+  return writeConfigFile(jsonDoc, CONFIG_FILE_PATH); // write the updated JSON data to the config file; // All good
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

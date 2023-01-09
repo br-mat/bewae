@@ -20,6 +20,10 @@
 #define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
 #endif
 
+#ifndef CONF_FILE_SIZE
+#define CONF_FILE_SIZE 2048
+#endif
+
 #ifndef DS3231_I2C_ADDRESS
 #define DS3231_I2C_ADDRESS 0x68 //adress rtc module
 #endif
