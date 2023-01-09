@@ -1,26 +1,32 @@
 # Bewae - Bewässerungsprojekt v3.3
 
-v3.3 WIP versions now are not stable
+v3.3final versions are not stable (work in progress).
 
-- added openweather scripts (saving current conditions & air condition to influxDB)
-- added corresponding .sh launcher files
-- added ESP32 build
-- added 2nd circuit handling pumps & solenoids
-- updated (and tested) main circuit, corrected bugs & problems on ESP32 build
-- updated english translation of new version
-- updated documentation
+This is a small roadmap to help me remember what I am working on.
 
-todo:
-- add openwather forecast script
-- add dynamic watering controlled by Pi (using ML later)
-- reimplement SD card module?
-- implement config file using SPIFFS
-- add new configuration file feature to replace default programming settings
+Changes:
+- Added OpenWeather scripts (saving current conditions and air condition to InfluxDB)
+- Added corresponding .sh launcher files
+- Added ESP32 build
+- Added a second circuit to handle pumps and solenoids
+- Updated (and tested) main circuit, corrected bugs and problems on ESP32 build
+- Updated English translation of new version
+- Updated documentation
+- Added a new IrrigationController class
+- Implemented a config file system using SPIFFS
+- Implemented HTTP GET functionality to update config file
 
-open problems:
-- sensor rail needs 5V not 3V! (hooked onto logic switch for now)
-- backup SD card module malfunctions
-- reverse voltage protection on 12V IN get really hot (bridged for now)
+To-do:
+- Add OpenWeather forecast script
+- Add dynamic watering controlled by Raspberry Pi (using machine learning later)
+- Reimplement SD card module?
+- Use Node-RED to provide config file via HTTP
+- Rework circuit board 2
+
+Open problems:
+- Sensor rail needs 5V, not 3V! (Currently hooked onto logic switch)
+- Backup SD card module malfunctioning
+- Reverse voltage protection on 12V IN gets very hot (bridged for now, calculation was wrong?)
 
 ### About
 
