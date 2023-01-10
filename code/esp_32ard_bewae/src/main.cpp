@@ -746,6 +746,16 @@ void setup() {
   Serial.print(hour_);
   delay(1000);
   #endif
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//init Irrigation Controller instance and update config
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef RasPi
+// setup empty class instance
+IrrigationController controller;
+// update the config file stored in spiffs
+// in order to work a RasPi with node-red and configured flow is needed
+controller.updateController();
+#endif
   //hour_ = 0;
   //disableWiFi();
 
@@ -1135,12 +1145,13 @@ if(thirsty){
     IrrigationController Group[numgroups];
     int j = 0;
     // Iterate through all keys in the "groups" object and initialize the class instance
-    for (JsonPair kv : groups) {
+    // kv = key value pair
+    for(JsonPair kv : groups){
       // get the index of the group
       int solenoid_index = 0;
-      if (groups[kv.key()].is<int>()) {
-        // This will execute because "1" is a valid uint16_t value
+      if(groups[kv.key()].is<int>()){
         solenoid_index = groups[kv.key()].as<int>();
+        // access watering group via virtual pin stored as jsonkey (solenoid ?|pump pin)
         Group[j].loadScheduleConfig(CONFIG_FILE_PATH, solenoid_index);
       }
       else{

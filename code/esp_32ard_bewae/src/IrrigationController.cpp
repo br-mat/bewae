@@ -457,12 +457,10 @@ bool IrrigationController::updateController(){
   // watering_default or watering_mqtt depending on a modus variable past with the function (this can be an integer about 0-5)
   // water time variable holds information about the water cycle for the active hour if its 0 theres nothing to do
   // if its higher then it should be recognized by the readyToWater function, this value
-  DynamicJsonDocument newdoc(CONF_FILE_SIZE);
-  bool success = getJSONData(newdoc, SERVER, SERVER_PORT, SERVER_PATH);
-
-  if(!success){
+  DynamicJsonDocument newdoc = getJSONData(SERVER, SERVER_PORT, SERVER_PATH);
+  if(newdoc.isNull()){
     #ifdef DEBUG
-    Serial.println(F("Error retrieving or parsing data from server"));
+    Serial.println(F("Error reading server file"));
     #endif
     return false;
   }
@@ -475,7 +473,7 @@ bool IrrigationController::updateController(){
   }
   jsonDoc = newdoc;
 
-  return writeConfigFile(jsonDoc, CONFIG_FILE_PATH); // write the updated JSON data to the config file; // All good
+  return writeConfigFile(jsonDoc, CONFIG_FILE_PATH); // write the updated JSON data to the config file
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -497,8 +495,9 @@ long IrrigationController::combineTimetables(IrrigationController* controllers, 
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool getJSONData(DynamicJsonDocument& doc, const char* server, int serverPort, const char* serverPath) {
+DynamicJsonDocument IrrigationController::getJSONData(const char* server, int serverPort, const char* serverPath) {
   // Send the HTTP GET request to the Raspberry Pi server
+  DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
   HTTPClient http;
   http.begin(server, serverPort, serverPath);
   int httpCode = http.GET();
@@ -506,24 +505,25 @@ bool getJSONData(DynamicJsonDocument& doc, const char* server, int serverPort, c
   // Check the status code
   if (httpCode == HTTP_CODE_OK) {
     // Parse the JSON data
-    DeserializationError error = deserializeJson(doc, http.getString());
+    DeserializationError error = deserializeJson(JSONdata, http.getString());
 
     if (error) {
       #ifdef DEBUG
       Serial.println(F("Error parsing JSON data"));
       #endif
-      return false;
+      return JSONdata;
     } else {
-      return true;
+      return JSONdata;
     }
   } else {
     #ifdef DEBUG
     Serial.println(F("Error sending request to server"));
     #endif
-    return false;
+    return JSONdata;
   }
 
   http.end();
+  return JSONdata;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

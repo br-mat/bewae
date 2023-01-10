@@ -73,8 +73,17 @@ struct Pump {
 
 class IrrigationController {
   private:
+    // PRIVATE VARIABLES
     Solenoid* solenoid; //attatched solenoid
     Pump* pump; //attatched pump
+
+    bool is_set; //activate deactivate group, value will get saved to config
+    String name; //name of the group, value will get saved to config
+    unsigned long timetable; //timetable special formated, value will get saved to config
+    int watering; //defualt value of watering amount set for group, value will get saved to config
+    int water_time; //holds value of how long it should water, value will get saved to config
+    int solenoid_pin; //storing registered struct solenoid pin, value will get saved to config
+    int pump_pin; //storing registered struct pump pin, value will get saved to config
 
     // SWITCH VARIABLES:
     bool main_switch; // main switch
@@ -82,7 +91,13 @@ class IrrigationController {
     bool irrigation_system_switch; // irrigation system switch
     bool placeholder3; // switch
 
-    // METHODS:
+    // PRIVATE METHODS:
+    // Loads the config file and sets the values of the member variables
+    DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
+    // Saves the values of the member variables to the config file
+    bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
+    // sends GET request to RaspberryPi and store response in json doc
+    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath);
     // Member function to activate watering using PWM
     void activatePWM(int time_s);
     // Member function to activate watering
@@ -99,16 +114,7 @@ class IrrigationController {
                           Pump* pump //attatched pump
                           );
 
-    // TODO: SHIFT this variables into private as soon as testing is done
-    bool is_set; //activate deactivate group, value will get saved to config
-    String name; //name of the group, value will get saved to config
-    unsigned long timetable; //timetable special formated, value will get saved to config
-    int watering; //defualt value of watering amount set for group, value will get saved to config
-    int water_time; //holds value of how long it should water, value will get saved to config
-    int solenoid_pin; //storing registered struct solenoid pin, value will get saved to config
-    int pump_pin; //storing registered struct pump pin, value will get saved to config
-
-    //METHODS:
+    // PUBLIC METHODS:
     // Member function will create a new member and take all attributes manually
     void createNewController(
                           bool is_set, //activate deactivate group
@@ -134,13 +140,6 @@ class IrrigationController {
     bool updateController();
     // Define a static member function to combine the timetables of an array of IrrigationController objects using a loop
     static long combineTimetables(IrrigationController* controllers, size_t size);
-
-    // Loads the config file and sets the values of the member variables
-    DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
-    // Saves the values of the member variables to the config file
-    bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
-    // sends GET request to RaspberryPi and store response in json doc
-    bool getJSONData(DynamicJsonDocument& doc, const char* server, int serverPort, const char* serverPath);
 
     // Getter & Setters
     bool getMainSwitch() const;
