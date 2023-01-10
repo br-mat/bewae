@@ -437,7 +437,7 @@ void IrrigationController::activate(int time_s) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Member function to start watering process
-void IrrigationController::waterOn(int hour) {
+int IrrigationController::waterOn(int hour) {
   // Function description: Starts the irrigation procedure after checking if the hardware is ready
   //FUNCTION PARAMETER:
   // currentHour - the active hour to check the with the timetable
@@ -447,7 +447,9 @@ void IrrigationController::waterOn(int hour) {
   if (active_time > 0) {
     // Activate watering process
     activatePWM(active_time);
+    return 1;
   }
+  return 0;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

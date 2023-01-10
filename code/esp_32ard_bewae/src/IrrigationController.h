@@ -133,7 +133,7 @@ class IrrigationController {
     // returns part of the watering time the group is allowed to be active
     int readyToWater(int currentHour);
     // Method to start watering process
-    void waterOn(int hour);
+    int waterOn(int hour);
     // Resets all member variables to their default values
     void reset();
     // Member function currently unused probably use it later to update static variables storing state of switches?

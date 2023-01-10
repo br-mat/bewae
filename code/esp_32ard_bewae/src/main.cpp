@@ -1128,9 +1128,11 @@ if(thirsty){
   //        NEVER INTERUPT WHILE WATERING!
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   while((loop_t + measure_intervall > millis()) & (thirsty)){
+  // process will trigger multiple loop iterations until thirsty is set false
+  // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
 
-    // Parse the JSON string using a JSON object
-    DynamicJsonDocument doc(1028);
+    // load the stored file and get all keys
+    DynamicJsonDocument doc(CONF_FILE_SIZE);
     if (!(Helper::load_conf(CONFIG_FILE_PATH, doc))){
       #ifdef DEBUG
       Serial.println(F("Error during watering procedure: Happened when loading config file!"));
@@ -1147,7 +1149,7 @@ if(thirsty){
     // Iterate through all keys in the "groups" object and initialize the class instance
     // kv = key value pair
     for(JsonPair kv : groups){
-      // get the index of the group
+      // check if group is presend and get its index
       int solenoid_index = 0;
       if(groups[kv.key()].is<int>()){
         solenoid_index = groups[kv.key()].as<int>();
@@ -1155,6 +1157,7 @@ if(thirsty){
         Group[j].loadScheduleConfig(CONFIG_FILE_PATH, solenoid_index);
       }
       else{
+        // reset the group to take it out of process
         Group[j].reset();
       }
       // Initialize Group
@@ -1163,11 +1166,17 @@ if(thirsty){
     }
 
     // Iterate over all irrigation controller objects in the Group array
-    for (int i = 0; i < numgroups; i++) {
+    // This process will trigger multiple loop iterations until thirsty is set false
+    int status = 0;
+    for(int i = 0; i < numgroups; i++){
       // ACTIVATE SOLENOID AND/OR PUMP
       // The method checks if the instance is ready for watering
       // if not it will return early, else it will use delay to wait untill the process has finished
-      Group[i].waterOn(hour1);
+      status += Group[i].waterOn(hour1);
+    }
+    // check if all groups are finished and reset status
+    if(!status){
+      thirsty = false;
     }
   }
   shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
