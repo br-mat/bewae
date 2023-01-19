@@ -11,22 +11,26 @@ Changes:
 - Added a second circuit to handle pumps and solenoids
 - Updated (and tested) main circuit, corrected bugs and problems on ESP32 build
 - Updated English translation of new version
-- Updated documentation
 - Added a new IrrigationController class
 - Implemented a config file system using SPIFFS
 - Implemented HTTP GET functionality to update config file
 
 To-do:
-- Add OpenWeather forecast script
-- Add dynamic watering controlled by Raspberry Pi (using machine learning later)
+- Add OpenWeather forecast script to the Pi
+- Add dynamic watering controlled by Raspberry Pi
 - Reimplement SD card module?
 - Use Node-RED to provide config file via HTTP
 - Rework circuit board 2
+- Updated documentation (new config)
 
 Open problems:
 - Sensor rail needs 5V, not 3V! (Currently hooked onto logic switch)
 - Backup SD card module malfunctioning
 - Reverse voltage protection on 12V IN gets very hot (bridged for now, calculation was wrong?)
+
+Future ideas:
+- Using machine learning to controll watering process based on collected data
+- Implement an app for configuration and visualizing basic data
 
 ### About
 
