@@ -1,0 +1,76 @@
+[
+    {
+        "id": "71457871c1a42872",
+        "type": "tab",
+        "label": "bewae-get-config",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "b8357f2e986b38dd",
+        "type": "http response",
+        "z": "71457871c1a42872",
+        "name": "get-config",
+        "statusCode": "200",
+        "headers": {},
+        "x": 820,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "7e2971e4590ad9d1",
+        "type": "debug",
+        "z": "71457871c1a42872",
+        "name": "debug config",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 830,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "408de12c16104416",
+        "type": "http in",
+        "z": "71457871c1a42872",
+        "name": "get-config",
+        "url": "get-config",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 440,
+        "y": 120,
+        "wires": [
+            [
+                "6a4dc2d932b45d8f"
+            ]
+        ]
+    },
+    {
+        "id": "6a4dc2d932b45d8f",
+        "type": "file in",
+        "z": "71457871c1a42872",
+        "name": "read config",
+        "filename": "/home/pi/PATH",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 630,
+        "y": 120,
+        "wires": [
+            [
+                "b8357f2e986b38dd",
+                "7e2971e4590ad9d1"
+            ]
+        ]
+    }
+]
