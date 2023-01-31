@@ -69,18 +69,17 @@ Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step A
 - Solar charge controller
 
 ### Description
-Overview of the circuit structure in the attached [*systemdiagram.png*](#systemdiagram) as block diagram. An [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) is used for control. Sensors and modules record lots of data, including soil moisture sensors, temperature, humidity and barometric pressure data, and sunshine duration. The data is sent to the [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) via [*MQTT*](#mqtt), stored there, and displayed as nice graphs thanks to Grafana. <br> 
- The irrigation follows a schedule. Which either works with programmed values or can be controlled via the network. With a [*MQTT*](#mqtt) messaging client it is possible to intervene in the irrigation. With an established [*VPN*](https://www.pivpn.io/) it is possible to keep an eye on your plants and water them even when you are on the road.
-The other folders contain the code for both controllers as well as the json export for the Grafana Dashboard and the Python scripts for processing the [*MQTT*](#mqtt) messages. The database used is [*InfluxDB*](#influxdb) where all sent data is stored. All relevant programs and scripts start automatically thanks to crontab on every boot. <br>
-
+An Overview of the circuit structure in the attached [*systemdiagram.png*](#systemdiagram) as a block diagram. The control of the circuit is managed by an [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) microcontroller. The sensors and modules in the system are capable of collecting a large amount of data, including soil moisture readings, temperature, humidity, air pressure, and sunshine duration. These data points are sent to the [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) through [*MQTT*](#mqtt) protocol, where they are stored and presented in a visually appealing manner using the Grafana software. <br>
+The irrigation system is operated according to a pre-defined schedule, which can be set with pre-programmed values or controlled remotely through the network. The irrigation process can be monitored and adjusted in real-time using an [*MQTT*](#mqtt) messaging client. The system can also be accessed remotely through a set-up [*VPN*](https://www.pivpn.io/), allowing users to keep an eye on their plants and water them from any location. <br>
+The folders included in this markdown file contain the code for both controllers, the json export file for the Grafana dashboard, and the Python scripts used to process the [*MQTT*](#mqtt) messages. The database used in this system is [*InfluxDB*](#influxdb), where all collected data is stored for future reference. The relevant programs and scripts are set to launch automatically at every boot process, ensuring smooth operation, thanks to crontab. <br>
 <br>
 
-**Status now:** <br>
+**Current Status:** <br>
 
-**Technique:** For easier handling a plan for a [PCB](#boards) was created and printed with [fritzing](https://fritzing.org/). Sensor data from various sensors (soil moisture, temperature, etc.) are sent to a [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) where they are stored in a database. Irrigation control works either automated sensor-controlled or via a [MQTT-messaging app](#mqttdash-app-optional) via smartphone. Thanks to [VPN](https://www.pivpn.io/), control and monitoring are also possible while on the road. <br>
+A circuit diagram was created using [fritzing](https://fritzing.org/) for easier handling, and two [PCB](#boards) were printed. Data from various sensors (soil moisture, temperature, etc.) is sent to a [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) where it is stored in a database. The irrigation control can be done either automatically using sensor input or through a MQTT messaging app on a smartphone. With [VPN](https://www.pivpn.io/), control and monitoring are possible from anywhere. <br>
 
-**In the meantime, it has become an autonomously functioning system, equipped with a small PV module, a lead battery and a small *100l* water tank. Depending on the temperature, it is now only necessary to remember to fill the tank once a week.
-<br>
+Supply: It has now become a self-sufficient system equipped with a small PV module, a lead battery, and a small 100l water tank. Depending on the temperature, it's now only necessary to remember to fill the tank once a week. <br>
+
 
 ## System diagram
 
@@ -90,12 +89,12 @@ The other folders contain the code for both controllers as well as the json expo
 ## Irrigation control
 
 To control the irrigation system 2 variables are used, timetable and water-time:
--timetable is represented by a 4 bytelong int number, where every bit stands for a clock hour. The 8 most significant bits represent the group id. It is possible to set an individual timetable for each group.
--Water time is used to set the active time in seconds for the specified group (solenoid and pump). It can be set individually for each group.
+-	timetable is represented by a 4 bytelong int number, where every bit stands for a clock hour. The 8 most significant bits represent the group id. It is possible to set an individual timetable for each group.
+-	water-time is used to set the active time in seconds for the specified group (solenoid and pump). It can be set individually for each group.
 The control itself can be set in 3 ways:
--Programming the microcontroller
--MQTT via W-LAN (phone or pi)
--Config file on SD-card (to be added)
+-	Programming the microcontroller
+-	MQTT via W-LAN (phone or pi)
+-	Config file on flash (SPIFFS)
 
 ### Control via MQTT (phone or pi):
 
@@ -161,6 +160,10 @@ solenoid group[max_groups] =
 }
 ```
 <br>
+
+### control via Config File (WIP):
+The Raspberry Pi holds a config file that is provided through Node-Red and is meant to be retrieved via an HTTP GET request.
+The irrigation system keeps a copy of the file in memory and updates it regularly. The current implementation remains, but may need to be modified to ensure that the file is always up-to-date with the latest settings on the Pi. <br>
 
 # Details
 

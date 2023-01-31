@@ -1,26 +1,36 @@
 # Bewae - Bewässerungsprojekt v3.3
 
-v3.3 WIP versions now are not stable
+v3.3final versions are not stable (work in progress).
 
-- added openweather scripts (saving current conditions & air condition to influxDB)
-- added corresponding .sh launcher files
-- added ESP32 build
-- added 2nd circuit handling pumps & solenoids
-- updated (and tested) main circuit, corrected bugs & problems on ESP32 build
-- updated english translation of new version
-- updated documentation
+This is a small roadmap to help me remember what I am working on.
 
-todo:
-- add openwather forecast script
-- add dynamic watering controlled by Pi (using ML later)
-- reimplement SD card module?
-- implement config file using SPIFFS
-- add new configuration file feature to replace default programming settings
+Changes:
+- Added OpenWeather scripts (saving current conditions and air condition to InfluxDB)
+- Added corresponding .sh launcher files
+- Added ESP32 build
+- Added a second circuit to handle pumps and solenoids
+- Updated (and tested) main circuit, corrected bugs and problems on ESP32 build
+- Updated English translation of new version
+- Added a new IrrigationController class
+- Implemented a config file system using SPIFFS
+- Implemented HTTP GET functionality to update config file
 
-open problems:
-- sensor rail needs 5V not 3V! (hooked onto logic switch for now)
-- backup SD card module malfunctions
-- reverse voltage protection on 12V IN get really hot (bridged for now)
+To-do:
+- Add OpenWeather forecast script to the Pi
+- Add dynamic watering controlled by Raspberry Pi
+- Reimplement SD card module?
+- Use Node-RED to provide config file via HTTP
+- Rework circuit board 2
+- Updated documentation (new config)
+
+Open problems:
+- Sensor rail needs 5V, not 3V! (Currently hooked onto logic switch)
+- Backup SD card module malfunctioning
+- Reverse voltage protection on 12V IN gets very hot (bridged for now, calculation was wrong?)
+
+Future ideas:
+- Using machine learning to controll watering process based on collected data
+- Implement an app for configuration and visualizing basic data
 
 ### About
 
@@ -94,7 +104,16 @@ To control the irrigation system 2 variables are used, timetable and water-time:
 The control itself can be set in 3 ways:
 -	Programming the microcontroller
 -	MQTT via W-LAN (phone or pi)
--	Config file on SD-card (to be added)
+-	Config file on flash (SPIFFS)
+
+Um das Bewässerungssystem zu steuern, werden 2 Variablen verwendet: timetable und water-time:
+- Der Zeitplan wird durch eine 4-Byte-lange Ganzzahl repräsentiert, bei der jedes Bit für eine Uhrzeit steht. Die 8 höchsten Bits repräsentieren die Gruppen-ID. Es ist möglich, für jede Gruppe einen individuellen Zeitplan zu setzen.
+- Die Wasserzeit wird verwendet, um die aktive Zeit in Sekunden für die angegebene Gruppe (Magnetventil und Pumpe) festzulegen. Es kann für jede Gruppe individuell festgelegt werden.
+
+Die Steuerung selbst kann auf 3 Arten erfolgen:
+- Programmierung des Mikrocontrollers
+- MQTT über W-LAN (Telefon oder Pi)
+- Config-Datei im Flash (SPIFFS)
 
 ### Controll via MQTT (phone or pi):
 
@@ -102,11 +121,11 @@ Um etwas über MQTT zu einstellen zu können müssen die Befehle unter dem richt
 
 #### **timetable**:
 
-Um den Timetable einzustellen: 
+Um den Timetable einzustellen muss an das Topic, eine Nachricht gesendet werden: 
 ```
 conf/set-timetable/gerneral
 ```
-Die Bewässerungswerte können wie folgt geändert werden:
+Die Bewässerungswerte können wie folgt geändert werden, wenn als Payload (Nachricht) Inhalt in der Form gesendet werden 'Gruppe : Uhrzeit in Stunden' es können auch mehrere Stunden mit Komma getrennt angegeben werden:
 ```
 #water group 0 at 7, 10 and 18 o'clock
 0:7,10,18
@@ -159,6 +178,11 @@ solenoid group[max_groups] =
   {true, 7, pump1, "Erdb", 50, 0.0f, 0, 0, 0}, //group5 Erdbeeren
 }
 ```
+<br>
+
+### control via config file (wip):
+Auf dem Raspberry Pi liegt ein config file, das über Node-Red bereitgestellt wird und über einen http get request abgerufen werden soll. 
+Das Bewässerungssystem selbst behällt eine kopie des files im Speicher und aktualisiert diese regelmäßig. Die bestehenden implementation bleibt, muss aber gegebenenfalls angepasst werden damit das file immer mit aktuellen Einstellungen am Pi verfügbar ist. <br>
 <br>
 
 # Details
