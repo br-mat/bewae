@@ -98,14 +98,6 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 
 ## Steuerung der Bewässerung
 
-To control the irrigation system 2 variables are used, timetable and water-time:
--	timetable is represented by a 4 bytelong int number, where every bit stands for a clock hour. The 8 most significant bits represent the group id. It is possible to set an individual timetable for each group.
--	water-time is used to set the active time in seconds for the specified group (solenoid and pump). It can be set individually for each group.
-The control itself can be set in 3 ways:
--	Programming the microcontroller
--	MQTT via W-LAN (phone or pi)
--	Config file on flash (SPIFFS)
-
 Um das Bewässerungssystem zu steuern, werden 2 Variablen verwendet: timetable und water-time:
 - Der Zeitplan wird durch eine 4-Byte-lange Ganzzahl repräsentiert, bei der jedes Bit für eine Uhrzeit steht. Die 8 höchsten Bits repräsentieren die Gruppen-ID. Es ist möglich, für jede Gruppe einen individuellen Zeitplan zu setzen.
 - Die Wasserzeit wird verwendet, um die aktive Zeit in Sekunden für die angegebene Gruppe (Magnetventil und Pumpe) festzulegen. Es kann für jede Gruppe individuell festgelegt werden.
