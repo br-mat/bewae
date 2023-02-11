@@ -454,28 +454,36 @@ int IrrigationController::waterOn(int hour) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool IrrigationController::updateController(){
-  //TODO: implement function to update controller status data regarding watering system
   // call this function once per hour it uses timetable to determine if it should set water_time variable with content either
   // watering_default or watering_mqtt depending on a modus variable past with the function (this can be an integer about 0-5)
   // water time variable holds information about the water cycle for the active hour if its 0 theres nothing to do
   // if its higher then it should be recognized by the readyToWater function, this value
-  DynamicJsonDocument newdoc = getJSONData(SERVER, SERVER_PORT, SERVER_PATH);
-  if(newdoc.isNull()){
-    #ifdef DEBUG
-    Serial.println(F("Error reading server file"));
-    #endif
-    return false;
-  }
-  DynamicJsonDocument jsonDoc = readConfigFile(CONFIG_FILE_PATH); // read the config file
-  if(jsonDoc.isNull()){
-    #ifdef DEBUG
-    Serial.println(F("Error reading local file"));
-    #endif
-    return false;
-  }
-  jsonDoc = newdoc;
 
-  return writeConfigFile(jsonDoc, CONFIG_FILE_PATH); // write the updated JSON data to the config file
+  if (WiFi.status() == WL_CONNECTED) {
+    DynamicJsonDocument newdoc = getJSONData(SERVER, SERVER_PORT, SERVER_PATH);
+    if(newdoc.isNull()){
+      #ifdef DEBUG
+      Serial.println(F("Error reading server file"));
+      #endif
+      return false;
+    }
+    DynamicJsonDocument jsonDoc = readConfigFile(CONFIG_FILE_PATH); // read the config file
+    if(jsonDoc.isNull()){
+      #ifdef DEBUG
+      Serial.println(F("Error reading local file"));
+      #endif
+      return false;
+    }
+    jsonDoc = newdoc;
+
+    return writeConfigFile(jsonDoc, CONFIG_FILE_PATH); // write the updated JSON data to the config file
+  }
+  else{
+    #ifdef DEBUG
+    Serial.println(F("Error no Wifi connection established"));
+    #endif
+    return false;
+  }
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -501,7 +509,7 @@ DynamicJsonDocument IrrigationController::getJSONData(const char* server, int se
   // Send the HTTP GET request to the Raspberry Pi server
   DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
   HTTPClient http;
-  http.begin(server, serverPort, serverPath);
+  http.begin(String("http://") + server + ":" + serverPort + serverPath);
   int httpCode = http.GET();
 
   // Check the status code

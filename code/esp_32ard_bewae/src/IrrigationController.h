@@ -136,7 +136,7 @@ class IrrigationController {
     int waterOn(int hour);
     // Resets all member variables to their default values
     void reset();
-    // Member function currently unused probably use it later to update static variables storing state of switches?
+    // Member function to update the data
     bool updateController();
     // Define a static member function to combine the timetables of an array of IrrigationController objects using a loop
     static long combineTimetables(IrrigationController* controllers, size_t size);
