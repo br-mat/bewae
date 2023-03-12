@@ -1,3 +1,12 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// br-mat (c) 2022
+// email: matthiasbraun@gmx.at
+//
+// Connection related definitions
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #ifndef __CONNECTION_H__
 #define __CONNECTION_H__
 
@@ -24,6 +33,19 @@
 
     #ifndef mqtt_password
     #define mqtt_password "************" // MQTT password
+    #endif
+
+    // HTTP
+    #ifndef SERVER
+    #define SERVER "************" // IP of http server
+    #endif
+
+    #ifndef SERVER_PATH
+    #define SERVER_PATH "/get-conf" // server path
+    #endif
+
+    #ifndef SERVER_PORT
+    #define SERVER_PORT 1234
     #endif
 
 #endif

@@ -98,13 +98,14 @@ In den weiteren Ordnern befinden sich der Code für beide Controller sowie das j
 
 ## Steuerung der Bewässerung
 
-To control the irrigation system 2 variables are used, timetable and water-time:
--	timetable is represented by a 4 bytelong int number, where every bit stands for a clock hour. The 8 most significant bits represent the group id. It is possible to set an individual timetable for each group.
--	water-time is used to set the active time in seconds for the specified group (solenoid and pump). It can be set individually for each group.
-The control itself can be set in 3 ways:
--	Programming the microcontroller
--	MQTT via W-LAN (phone or pi)
--	Config file on SD-card (to be added)
+Um das Bewässerungssystem zu steuern, werden 2 Variablen verwendet: timetable und water-time:
+- Der Zeitplan wird durch eine 4-Byte-lange Ganzzahl repräsentiert, bei der jedes Bit für eine Uhrzeit steht. Die 8 höchsten Bits repräsentieren die Gruppen-ID. Es ist möglich, für jede Gruppe einen individuellen Zeitplan zu setzen.
+- Die Wasserzeit wird verwendet, um die aktive Zeit in Sekunden für die angegebene Gruppe (Magnetventil und Pumpe) festzulegen. Es kann für jede Gruppe individuell festgelegt werden.
+
+Die Steuerung selbst kann auf 3 Arten erfolgen:
+- Programmierung des Mikrocontrollers
+- MQTT über W-LAN (Telefon oder Pi)
+- Config-Datei im Flash (SPIFFS)
 
 ### Controll via MQTT (phone or pi):
 
@@ -112,11 +113,11 @@ Um etwas über MQTT zu einstellen zu können müssen die Befehle unter dem richt
 
 #### **timetable**:
 
-Um den Timetable einzustellen: 
+Um den Timetable einzustellen muss an das Topic, eine Nachricht gesendet werden: 
 ```
 conf/set-timetable/gerneral
 ```
-Die Bewässerungswerte können wie folgt geändert werden:
+Die Bewässerungswerte können wie folgt geändert werden, wenn als Payload (Nachricht) Inhalt in der Form gesendet werden 'Gruppe : Uhrzeit in Stunden' es können auch mehrere Stunden mit Komma getrennt angegeben werden:
 ```
 #water group 0 at 7, 10 and 18 o'clock
 0:7,10,18
@@ -169,6 +170,11 @@ solenoid group[max_groups] =
   {true, 7, pump1, "Erdb", 50, 0.0f, 0, 0, 0}, //group5 Erdbeeren
 }
 ```
+<br>
+
+### control via config file (wip):
+Auf dem Raspberry Pi liegt ein config file, das über Node-Red bereitgestellt wird und über einen http get request abgerufen werden soll. 
+Das Bewässerungssystem selbst behällt eine kopie des files im Speicher und aktualisiert diese regelmäßig. Die bestehenden implementation bleibt, muss aber gegebenenfalls angepasst werden damit das file immer mit aktuellen Einstellungen am Pi verfügbar ist. <br>
 <br>
 
 # Details

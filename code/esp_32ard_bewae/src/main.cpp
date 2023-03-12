@@ -3,7 +3,25 @@
 // br-mat (c) 2022
 // email: matthiasbraun@gmx.at
 //
-// Monitor all sensor values, handle watering procedure and get/send data to RasPi                                      
+// This is the main source file for the irrigation system. It is responsible for monitoring all sensor values,
+// handling the watering procedure, and communicating with the Raspberry Pi to get and send data.
+//
+// Dependencies:
+// - Arduino.h
+// - Wire.h
+// - SPI.h
+// - SD.h
+// - SPIFFS.h
+// - Adafruit_Sensor.h
+// - Adafruit_BME280.h
+// - WiFi.h
+// - PubSubClient.h
+// - ArduinoJson.h
+// - connection.h
+// - Helper.h
+// - IrrigationController.h
+// - config.h
+//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Standard
@@ -61,9 +79,12 @@ solenoid group[max_groups] =
 
 
 //NEW IMPLEMENTATION
+// The idea is to use the config file to controll the watering groups. This way 
+// with sending the JSON data we can adjust and initialize new groups over the air.
+// The switch conditions and timetables get reduced too as there is no need for handling outages of
+// wifi controll as the controller will then use what is stored locally in the config file.
 
-
-
+// Create new solenoid struct and initialize their corresponding virtual pins
 Solenoid controller_sollenoids[6] =
 {
   {0}, //solenoid 0
@@ -74,10 +95,15 @@ Solenoid controller_sollenoids[6] =
   {7}, //solenoid 5
 };
 
-// Create a new Pump struct and initialize its member variables
-Pump pump_main{pump1};
+// Create a new Pump struct and initialize their corresponding virtual pins
+Pump pump_main[2] = 
+{
+  pump1,
+  pump2,
+};
 
 //IrrigationController
+// No need for initialization as it will be loaded from config file
 
 
 //timetable storing watering hours
@@ -126,8 +152,8 @@ bool config = false;  //handle wireless configuration
 
 //wireless config array to switch on/off functions
 // watering time of specific group; binary values;
-const int raspi_config_size = max_groups+2; //6 groups + 2 binary
-int raspi_config[raspi_config_size]={0};
+//const int raspi_config_size = max_groups+2; //6 groups + 2 binary
+//int raspi_config[raspi_config_size]={0};
 
 bool post_DATA = true; //controlls if data is sent back to pi or not
 bool msg_stop = false; //is config finished or not
@@ -470,59 +496,6 @@ bool connect_MQTT(){
 }
 
 
-/* //original
-bool msg_mqtt(String topic, String data){
-  //This function take topic and data as String and publishes it via MQTT
-  //it returns a bool value, where 0 means success and 1 is a failed attemt
-
-  //input: String topic, String data
-  //return: false if everything ok otherwise true
-
-  //unsigned int length = data.length(); //NEW IMPLEMENTATION SHOULD CORRECT BUG
-  #ifdef DEBUG
-  Serial.println(F("msg_mqtt func called"));
-  #endif  
-
-  if(!client.connected()){
-    #ifdef DEBUG
-    Serial.print(F("Client not connected trying to reconnect!"));
-    #endif
-    wakeModemSleep();
-    connect_MQTT();
-    client.loop();
-  }
-
-  if(client.publish(topic.c_str(), data.c_str())){
-    #ifdef DEBUG
-    Serial.print(F("Data sent: ")); Serial.println(data.c_str()); Serial.println(topic.c_str());
-    #endif
-    return false;
-  }
-  else{
-    //handle retry
-    #ifdef DEBUG
-    Serial.println(F("Data failed to send. Reconnecting to MQTT Broker and trying again"));
-    #endif
-    client.connect(clientID, mqtt_username, mqtt_password);
-    sub_mqtt();
-    delay(2000); // This delay ensures that client.publish doesn't clash with the client.connect call
-    if(!client.publish(topic.c_str(), data.c_str())){
-      #ifdef DEBUG
-      Serial.println(F("ERROR no data sent!"));
-      #endif
-      return true;
-    }
-    else{
-      #ifdef DEBUG
-      Serial.println(F("Data sent!"));
-      #endif
-      return false;
-    }
-  }
-}
-*/
-
-
 bool msg_mqtt(String topic, String data){
   //This function take topic and data as String and publishes it via MQTT
   //it returns a bool value, where 0 means success and 1 is a failed attemt
@@ -754,7 +727,7 @@ void setup() {
   Serial.println(F("debug 0"));
   #endif
 
-  delay(500);  //make TX pin Blink 2 times, visualize end of setup
+  delay(500);  //make TX pin Blink 2 times
   Serial.print(measure_intervall);
   delay(500);
   Serial.println(measure_intervall);
@@ -773,6 +746,16 @@ void setup() {
   Serial.print(hour_);
   delay(1000);
   #endif
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//init Irrigation Controller instance and update config
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef RasPi
+// setup empty class instance
+IrrigationController controller;
+// update the config file stored in spiffs
+// in order to work a RasPi with node-red and configured flow is needed
+controller.updateController();
+#endif
   //hour_ = 0;
   //disableWiFi();
 
@@ -1019,7 +1002,7 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   }
 
   int data2[28] = {0}; //create data array
-  controll_mux(11, sig_mux_1, en_mux_1, "read", &value); //take battery measurement bevore devices are switched on
+  controll_mux(11, sig_mux_1, en_mux_1, "read", &value); //take battery measurement before devices are switched on
 
   data2[4] = value;                                       //--> battery voltage (low load)
   delay(100); //give sensor time to stabilize voltage
@@ -1136,6 +1119,7 @@ if(thirsty){
   Serial.println(F("start watering phase"));
   #endif
   delay(30);
+
   // --- Watering ---
   //description: trigger at specific time
   //             alternate the solenoids to avoid heat damage, let cooldown time if only one remains
@@ -1144,93 +1128,62 @@ if(thirsty){
   //        NEVER INTERUPT WHILE WATERING!
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   while((loop_t + measure_intervall > millis()) & (thirsty)){
-    int len = sizeof(group)/sizeof(group[0]);
-    int finish = 0; //finished groups
-    int set = 0; //groups set
-    unsigned int pump_t = 0;
-    struct solenoid* ptr = group;
+  // process will trigger multiple loop iterations until thirsty is set false
+  // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
 
-    for (int i=0; i<len; i++, ptr++) {
-      Serial.print("Temp statment watertime: "); Serial.println(ptr->watering_time);
-      if(ptr->is_set){
-        set+=1;
-      }
-      //check if procedure finished
-      if(ptr->watering_time == 0){
-        finish+=1;
-        #ifdef DEBUG
-        Serial.println(ptr->watering_time == 0);
-        #endif
-      }
-      delay(10);
-      //start watering process
-      if((ptr->last_t + SOLENOID_COOLDOWN < millis()) & (ptr->watering_time > 0) & (ptr->is_set)) //minimum cooldown of 30 sec
-      {
-        unsigned int water_timer = 0;
-        //set ptr variable to 0 when finished
-        if (ptr->watering_time < max_active_time_sec)
-        {
-          water_timer = ptr->watering_time;
-          ptr->watering_time = 0;
-        }
-        else{ //reduce ptr variable with max active time
-          water_timer = (unsigned int) max_active_time_sec;
-          ptr->watering_time -= (unsigned int) max_active_time_sec;
-        }
-        if(water_timer > (unsigned int) max_active_time_sec){ //sanity check
-          #ifdef DEBUG
-          Serial.println(F("Warning watering timer over 60!"));
-          #endif
-          water_timer = (unsigned int) max_active_time_sec;
-        }
-        //perform watering
-        #ifdef DEBUG
-        Serial.print(F("Watering group: ")); Serial.print(ptr->name); Serial.println(F(";  "));
-        Serial.print(water_timer); Serial.print(F(" seconds")); Serial.println(F(";  "));
-        #endif
-        pump_t += water_timer;
-        watering(data_shft, sh_cp_shft, st_cp_shft, water_timer, ptr->pin, ptr->pump_pin, sw_3_3v, vent_pwm);
-        ptr->last_t = millis();
-        #ifdef DEBUG
-        Serial.println(F("Done!"));
-        delay(10);
-        #endif
-      }
-
+    // load the stored file and get all keys
+    DynamicJsonDocument doc(CONF_FILE_SIZE);
+    if (!(Helper::load_conf(CONFIG_FILE_PATH, doc))){
       #ifdef DEBUG
-      Serial.println(F("----------------------"));
+      Serial.println(F("Error during watering procedure: Happened when loading config file!"));
       #endif
-
-      //let electronics cool down
-      if(pump_t > (unsigned int) max_active_time_sec){
-        pump_t = 0;
-        #ifdef DEBUG
-        Serial.print(F("cooling down: ")); Serial.println(2UL + (unsigned long) (pump_cooldown_sec / ((unsigned long) TIME_TO_SLEEP * 1000UL)));
-        delay(100);
-        #endif
-        for(unsigned long i = 0; i < 2UL + (unsigned long) (pump_cooldown_sec / ((unsigned long) TIME_TO_SLEEP * 1000UL)); i++){
-          delay(TIME_TO_SLEEP*1000);
-        }
-      }
-      else{
-      //send esp to sleep
-      delay(TIME_TO_SLEEP*1000);
-      }
-    }
-
-    if(finish == set){
-      #ifdef DEBUG
-      Serial.print("Finished and set: "); Serial.print(finish); Serial.print("::"); Serial.println(set);
-      #endif
-      thirsty = false;
       break;
     }
-    #ifdef DEBUG
-    Serial.println(F("++++++++++++++++++++++++++++"));
-    #endif
+    // Access the "groups" object
+    JsonObject groups = doc["groups"];
+    doc.clear();
+
+    int numgroups = groups.size();
+    IrrigationController Group[numgroups];
+    int j = 0;
+    // Iterate through all keys in the "groups" object and initialize the class instance
+    // kv = key value pair
+    for(JsonPair kv : groups){
+      // check if group is presend and get its index
+      int solenoid_index = 0;
+      if(groups[kv.key()].is<int>()){
+        solenoid_index = groups[kv.key()].as<int>();
+        // access watering group via virtual pin stored as jsonkey (solenoid ?|pump pin)
+        Group[j].loadScheduleConfig(CONFIG_FILE_PATH, solenoid_index);
+      }
+      else{
+        // reset the group to take it out of process
+        Group[j].reset();
+      }
+      // Initialize Group
+      // Access the value of the current key-value pair
+      j++;
+    }
+
+    // Iterate over all irrigation controller objects in the Group array
+    // This process will trigger multiple loop iterations until thirsty is set false
+    int status = 0;
+    for(int i = 0; i < numgroups; i++){
+      // ACTIVATE SOLENOID AND/OR PUMP
+      // The method checks if the instance is ready for watering
+      // if not it will return early, else it will use delay to wait untill the process has finished
+      status += Group[i].waterOn(hour1);
+    }
+    // check if all groups are finished and reset status
+    if(!status){
+      thirsty = false;
+    }
   }
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
+  delay(10);
   digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // sleep
@@ -1251,21 +1204,6 @@ if (loop_t + measure_intervall > millis()){
       break; //stop loop to start measuring
     }
   }
-  /*
-  //sleep till next measure intervall + 2 times sleep time
-  unsigned long sleep = loop_t + measure_intervall - millis() + TIME_TO_SLEEP * 1000UL * 2UL; 
-  #ifdef DEBUG
-  Serial.print(F("sleep in s: ")); Serial.println(sleep / 1000);
-  #endif
-  delay(10);
-  for(unsigned long i = 0; i < (unsigned long) (sleep / TIME_TO_SLEEP * 1000); i++){
-    system_sleep(); //turn off all external transistors
-    esp_light_sleep_start();
-    if(loop_t + measure_intervall < millis()){
-      break; //stop loop to start measuring
-    }
-  }
-  */
 }
 #ifdef DEBUG
 Serial.println(F("End loop!"));

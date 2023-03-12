@@ -1,3 +1,13 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// br-mat (c) 2022
+// email: matthiasbraun@gmx.at
+//
+// Config file, setting constants and macros.
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
@@ -8,6 +18,10 @@
 
 #ifndef CONFIG_FILE_PATH
 #define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
+#endif
+
+#ifndef CONF_FILE_SIZE
+#define CONF_FILE_SIZE 2048
 #endif
 
 #ifndef DS3231_I2C_ADDRESS

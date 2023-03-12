@@ -1,53 +1,69 @@
-#include <Arduino.h>
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// br-mat (c) 2022
+// email: matthiasbraun@gmx.at
+//
+// This file contains the functionality for the IrrigationController class, which is responsible for managing and
+// controlling an irrigation system. It includes functions for creating and configuring irrigation controllers,
+// updating the controller based on current conditions, and determining when it is time to water.
+//
+// Dependencies:
+// - Arduino.h
+// - IrrigationController.h
+// - SPIFFS.h
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #include <IrrigationController.h>
-#include <SPIFFS.h>
 
 #define DEBUG
 
-// Define constants
-// Define the number of solenoids to create
-//const int maxSolenoids = max_groups;
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// HARDWARE STRUCTS
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Define the number of solenoids to create
-//const int maxPumps = MAX_PUMPS;
-/*
-void IrrigationHardware(int maxSolenoids, int maxPumps){
-  // create hardware components and asign corresponding pins
+// Initialize the static variable
+int Solenoid::activeInstances = 0;
 
-  // Declare the array of Solenoid objects
-  Solenoid solenoids[maxSolenoids];
-  // Iterate over the array and initialize each Solenoid object
-  for (int i = 0; i < maxSolenoids; i++) {
-    solenoids[i].setup(i);
-  }
-  // Declare the array of Solenoid objects
-  Pump pumps[maxPumps];
-  // Iterate over the array and initialize each Solenoid object
-  for (int i = 0; i < maxPumps; i++) {
-    pumps[i].setup(i);
-  }
+// Default constructor
+Solenoid::Solenoid() : pin(-1), lastActivation(0) {
+  activeInstances++;
 }
-*/
 
-void Solenoid::setup(int pin){
-  // Initialize solenoid
+// Constructor that takes a pin number as input
+Solenoid::Solenoid(int pin) : pin(pin), lastActivation(0) {
+  activeInstances++;
+}
+
+// Destructor
+Solenoid::~Solenoid() {
+  activeInstances--;
+}
+
+// Member function to initialize the solenoid
+void Solenoid::setup(int pin) {
   this->pin = pin;
-  this->lastActivation = 0;
-  }
+  pinMode(pin, OUTPUT);
+}
 
+// Member function to initialize Pump object by assigning a pin
 void Pump::setup(int pin){
   // Initialize pumps
   this->pin = pin;
   this->lastActivation = 0;
 }
 
-IrrigationController::IrrigationController(const char path[], 
-                        Solenoid* solenoid, //attatched solenoid
-                        Pump* pump //attatched pump
-                        ){
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// CLASS IrrigationController
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+IrrigationController::IrrigationController(const char path[PATH_LENGTH], 
+                      Solenoid* solenoid, //attatched solenoid
+                      Pump* pump //attatched pump
+                      ){
   this->solenoid = solenoid;
   this->pump = pump;
-  bool cond = this->loadFromConfig(path, solenoid->pin);
+  bool cond = this->loadScheduleConfig(path, solenoid->pin);
   if(cond){
     return;
   }
@@ -55,35 +71,33 @@ IrrigationController::IrrigationController(const char path[],
   this->is_set = false;
   this->name = "NaN";
   this->timetable = 0;
-  this->watering_default = 0;
-  this->watering_mqtt = 0;
+  this->watering = 0;
   this->water_time = 0;
-  }
-
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void IrrigationController::createNewController(
-                        bool is_set, //activate deactivate group
-                        String name, //name of the group
-                        unsigned long timetable,
-                        int watering_default, //defualt value of watering amount set for group (should not be changed)
-                        Solenoid* solenoid, //attatched solenoid
-                        Pump* pump, //attatched pump
-                        int watering_mqtt, //base value of watering time sent from RaspPi
-                        int water_time //holds value of how long it should water
-                        ){
+                      bool is_set, //activate deactivate group
+                      String name, //name of the group
+                      unsigned long timetable,
+                      int watering, //defualt value of watering amount set for group
+                      Solenoid* solenoid, //attatched solenoid
+                      Pump* pump, //attatched pump
+                      int water_time //holds value of how long it should water
+                      ){
   this->is_set = is_set;
   this->name = name;
   this->timetable = timetable;
-  this->watering_default = watering_default;
+  this->watering = watering;
   this->solenoid = solenoid;
   this->pump = pump;
   this->solenoid_pin = solenoid->pin;
   this->pump_pin = pump->pin;
-  this->watering_mqtt = watering_mqtt;
   this->water_time = water_time;
-  }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  int IrrigationController::readyToWater(int currentHour) {
+int IrrigationController::readyToWater(int currentHour) {
   //INPUT: currentHour is the int digits of the full hour
   //Function:
   //It checks if the irrigation system is ready to water.
@@ -136,167 +150,399 @@ void IrrigationController::createNewController(
     return 0; // not ready to water
   }
 
-// both the solenoid and pump are ready, so calculate the remaining watering time,
-// return seconds using min function
-// to minimize stress to hardware part,
-// ignore how long the part was active previously and let it cd always the full time!
-int remainingTime = min(water_time, max_active_time_sec);
-remainingTime = max(remainingTime, (int)0); //avoid values beyond 0
-this->water_time -= remainingTime; // update the water time
+  // both the solenoid and pump are ready, so calculate the remaining watering time,
+  // return seconds using min function
+  // to minimize stress to hardware part,
+  // ignore how long the part was active previously and let it cd always the full time!
+  int remainingTime = min(water_time, max_active_time_sec);
+  remainingTime = max(remainingTime, (int)0); //avoid values beyond 0
+  this->water_time -= remainingTime; // update the water time
 
-// update the last activation time of the solenoid and pump
-solenoid->lastActivation = currentMillis;
-pump->lastActivation = currentMillis;
+  // update the last activation time of the solenoid and pump
+  solenoid->lastActivation = currentMillis;
+  pump->lastActivation = currentMillis;
 
-#ifdef DEBUG
-Serial.print("remaining time: "); Serial.println(remainingTime);
-#endif
-return remainingTime; //return active time
+  #ifdef DEBUG
+  Serial.print("remaining time: "); Serial.println(remainingTime);
+  #endif
+  return remainingTime; //return active time
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool IrrigationController::loadFromConfig(const char path[], int pin) {
-  //INPUT: group_index refers to the hardware pin of the corresponding solenoid
-  // Read the config file
-  File configFile = SPIFFS.open(path, "r");
-  if (!configFile) {
+// Reads the JSON file at the specified file path and returns the data as a DynamicJsonDocument.
+// If the file path is invalid or if there is an error reading or parsing the file, an empty DynamicJsonDocument is returned.
+DynamicJsonDocument IrrigationController::readConfigFile(const char path[PATH_LENGTH]) {
+  DynamicJsonDocument jsonDoc(CONF_FILE_SIZE); // create JSON doc, if an error occurs it will return an empty jsonDoc
+                                     // which can be checked using jsonDoc.isNull()
+
+  if (path == nullptr) { // check for valid path
     #ifdef DEBUG
-    Serial.println("Failed to open config file");
+    Serial.println("Invalid file path");
     #endif
-    return false;
+    return jsonDoc;
   }
 
-  // Parse the JSON from the config file
-  DynamicJsonDocument jsonDoc(1024);
+  File configFile = SPIFFS.open(path, "r"); // open the config file for reading
+  if (!configFile) { // check if file was opened successfully
+    #ifdef DEBUG
+    Serial.println("Failed to open config file for reading");
+    #endif
+    return jsonDoc;
+  }
+
+  // Load the JSON data from the config file
   DeserializationError error = deserializeJson(jsonDoc, configFile);
-
-  // Close the config file and open it again later to prevent problems in error case
   configFile.close();
-
-  if (!error) {
+  if (error) { // check for error in parsing JSON data
     #ifdef DEBUG
     Serial.println("Failed to parse config file");
     #endif
+    jsonDoc.clear();
+    return jsonDoc;
+  }
+  
+  return jsonDoc;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Writes the specified DynamicJsonDocument to the file at the specified file path as a JSON file.
+// Returns true if the file was written successfully, false if the file path is invalid or if there is an error writing the file.
+bool IrrigationController::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
+  if (path == nullptr) { // check for valid path
+    #ifdef DEBUG
+    Serial.println("Invalid file path");
+    #endif
     return false;
   }
-  // Set the values of the private member variables
-  // using the values from the JSON document
-  this->is_set = jsonDoc["group"][String(pin)]["is_set"].as<int16_t>();
+
+  File newFile = SPIFFS.open(path, "w"); // open the config file for writing
+  if (!newFile) { // check if file was opened successfully
+    #ifdef DEBUG
+    Serial.println("Failed to open config file for writing");
+    #endif
+    newFile.close();
+    return false;
+  }
+
+  // Write the JSON data to the config file
+  serializeJson(jsonDoc, newFile);
+  newFile.close();
+  return true;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Reads the JSON file at the specified file path and parses it to retrieve values for a number of member variables in the IrrigationController class.
+// The member variables include is_set, name, timetable, watering, water_time, solenoid_pin, and pump_pin.
+// Returns true if the file was read and parsed successfully, false if the file path is invalid or if there is an error reading or parsing the file.
+bool IrrigationController::loadScheduleConfig(const char path[PATH_LENGTH], int pin) {
+  DynamicJsonDocument jsonDoc = readConfigFile(path); // read the config file
+  if (jsonDoc.isNull()) {
+    return false;
+  }
+
+  // Set the values of the member variables using the values from the JSON document
+  this->is_set = jsonDoc["group"][String(pin)]["is_set"].as<bool>();
   this->name = jsonDoc["group"][String(pin)]["name"].as<String>();
   this->timetable = jsonDoc["group"][String(pin)]["timetable"].as<uint32_t>();
-  this->watering_default = jsonDoc["group"][String(pin)]["watering_default"].as<int16_t>();
-  this->watering_mqtt = jsonDoc["group"][String(pin)]["watering_mqtt"].as<int16_t>();
+  this->watering = jsonDoc["group"][String(pin)]["watering"].as<int16_t>();
   this->water_time = jsonDoc["group"][String(pin)]["water_time"].as<int16_t>();
 
-  //just store pin information as its identical with the index of the solenoids
+  // Store pin information as its identical with the index of the solenoids
   this->solenoid_pin = jsonDoc["group"][String(pin)]["solenoid_pin"].as<int16_t>();
   this->pump_pin = jsonDoc["group"][String(pin)]["pump_pin"].as<int16_t>();
 
   return true;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool IrrigationController::saveToConfig(const char path[], int pin) {
-  // Open the config file for reading
-  File configFile = SPIFFS.open(path, "r");
-  if (!configFile) {
-    #ifdef DEBUG
-    Serial.println("Failed to open config file for reading");
-    #endif
-    configFile.close();
+// Updates the values of a number of member variables in the IrrigationController class in the JSON file at the specified file path.
+// Returns true if the file was updated successfully, false if the file path is invalid or if there is an error reading or writing the file.
+bool IrrigationController::saveScheduleConfig(const char path[20], int pin) {
+  DynamicJsonDocument jsonDoc = readConfigFile(path); // read the config file
+  if (jsonDoc.isNull()) {
     return false;
   }
 
-  // Load the JSON data from the config file
-  DynamicJsonDocument jsonDoc(1024);
-  DeserializationError error = deserializeJson(jsonDoc, configFile);
-  if (!error) {
-    #ifdef DEBUG
-    Serial.println("Failed to parse config file");
-    #endif
-    configFile.close();
-    return false;
-  }
-  configFile.close();
-
-  // Check if the group and pin exist in the JSON data
-  if (!jsonDoc["group"].containsKey(String(pin))) {
-    // If the group and pin do not exist, return error
-    #ifdef DEBUG
-    Serial.println(F("Error: missing json object, no data found under provided keys"));
-    #endif
-    return false;
-  }
-
-
-  // TODO: create new json file with group and pin for easier reading and addapt code below
-
-  // Update the JSON data with the irrigation controller's information
+  // Update the values in the configuration file with the values of the member variables
   jsonDoc["group"][String(pin)]["is_set"] = this->is_set;
   jsonDoc["group"][String(pin)]["name"] = this->name;
   jsonDoc["group"][String(pin)]["timetable"] = this->timetable;
-  jsonDoc["group"][String(pin)]["watering_default"] = this->watering_default;
-  jsonDoc["group"][String(pin)]["watering_mqtt"] = this->watering_mqtt;
+  jsonDoc["group"][String(pin)]["watering"] = this->watering;
   jsonDoc["group"][String(pin)]["water_time"] = this->water_time;
-  jsonDoc["group"][String(pin)]["solenoid_pin"] = this->solenoid->pin;
-  jsonDoc["group"][String(pin)]["pump_pin"] = this->pump->pin;
+  jsonDoc["group"][String(pin)]["solenoid_pin"] = this->solenoid_pin;
+  jsonDoc["group"][String(pin)]["pump_pin"] = this->pump_pin;
 
-  // Open the config file for writing
-  File newFile = SPIFFS.open(path, "w");
-  if (!newFile) {
-    #ifdef DEBUG
-    Serial.println("Failed to open config file for writing");
-    #endif
-    newFile.close();
-    return false;
-  }
-  
-  // Serialize the JSON object to the config file
-  if (serializeJson(jsonDoc, newFile) == 0) {
-    newFile.close();
-    #ifdef DEBUG
-    Serial.println("Failed to serialize JSON data to config file");
-    #endif
-    return false;
-  }
-
-  newFile.close();
-  return true;
+  return writeConfigFile(jsonDoc, path); // write the updated JSON data to the config file
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-bool IrrigationController::saveToConfig(const char path[], int pin) {
-  //TODO: rework function, first open config and load json data, then check if group and pins is available
-  //      and check all the other posible keys like is_set , name ... 
-  //      the next step is to update these keys like shown below ...
-
-  // Create a JSON object to hold the irrigation controller's information
-  DynamicJsonDocument jsonDoc(1024);
-  jsonDoc["group"][String(pin)]["is_set"] = this->is_set;
-  jsonDoc["group"][String(pin)]["name"] = this->name;
-  jsonDoc["group"][String(pin)]["timetable"] = this->timetable;
-  jsonDoc["group"][String(pin)]["watering_default"] = this->watering_default;
-  jsonDoc["group"][String(pin)]["watering_mqtt"] = this->watering_mqtt;
-  jsonDoc["group"][String(pin)]["water_time"] = this->water_time;
-  jsonDoc["group"][String(pin)]["solenoid_pin"] = this->solenoid->pin;
-  jsonDoc["group"][String(pin)]["pump_pin"] = this->pump->pin;
-
-  // Open the config file for writing
-  File configFile = SPIFFS.open(path, "w");
-  if (!configFile) {
-    Serial.println("Failed to open config file for writing");
-    return false;
-  }
-  
-  // Serialize the JSON object to the config file
-  serializeJson(jsonDoc, configFile);
-  configFile.close();
-  return true;
+// Resets all member variables to their default values
+void IrrigationController::reset() {
+  is_set = false;
+  name = "";
+  timetable = 0;
+  watering = 0;
+  solenoid = nullptr;
+  pump = nullptr;
+  water_time = 0;
+  solenoid_pin = 0;
+  pump_pin = 0;
 }
-*/
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void IrrigationController::updateController(){
-  //TODO: implement function to update controller status data regarding watering system
+void IrrigationController::activatePWM(int time_s) {
+  //Function description: Controlls the watering procedure on valves and pump
+  // Careful with interupts! To avoid unwanted flooding.
+  //FUNCTION PARAMETER:
+  //time        -- time in seconds, max 60 seconds                                    int
+  //------------------------------------------------------------------------------------------------
+  // check if time is within range
+  time_s = max(0, time_s);
+  time_s = min(time_s, max_active_time_sec);
+
+  //initialize state
+  uint8_t vent_pin = this->solenoid_pin;
+  uint8_t pump_pin = this->pump_pin;
+  digitalWrite(sw_3_3v, LOW);
+  digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
+  digitalWrite(st_cp_shft, LOW);
+  digitalWrite(data_shft, LOW);
+  #ifdef DEBUG
+  Serial.print(F("uint time:")); Serial.println(time_s);
+  #endif
+  digitalWrite(sw_3_3v, HIGH);
+  unsigned long time_ms = (unsigned long)time_s * 1000UL;
+  if (time_ms > (unsigned long)max_active_time_sec * 1000UL){
+    time_ms = (unsigned long)max_active_time_sec * 1000UL;
+    #ifdef DEBUG
+    Serial.println(F("time warning: time exceeds sec"));
+    #endif
+  }
+
+  // seting shiftregister to 0
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //take byte type as value
+  digitalWrite(st_cp_shft, HIGH); //enables the output of the register
+  delay(1);
+  digitalWrite(st_cp_shft, LOW);
+  #ifdef DEBUG
+  Serial.print(F("Watering group: "));
+  Serial.println(vent_pin); Serial.print(F("time: ")); Serial.println(time_ms);
+  #endif
+  // perform actual function
+  //byte value = (1 << vent_pin) + (1 << pump_pin);
+
+  byte value = solenoid == nullptr ? 0 : ((1 << solenoid->pin) | (pump == nullptr ? 0 : (1 << pump->pin)));
+
+  #ifdef DEBUG
+  Serial.print(F("shiftout value: ")); Serial.println(value);
+  #endif
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, value);
+  digitalWrite(st_cp_shft, HIGH); //enables the output of the register
+  delay(1);
+  digitalWrite(st_cp_shft, LOW);
+  delay(100); //wait balance load after pump switches on
+  //control this PWM pin by changing the duty cycle:
+  // ledcWrite(PWM_Ch, DutyCycle);
+  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 1);
+  delay(2);
+  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.96);
+  delay(2);
+  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.92);
+  delay(1);
+  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.9);
+  delay(1);
+  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.88);
+  delay(1);
+  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.87);
+  delay(1);
+  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.86);
+  delay(time_ms);
+
+  // reset
+  // seting shiftregister to 0
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //take byte type as value
+  digitalWrite(st_cp_shft, HIGH); //enables the output of the register
+  delay(1);
+  digitalWrite(st_cp_shft, LOW);
+
+  digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
+  digitalWrite(st_cp_shft, LOW);
+  digitalWrite(data_shft, LOW);
+  digitalWrite(sw_3_3v, LOW);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void IrrigationController::activate(int time_s) {
+  //Function description: Controlls the watering procedure on valves and pump
+  // Careful with interupts! To avoid unwanted flooding.
+  //FUNCTION PARAMETER:
+  //time        -- time in seconds, max 40 seconds                                    int
+  //------------------------------------------------------------------------------------------------
+  // check if time is within range
+  time_s = max(0, time_s);
+  time_s = min(time_s, max_active_time_sec);
+
+  //initialize state
+  uint8_t vent_pin = this->solenoid_pin;
+  uint8_t pump_pin = this->pump_pin;
+  digitalWrite(sw_3_3v, LOW);
+  digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
+  digitalWrite(st_cp_shft, LOW);
+  digitalWrite(data_shft, LOW);
+  #ifdef DEBUG
+  Serial.print(F("uint time:")); Serial.println(time_s);
+  #endif
+  digitalWrite(sw_3_3v, HIGH);
+  unsigned long time_ms = (unsigned long)time_s * 1000UL;
+  if (time_ms > (unsigned long)max_active_time_sec * 1000UL){
+    time_ms = (unsigned long)max_active_time_sec * 1000UL;
+    #ifdef DEBUG
+    Serial.println(F("time warning: time exceeds sec"));
+    #endif
+  }
+
+  // seting shiftregister to 0
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //take byte type as value
+  digitalWrite(st_cp_shft, HIGH); //enables the output of the register
+  delay(1);
+  digitalWrite(st_cp_shft, LOW);
+  #ifdef DEBUG
+  Serial.print(F("Watering group: "));
+  Serial.println(vent_pin); Serial.print(F("time: ")); Serial.println(time_ms);
+  #endif
+  // perform actual function
+  //byte value = (1 << vent_pin) + (1 << pump_pin);
+
+  byte value = solenoid == nullptr ? 0 : ((1 << solenoid->pin) | (pump == nullptr ? 0 : (1 << pump->pin)));
+
+  #ifdef DEBUG
+  Serial.print(F("shiftout value: ")); Serial.println(value);
+  #endif
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, value);
+  digitalWrite(st_cp_shft, HIGH); //enables the output of the register
+  delay(1);
+  digitalWrite(st_cp_shft, LOW);
+  delay(100); //wait balance load after pump switches on
+
+  // Wait for the specified time
+  delay(time_ms);
+
+  // reset
+  // seting shiftregister to 0
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //take byte type as value
+  digitalWrite(st_cp_shft, HIGH); //enables the output of the register
+  delay(1);
+  digitalWrite(st_cp_shft, LOW);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Member function to start watering process
+int IrrigationController::waterOn(int hour) {
+  // Function description: Starts the irrigation procedure after checking if the hardware is ready
+  //FUNCTION PARAMETER:
+  // currentHour - the active hour to check the with the timetable
+
+  // Check if hardware is ready to water
+  int active_time = readyToWater(hour);
+  if (active_time > 0) {
+    // Activate watering process
+    activatePWM(active_time);
+    return 1;
+  }
+  return 0;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool IrrigationController::updateController(){
   // call this function once per hour it uses timetable to determine if it should set water_time variable with content either
   // watering_default or watering_mqtt depending on a modus variable past with the function (this can be an integer about 0-5)
   // water time variable holds information about the water cycle for the active hour if its 0 theres nothing to do
-  // if its higher then it should be recognized by the readyToWater function, this value 
+  // if its higher then it should be recognized by the readyToWater function, this value
+
+  if (WiFi.status() == WL_CONNECTED) {
+    DynamicJsonDocument newdoc = getJSONData(SERVER, SERVER_PORT, SERVER_PATH);
+    if(newdoc.isNull()){
+      #ifdef DEBUG
+      Serial.println(F("Error reading server file"));
+      #endif
+      return false;
+    }
+    DynamicJsonDocument jsonDoc = readConfigFile(CONFIG_FILE_PATH); // read the config file
+    if(jsonDoc.isNull()){
+      #ifdef DEBUG
+      Serial.println(F("Error reading local file"));
+      #endif
+      return false;
+    }
+    jsonDoc = newdoc;
+
+    return writeConfigFile(jsonDoc, CONFIG_FILE_PATH); // write the updated JSON data to the config file
+  }
+  else{
+    #ifdef DEBUG
+    Serial.println(F("Error no Wifi connection established"));
+    #endif
+    return false;
+  }
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Define the implementation of the combineTimetables() static member function
+long IrrigationController::combineTimetables(IrrigationController* controllers, size_t size)
+{
+  // Initialize the combined timetable to 0
+  long combinedTimetable = 0;
+
+  // Iterate through the array of controllers
+  for (size_t i = 0; i < size; ++i)
+  {
+    // Combine the timetable of the current controller with the combined timetable using the "or" operator
+    combinedTimetable |= controllers[i].timetable;
+  }
+
+  // Return the combined timetable
+  return combinedTimetable;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+DynamicJsonDocument IrrigationController::getJSONData(const char* server, int serverPort, const char* serverPath) {
+  // Send the HTTP GET request to the Raspberry Pi server
+  DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
+  HTTPClient http;
+  http.begin(String("http://") + server + ":" + serverPort + serverPath);
+  int httpCode = http.GET();
+
+  // Check the status code
+  if (httpCode == HTTP_CODE_OK) {
+    // Parse the JSON data
+    DeserializationError error = deserializeJson(JSONdata, http.getString());
+
+    if (error) {
+      #ifdef DEBUG
+      Serial.println(F("Error parsing JSON data"));
+      #endif
+      return JSONdata;
+    } else {
+      return JSONdata;
+    }
+  } else {
+    #ifdef DEBUG
+    Serial.println(F("Error sending request to server"));
+    #endif
+    return JSONdata;
+  }
+
+  http.end();
+  return JSONdata;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Getter & Setters
+bool IrrigationController::getMainSwitch() const { return main_switch; }
+void IrrigationController::setMainSwitch(bool value) { main_switch = value; }
+bool IrrigationController::getSwitch3() const { return placeholder3; }
+void IrrigationController::setSwitch3(bool value) { placeholder3 = value; }
+bool IrrigationController::getDataloggingSwitch() const { return dataloging_switch; }
+void IrrigationController::setDataloggingSwitch(bool value) { dataloging_switch = value; }
+bool IrrigationController::getIrrigationSystemSwitch() const { return irrigation_system_switch; }
+void IrrigationController::setIrrigationSystemSwitch(bool value) { irrigation_system_switch = value; }
