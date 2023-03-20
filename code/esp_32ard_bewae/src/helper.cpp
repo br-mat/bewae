@@ -33,8 +33,6 @@
 
 #include <Helper.h>
 
-//#define DEBUG
-
 #define SD_MOSI      13
 #define SD_MISO      5
 #define SD_SCK       14
@@ -504,45 +502,64 @@ bool Helper::find_element(int *array, int item){
   return false;
 }
 
-bool Helper::load_conf(const char path[20], DynamicJsonDocument &doc){
-  // function load Json data from file
-  // path - const char array max 20 chars
-  // doc - buffer document (memory &address needed)
-  File file = SPIFFS.open(path, "r");
-  if (!file) {
+// Reads the JSON file at the specified file path and returns the data as a DynamicJsonDocument.
+// If the file path is invalid or if there is an error reading or parsing the file, an empty DynamicJsonDocument is returned.
+DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
+  DynamicJsonDocument jsonDoc(CONF_FILE_SIZE); // create JSON doc, if an error occurs it will return an empty jsonDoc
+                                     // which can be checked using jsonDoc.isNull()
+
+  if (path == nullptr) { // check for valid path
     #ifdef DEBUG
-    Serial.println(F("error in load_conf file creation failed"));
+    Serial.println("Invalid file path");
     #endif
-    return false;
+    return jsonDoc;
   }
-  DeserializationError error = deserializeJson(doc, file);
-  file.close();
-  if (!error) {
+
+  File configFile = SPIFFS.open(path, "r"); // open the config file for reading
+  if (!configFile) { // check if file was opened successfully
+    #ifdef DEBUG
+    Serial.println("Failed to open config file for reading");
+    #endif
+    return jsonDoc;
+  }
+
+  // Load the JSON data from the config file
+  DeserializationError error = deserializeJson(jsonDoc, configFile);
+  configFile.close();
+  if (error) { // check for error in parsing JSON data
     #ifdef DEBUG
     Serial.println("Failed to parse config file");
     #endif
-    return false;
+    jsonDoc.clear();
+    return jsonDoc;
   }
-  return true;
+  
+  return jsonDoc;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool Helper::save_conf(const char path[20], DynamicJsonDocument &doc){
-  // function saves Json data to file
-  // path - const char array max 20 chars
-  // doc - json buffer document holding content (memory &address needed)
-  //SPIFFS.remove(path); //remove is not necessary serialize should handle this
-  File file = SPIFFS.open(path, "w");
-  if (!file) {
+// Writes the specified DynamicJsonDocument to the file at the specified file path as a JSON file.
+// Returns true if the file was written successfully, false if the file path is invalid or if there is an error writing the file.
+bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
+  if (path == nullptr) { // check for valid path
     #ifdef DEBUG
-    Serial.println(F("error in save_conf file creation failed"));
+    Serial.println("Invalid file path");
     #endif
     return false;
   }
-  if (serializeJson(doc, file) == 0) {
+
+  File newFile = SPIFFS.open(path, "w"); // open the config file for writing
+  if (!newFile) { // check if file was opened successfully
     #ifdef DEBUG
-    Serial.println(F("Failed to write to file"));
+    Serial.println("Failed to open config file for writing");
     #endif
+    newFile.close();
+    return false;
   }
-  file.close();
+
+  // Write the JSON data to the config file
+  serializeJson(jsonDoc, newFile);
+  newFile.close();
   return true;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -20,6 +20,13 @@
 #ifndef __Helper_H__
 #define __Helper_H__
 
+#ifndef DEBUG
+#define DEBUG
+#endif
+
+#ifndef PATH_LENGTH
+#define PATH_LENGTH 25
+#endif
 
 #include <Arduino.h>
 #include "driver/adc.h"
@@ -45,8 +52,10 @@ namespace Helper{
     void wakeModemSleep();
     void disableBluetooth();
     bool find_element(int *array, int item);
-    bool load_conf(const char path[20], DynamicJsonDocument &doc);
-    bool save_conf(const char path[20], DynamicJsonDocument &doc);
+    // Loads the config file and sets the values of the member variables
+    DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
+    // Saves the values of the member variables to the config file
+    bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
     struct solenoid{
                     bool is_set; //activate deactivate group
                     uint8_t pin; //pin of the solenoid (virtual pin!)
