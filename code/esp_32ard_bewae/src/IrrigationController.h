@@ -14,11 +14,12 @@
 // - SPIFFS.h
 // - config.h
 // - connection.h
+// - Helper.h
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef IRRIGATIONCONTROLLER_H
-#define IRRIGATIONCONTROLLER_H
+#ifndef IRRIGATION_CONTROLLER_H
+#define IRRIGATION_CONTROLLER_H
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -26,6 +27,7 @@
 #include <SPIFFS.h>
 #include <config.h>
 #include <connection.h>
+#include <Helper.h>
 
 #ifndef PATH_LENGTH
 #define PATH_LENGTH 25
@@ -93,9 +95,9 @@ class IrrigationController {
 
     // PRIVATE METHODS:
     // Loads the config file and sets the values of the member variables
-    DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
+    //DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
     // Saves the values of the member variables to the config file
-    bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
+    //bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
     // sends GET request to RaspberryPi and store response in json doc
     DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath);
     // Member function to activate watering using PWM
@@ -139,7 +141,7 @@ class IrrigationController {
     // Member function to update the data
     bool updateController();
     // Define a static member function to combine the timetables of an array of IrrigationController objects using a loop
-    static long combineTimetables(IrrigationController* controllers, size_t size);
+    static long combineTimetables();
 
     // Getter & Setters
     bool getMainSwitch() const;
