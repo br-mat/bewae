@@ -41,11 +41,14 @@
 #include <connection.h>
 #include <Helper.h>
 #include <IrrigationController.h>
+#include <SensorController.h>
 #include <config.h>
 
 using namespace std;
 
+#ifndef DEBUG
 #define DEBUG 1
+#endif
 
 using namespace Helper;
 
@@ -106,13 +109,13 @@ Pump pump_main[2] =
 // No need for initialization as it will be loaded from config file
 
 
-//timetable storing watering hours
-//                                           2523211917151311 9 7 5 3 1
-//                                            | | | | | | | | | | | | |
-unsigned long int timetable_default = 0b00000000000000000000010000000000;
-//                                             | | | | | | | | | | | | |
-//                                            2422201816141210 8 6 4 2 0
-unsigned long int timetable = timetable_default; //initialize on default
+//timetable example
+//                                             2523211917151311 9 7 5 3 1
+//                                              | | | | | | | | | | | | |
+//unsigned long int timetable_default = 0b00000000000000000000010000000000;
+//                                               | | | | | | | | | | | | |
+//                                              2422201816141210 8 6 4 2 0
+unsigned long int timetable = 0; //initialize on default
 unsigned long int timetable_raspi = 0; //initialize on default
 
 //is_set, pin, name, val, group
@@ -142,6 +145,9 @@ sensors bme_point[3] =
   {true, 0, "pres280", 0.0, max_groups+1},
   {true, 0, "humi280", 0.0, max_groups+1},
 };
+
+
+
 
 //important global variables
 byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_;
@@ -664,10 +670,7 @@ void setup() {
 // initialize bme280 sensor
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   digitalWrite(sw_3_3v, HIGH); delay(5);
-  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
-  digitalWrite(st_cp_shft, HIGH); //write our to shift register output
-  delay(1);
-  digitalWrite(st_cp_shft, LOW);
+  shiftvalue8b(0);
   digitalWrite(sw_sens, HIGH);
   digitalWrite(sw_sens2, HIGH);
 
@@ -774,11 +777,8 @@ void loop(){
 // start loop
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 digitalWrite(sw_3_3v, HIGH); delay(10);
-shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
-digitalWrite(st_cp_shft, HIGH); //write our to shift register output
-delay(1);
-digitalWrite(st_cp_shft, LOW);
-delay(20);
+shiftvalue8b(0);
+delay(10);
 #ifdef DEBUG
 Serial.println(F("start loop setup"));
 #endif
@@ -805,10 +805,7 @@ if(rtc_status != 0){
 
     //reactivate 3.3v supply
     digitalWrite(sw_3_3v, HIGH); delay(10);
-    shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
-    digitalWrite(st_cp_shft, HIGH); //write our to shift register output
-    delay(1);
-    digitalWrite(st_cp_shft, LOW);
+    shiftvalue8b(0);
     delay(1000);
     if(i > (int)10){
       break;
@@ -838,41 +835,19 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
   read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
 
   #ifdef RasPi
-  // ask for config updates
+  // look for config updates
   wakeModemSleep();
   delay(1);
-  connect_MQTT();
-  delay(1000);
-  #ifdef DEBUG
-  Serial.println(F("Sending status message to Raspi!")); Serial.print(F("Is connected: ")); Serial.println(client.connected());
+  // setup empty class instance
+  IrrigationController controller;
+  // update the config file stored in spiffs
+  // in order to work a RasPi with node-red and configured flow is needed
+  controller.updateController();
+  timetable_raspi = controller.combineTimetables();
   #endif
-  msg_mqtt(config_status, String("2")); //signal message to rasPi
-  Serial.print(F("Is connected: ")); Serial.println(client.connected());
-  client.loop();
-  unsigned long start = millis();
-  while(1){
-    delay(100);
-    client.loop();
-    if(millis() > start + 6500){
-      msg_stop = true;
-      #ifdef DEBUG
-      Serial.println(F("Warning: No commands recieved from Raspi!"));
-      #endif
-      break;
-    }
-  }
-  #endif
-
-  //select chosen timetable
-  if(sw2){
-    timetable = timetable_raspi;
-  }
-  else{
-    timetable = timetable_default;
-  }
 
   //if(true){
-  if(bitRead(timetable, hour1)){
+  if(bitRead(timetable_raspi, hour1)){
     thirsty = true; //initialize watering phase
 
     #ifdef DEBUG
@@ -944,7 +919,7 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
 Serial.println(F("Config: ")); Serial.print(F("Bewae switch: ")); Serial.println(sw0);
 Serial.print(F("Value override: ")); Serial.println(sw1);
 Serial.print(F("timetable override: ")); Serial.println(sw2);
-Serial.print(F("Timetable: ")); Serial.print(timetable_raspi); Serial.print(F(" value ")); Serial.println(timetable, BIN); 
+Serial.print(F("Timetable: ")); Serial.print(timetable_raspi, BIN); Serial.print(F(" value ")); Serial.println(timetable, BIN); 
 #endif
 
 //update global time related variables
@@ -982,7 +957,7 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   struct sensors* m_ptr = measure_point;
   for (int i=0; i<len; i++, m_ptr++ ) {
     if(m_ptr->is_set){ //convert moisture reading to relative moisture and clip bad data with constrain
-      controll_mux(m_ptr->pin, sig_mux_1, en_mux_1, "read", &value);
+      Helper::controll_mux(m_ptr->pin, sig_mux_1, en_mux_1, "read", &value);
       if(m_ptr->group_vpin < max_groups){ //will be true if it is moisture measurement (max_group as dummy for all values not assigned to a group)
         float temp = (float)value * measurement_LSB5V * 1000;
         #ifdef DEBUG
@@ -1002,12 +977,12 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   }
 
   int data2[28] = {0}; //create data array
-  controll_mux(11, sig_mux_1, en_mux_1, "read", &value); //take battery measurement before devices are switched on
+  Helper::controll_mux(11, sig_mux_1, en_mux_1, "read", &value); //take battery measurement before devices are switched on
 
   data2[4] = value;                                       //--> battery voltage (low load)
   delay(100); //give sensor time to stabilize voltage
   for(int i=0; i<16; i++){
-  controll_mux(i, sig_mux_1, en_mux_1, "read", &value);
+  Helper::controll_mux(i, sig_mux_1, en_mux_1, "read", &value);
   delay(1); //was 3
   data2[6+i] = value;
   }
@@ -1036,6 +1011,13 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
     bme_point[0].val = bme.readTemperature();
   }
   #endif
+
+MeasuringController bme_sensor[3] =
+{
+  {"bme_temp", [&]() { return bme.readTemperature(); }},
+  {"bme_hum", [&]() { return bme.readHumidity(); }},
+  {"bme_pres", [&]() { return bme.readPressure(); }}
+};
 
   // DHT11 sensor (alternative)
   #ifdef DHT
@@ -1111,10 +1093,7 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 if(thirsty){
   digitalWrite(sw_3_3v, HIGH); delay(10); //switch on shift register! and logic?
-  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
-  digitalWrite(st_cp_shft, HIGH); //write our to shift register output
-  delay(1);
-  digitalWrite(st_cp_shft, LOW);
+  shiftvalue8b(0);
   #ifdef DEBUG
   Serial.println(F("start watering phase"));
   #endif
@@ -1128,17 +1107,19 @@ if(thirsty){
   //        NEVER INTERUPT WHILE WATERING!
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   while((loop_t + measure_intervall > millis()) & (thirsty)){
-  // process will trigger multiple loop iterations until thirsty is set false
-  // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
+    // process will trigger multiple loop iterations until thirsty is set false
+    // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
+
+    // Update config
+    IrrigationController controller;
+    // update the config file stored in spiffs
+    // in order to work a RasPi with node-red and configured flow is needed
+    controller.updateController();
 
     // load the stored file and get all keys
     DynamicJsonDocument doc(CONF_FILE_SIZE);
-    if (!(Helper::load_conf(CONFIG_FILE_PATH, doc))){
-      #ifdef DEBUG
-      Serial.println(F("Error during watering procedure: Happened when loading config file!"));
-      #endif
-      break;
-    }
+    doc = Helper::readConfigFile(CONFIG_FILE_PATH);
+
     // Access the "groups" object
     JsonObject groups = doc["groups"];
     doc.clear();
@@ -1146,22 +1127,24 @@ if(thirsty){
     int numgroups = groups.size();
     IrrigationController Group[numgroups];
     int j = 0;
-    // Iterate through all keys in the "groups" object and initialize the class instance
-    // kv = key value pair
+    // Init schedule of each group
+    // Iterate through all keys in the "groups" object and initialize the class instance (kv = key value pair)
     for(JsonPair kv : groups){
-      // check if group is presend and get its index
-      int solenoid_index = 0;
-      if(groups[kv.key()].is<int>()){
-        solenoid_index = groups[kv.key()].as<int>();
-        // access watering group via virtual pin stored as jsonkey (solenoid ?|pump pin)
-        Group[j].loadScheduleConfig(CONFIG_FILE_PATH, solenoid_index);
+      // check if group is present and get its index
+      String key = kv.key().c_str();
+      if (key.toInt() != 0 || key == "0"){
+        int solenoid_index = key.toInt();
+        // load watering schedule of corresponding solenoid and/or pump (vpin)
+        bool result = Group[j].loadScheduleConfig(CONFIG_FILE_PATH, solenoid_index);
+        // check if group was valid and reset false ones
+        if (!result) {
+          Group[j].reset();
+        }
       }
       else{
         // reset the group to take it out of process
         Group[j].reset();
       }
-      // Initialize Group
-      // Access the value of the current key-value pair
       j++;
     }
 
@@ -1170,7 +1153,8 @@ if(thirsty){
     int status = 0;
     for(int i = 0; i < numgroups; i++){
       // ACTIVATE SOLENOID AND/OR PUMP
-      // The method checks if the instance is ready for watering
+      // this will return some int numer as long as it needs to be watered
+      // it will check if the instance is ready for watering (cooldown)
       // if not it will return early, else it will use delay to wait untill the process has finished
       status += Group[i].waterOn(hour1);
     }
@@ -1179,7 +1163,7 @@ if(thirsty){
       thirsty = false;
     }
   }
-  shiftOut(data_shft, sh_cp_shft, MSBFIRST, 0); //set shift reigster to value (0)
+  shiftvalue8b(0);
   delay(10);
   digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
 }
