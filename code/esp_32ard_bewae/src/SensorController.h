@@ -20,6 +20,10 @@
 // - Adafruit_Sensor.h
 // - Adafruit_BME280.h
 //
+// The goal is to store all the virtual pins we want to measure in a configuration file.
+// Then use the helper function to retrieve all the keys from the virtual pin group
+// and initialize the corresponding sensor classes when we want to take measurements.
+//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // SensorController.h
@@ -29,6 +33,7 @@
 
 #include <Arduino.h>
 #include <Helper.h>
+#include <functional>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // BasicSensor
@@ -56,9 +61,9 @@ protected:
 
 class MeasuringController : public BasicSensor {
 public:
-    // Constructor that takes the name of the sensor and a pointer to a measurement function as arguments.
+    // Constructor that takes the name of the sensor and a std::function as arguments.
     // The measurement function is optional and defaults to nullptr if not provided.
-    MeasuringController(const String& name, float (*measurementFunction)() = nullptr);
+    MeasuringController(const String& name, std::function<float()> measurementFunction = nullptr);
 
     // Destructor
     ~MeasuringController();
@@ -67,7 +72,7 @@ public:
     float measure() override;
 
 private:
-    float (*measurementFunction)(); // Pointer to a function that returns a float and takes no arguments.
+    std::function<float()> measurementFunction; // std::function that returns a float and takes no arguments.
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

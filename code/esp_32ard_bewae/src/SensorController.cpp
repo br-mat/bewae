@@ -22,6 +22,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// TODO: implement SPIFFS and http GET to recieve config file!
+
 // SensorController.cpp
 
 #include "SensorController.h"
@@ -41,17 +43,18 @@ BasicSensor::~BasicSensor() {}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Constructor with default measurement function nullptr
-MeasuringController::MeasuringController(const String& name, float (*measurementFunction)()) : BasicSensor(name), measurementFunction(measurementFunction) {}
+MeasuringController::MeasuringController(const String& name, std::function<float()> measurementFunction)
+: BasicSensor(name), measurementFunction(measurementFunction) {}
 
 // Destructor
 MeasuringController::~MeasuringController() {}
 
 // Override virtual measure function from base class
 float MeasuringController::measure() {
-  if (measurementFunction != nullptr) {
+  if (measurementFunction) {
       return measurementFunction(); // execute measurement function
   } else {
-      return 0.0f; // return 0 if nuppptr was passed
+      return 0.0f; // return 0 if no function passed
   }
 }
 
