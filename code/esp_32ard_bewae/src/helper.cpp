@@ -20,7 +20,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Standard
-//#include <ArduinoSTL.h>
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -84,6 +83,7 @@ void Helper::copy(int* src, int* dst, int len) {
   memcpy(dst, src, sizeof(src[0])*len);
 }
 
+/*
 // OLD FUNCTION NOW HANDLED IN IRRIGATIONCONTROLLER CLASS
 void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _time, uint8_t vent_pin, uint8_t pump_pin, uint8_t en, uint8_t pwm){
   //Function description: Controlls the watering procedure on valves and pump
@@ -162,7 +162,7 @@ void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _ti
   digitalWrite(datapin, LOW);
   digitalWrite(en, LOW);
 }
-
+*/
 
 void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
   //Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
@@ -244,7 +244,7 @@ void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, Strin
   }
 }
 
-
+/*
 bool Helper::save_datalog(String data, uint8_t cs, const char * file){
   //Function: saves data given as string to a sd card via spi
   //FUNCTION PARAMETER
@@ -301,14 +301,15 @@ bool Helper::save_datalog(String data, uint8_t cs, const char * file){
   delay(1000);  //need time to save for some reason to work without mistakes
   return true;
 }
+*/
 
 // Convert normal decimal numbers to binary coded decimal
-byte dec_bcd(byte val)
+byte  Helper::dec_bcd(byte val)
 {
   return( (val/10*16) + (val%10) );
 }
 // Convert binary coded decimal to normal decimal numbers
-byte bcd_dec(byte val)
+byte  Helper::bcd_dec(byte val)
 {
   return( (val/16*10) + (val%16) );
 }
@@ -391,44 +392,39 @@ String Helper::timestamp(){
 
 // Attempts to enable the WiFi and connect to a specified network.
 // Returns true if the connection was successful, false if not.
-bool Helper::enableWifi(){
-  // Disconnect from any current WiFi connection and set the WiFi mode to station mode.
-  WiFi.disconnect(true);  
-  delayMicroseconds(100);
-  WiFi.mode(WIFI_STA);    
+bool Helper::connectWifi(){
+  if (WiFi.status() != WL_CONNECTED) {
+    // Disconnect from any current WiFi connection and set the WiFi mode to station mode.
+    WiFi.disconnect(true);  
+    delayMicroseconds(100);
+    WiFi.mode(WIFI_STA);    
 
-  // Begin the process of connecting to the specified WiFi network.
-  WiFi.begin(ssid, wifi_password);
+    // Begin the process of connecting to the specified WiFi network.
+    WiFi.begin(ssid, wifi_password);
+  }
 
   // Initialize a counter to keep track of the number of connection attempts.
   int tries = 0;
 
   // Loop until the WiFi connection is established or the maximum number of attempts is reached.
   while (WiFi.status() != WL_CONNECTED) {
-      // Wait 1 second before trying again.
-      delay(1000);
+    // Wait 1 second before trying again.
+    delay(750);
+    WiFi.begin(ssid, wifi_password);
+    delay(250);
 
-      // Increment the counter.
-      tries++;
+    // Increment the counter.
+    tries++;
 
-      // If 15 attempts have been made, disable and re-enable the WiFi and try to reconnect.
-      if(tries == 15) {
-        disableWiFi();
-        delay(100);
-        enableWifi();
-        delay(2500);
-        WiFi.begin(ssid, wifi_password);
-      }
-
-      // If 30 attempts have been made, exit the loop and return false.
-      if(tries > 30){
-        #ifdef DEBUG
-        Serial.println();
-        Serial.print(F("Error: Wifi connection could not be established! "));
-        Serial.println(tries);
-        #endif
-        return false;
-      }
+    // If 30 attempts have been made, exit the loop and return false.
+    if(tries > 30){
+      #ifdef DEBUG
+      Serial.println();
+      Serial.print(F("Error: Wifi connection could not be established! "));
+      Serial.println(tries);
+      #endif
+      return false;
+    }
   }
 
   // If the loop exits normally, the WiFi connection was successful. Print the IP address of the device and return true.
@@ -442,13 +438,14 @@ bool Helper::enableWifi(){
 
 
 void Helper::setModemSleep() {
-    WiFi.setSleep(true);
-    if (!setCpuFrequencyMhz(80)){
-        Serial.println("Not valid frequency!");
-    }
-    // Use this if 40Mhz is not supported
-    // setCpuFrequencyMhz(80); //(40) also possible
+  WiFi.setSleep(true);
+  if (!setCpuFrequencyMhz(80)){
+      Serial.println("Not valid frequency!");
+  }
+  // Use this if 40Mhz is not supported
+  // setCpuFrequencyMhz(80); //(40) also possible
 }
+
 
 // Disables the WiFi on the device.
 // Returns true if the WiFi was successfully disabled, false if an error occurred.
@@ -476,21 +473,22 @@ bool Helper::disableWiFi(){
 
 
 void Helper::disableBluetooth(){
-    // Quite unusefully, no relevable power consumption
-    btStop();
-    #ifdef DEBUG
-    Serial.println("");
-    Serial.println("Bluetooth stop!");
-    #endif
+  // Quite unusefully, no relevable power consumption
+  btStop();
+  #ifdef DEBUG
+  Serial.println("");
+  Serial.println("Bluetooth stop!");
+  #endif
 }
 
 void Helper::wakeModemSleep() {
-    #ifdef DEBUG
-    Serial.println(F("Waking up modem!"));
-    #endif
-    setCpuFrequencyMhz(240);
-    Helper::enableWifi();
+  #ifdef DEBUG
+  Serial.println(F("Waking up modem!"));
+  #endif
+  setCpuFrequencyMhz(240);
+  Helper::connectWifi();
 }
+
 
 bool Helper::find_element(int *array, int item){
   int len = sizeof(array);
@@ -501,6 +499,7 @@ bool Helper::find_element(int *array, int item){
   }
   return false;
 }
+
 
 // Reads the JSON file at the specified file path and returns the data as a DynamicJsonDocument.
 // If the file path is invalid or if there is an error reading or parsing the file, an empty DynamicJsonDocument is returned.
@@ -538,6 +537,7 @@ DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
 // Writes the specified DynamicJsonDocument to the file at the specified file path as a JSON file.
 // Returns true if the file was written successfully, false if the file path is invalid or if there is an error writing the file.
 bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
@@ -563,3 +563,36 @@ bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_L
   return true;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// send data to influxdb, return true when everything is ok
+bool Helper::pubInfluxData(String sensor_name, String field_name, float value) {
+
+  bool cond = connectWifi();
+  if (!cond) {
+    // if no connection is possible exit early
+    #ifdef DEBUG
+    Serial.print(F("Error in Wifi connection."));
+    #endif
+    return false;
+  }
+
+  Point point(sensor_name);
+  point.addField(field_name, value);  // Add temperature field to the Point object
+
+  // Write the Point object to InfluxDB
+  if (!influx_client.writePoint(point)) {
+    #ifdef DEBUG
+    Serial.print(F("InfluxDB write failed: "));
+    Serial.println(influx_client.getLastErrorMessage());  // Print error message if write operation is unsuccessful
+    #endif
+    return false;
+  }
+  else{
+    #ifdef DEBUG
+    Serial.println(F("InfluxDB points sent"));
+    #endif
+    return true;
+  }
+
+}

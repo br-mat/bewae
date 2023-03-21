@@ -416,7 +416,7 @@ void sub_mqtt(){
 bool connect_MQTT(){
   // initial connect attempt
   // return true when everything went well, false if not
-  enableWifi();
+  connectWifi();
 
   //failure management
   if (WiFi.status() != WL_CONNECTED)
@@ -442,7 +442,7 @@ bool connect_MQTT(){
       //try reactivate wifi
       disableWiFi();
       delay(100);
-      enableWifi();
+      connectWifi();
       delay(2500);
       WiFi.begin(ssid, wifi_password);
       #ifdef DEBUG
