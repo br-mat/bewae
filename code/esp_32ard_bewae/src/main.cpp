@@ -121,8 +121,28 @@ Pump pump_main[2] =
 //                                               | | | | | | | | | | | | |
 //                                              2422201816141210 8 6 4 2 0
 unsigned long int timetable = 0; //initialize on default
-unsigned long int timetable_raspi = 0; //initialize on default
 
+
+//######################################################################################################################
+//----------------------------------------------------------------------------------------------------------------------
+//---- SOME ADDITIONAL FUNCTIONS ---------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+//######################################################################################################################
+
+// Initialise the WiFi and MQTT Client objects
+WiFiClient wificlient;
+// measurement function
+bool measure_sensors(){
+  JsonObject muxPins = getJsonObjects("test", CONFIG_FILE_PATH);
+  // check for valid object
+  if (muxPins.isNull()) {
+    return false;
+  }
+  int num = muxPins.size();
+
+
+  //VpinController configured_sensors[num];
+/*
 // setup virtual measurementpins (additional pins at the MUX)
 VpinController vPin_mux[16] =
 {
@@ -151,15 +171,9 @@ MeasuringController bme_sensor[3] =
   {"bme_hum", [&]() { return bme.readHumidity(); }},
   {"bme_pres", [&]() { return bme.readPressure(); }}
 };
-
-//######################################################################################################################
-//----------------------------------------------------------------------------------------------------------------------
-//---- SOME ADDITIONAL FUNCTIONS ---------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------------------------------------
-//######################################################################################################################
-
-// Initialise the WiFi and MQTT Client objects
-WiFiClient wificlient;
+*/
+return true;
+}
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -399,11 +413,11 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
   // update the config file stored in spiffs
   // in order to work a RasPi with node-red and configured flow is needed
   controller.updateController();
-  timetable_raspi = controller.combineTimetables();
+  timetable = controller.combineTimetables();
   #endif
 
   //if(true){
-  if(bitRead(timetable_raspi, hour1)){
+  if(bitRead(timetable, hour1)){
     thirsty = true; //initialize watering phase
 
     #ifdef DEBUG
@@ -422,7 +436,7 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
 Serial.println(F("Config: ")); Serial.print(F("Bewae switch: ")); Serial.println(sw0);
 Serial.print(F("Value override: ")); Serial.println(sw1);
 Serial.print(F("timetable override: ")); Serial.println(sw2);
-Serial.print(F("Timetable: ")); Serial.print(timetable_raspi, BIN);
+Serial.print(F("Timetable: ")); Serial.print(timetable, BIN);
 #endif
 
 //update global time related variables
@@ -524,15 +538,16 @@ if(thirsty){
     // in order to work a RasPi with node-red and configured flow is needed
     controller.updateController();
 
-    // load the stored file and get all keys
-    DynamicJsonDocument doc(CONF_FILE_SIZE);
-    doc = Helper::readConfigFile(CONFIG_FILE_PATH);
-
-    // Access the "groups" object
-    JsonObject groups = doc["groups"];
-    doc.clear();
-
+    JsonObject groups = getJsonObjects("groups", CONFIG_FILE_PATH);
+    // check for valid object
+    if (groups.isNull()) {
+      #ifdef DEBUG
+      Serial.println(F("Error: No 'Group' found in file!"));
+      #endif
+      break; // break loop and continue programm
+    }
     int numgroups = groups.size();
+    
     IrrigationController Group[numgroups];
     int j = 0;
     // Init schedule of each group
