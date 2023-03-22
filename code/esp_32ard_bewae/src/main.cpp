@@ -67,11 +67,6 @@ unsigned long last_activation = 0; //timemark variable
 bool thirsty = false; //marks if a watering cycle is finished
 bool config = false;  //handle wireless configuration
 
-//wireless config array to switch on/off functions
-// watering time of specific group; binary values;
-//const int raspi_config_size = max_groups+2; //6 groups + 2 binary
-//int raspi_config[raspi_config_size]={0};
-
 bool post_DATA = true; //controlls if data is sent back to pi or not
 bool msg_stop = false; //is config finished or not
 bool sw6 = 1;  //system switch (ON/OFF) NOT IMPLEMENTED YET
@@ -90,9 +85,6 @@ Adafruit_BME280 bme; // use I2C interface
 //group 4 - Hochbeet2             10 brushes                 ~4l
 //group 5 - kleine tom            4 brushes                  ~3.5l
 //group 6 - leer 4 brushes +3 small?        ~0.5l
-
-//stay global for access through more than one iteration of loop (keep memory in mind)
-//is_set, v-pin, pump_pin, name, watering default, timetable, watering base, watering time, last act,
 
 //NEW IMPLEMENTATION
 // The idea is to use the config file to controll the watering groups. This way 
@@ -131,34 +123,6 @@ Pump pump_main[2] =
 unsigned long int timetable = 0; //initialize on default
 unsigned long int timetable_raspi = 0; //initialize on default
 
-//is_set, pin, name, val, group
-sensors measure_point[16] =
-{
-  {true, 0, "Tom-RR", 0.0, 0},
-  {true, 1, "Chl-GW", 0.0, 0},
-  {true, 2, "Krt-HB", 0.0, 1},
-  {false, 3, "Tom-RC", 0.0, 1},
-  {false, 4, "Tom-FL", 0.0, 0},
-  {false, 5, "Pep-Bl", 0.0, 2},
-  {false, 6, "Pep-5f", 0.0, 2},
-  {false, 7, "Krt-Ba", 0.0, 3},
-  {false, 8, "HoB-1", 0.0, 4},
-  {false, 9, "HoB-2", 0.0, 5},
-  {false, 10, "Tom-GR", 0.0, max_groups+1},
-  {false, 11, "Tom-JC", 0.0, max_groups+1},
-  {false, 12, "test12", 0.0, max_groups+1},
-  {false, 13, "test13", 0.0, max_groups+1},
-  {true, 14, "Bat-12", 0.0, max_groups+1},
-  {false, 15, "pht-rs", 0.0, max_groups+1},
-};
-
-sensors bme_point[3] =
-{
-  {true, 0, "temp280", 0.0, max_groups+1},
-  {true, 0, "pres280", 0.0, max_groups+1},
-  {true, 0, "humi280", 0.0, max_groups+1},
-};
-
 // setup virtual measurementpins (additional pins at the MUX)
 VpinController vPin_mux[16] =
 {
@@ -176,8 +140,8 @@ VpinController vPin_mux[16] =
   {"v11", 11},
   {"v12", 12},
   {"v13", 13},
-  {"v14", 14},
-  {"v15", 15},
+  {"v14", 14}, //battery voltage - needs calculation
+  {"v15", 15}, //photo resistor - needs calculation
 };
 
 // setup bme measurment
@@ -925,44 +889,17 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   digitalWrite(sw_sens, HIGH);   //activate mux & SD
   digitalWrite(sw_sens2, HIGH);  //activate sensor rail
   delay(1000);
-  int value=0; //mux reading value
-
+  
+  //TODO ADD MEASURING CODE OF VPINCLASS HERE
+/*
   //measure all moisture sensors
   int len = sizeof(measure_point)/sizeof(measure_point[0]);
   struct sensors* m_ptr = measure_point;
   for (int i=0; i<len; i++, m_ptr++ ) {
     if(m_ptr->is_set){ //convert moisture reading to relative moisture and clip bad data with constrain
-      Helper::controll_mux(m_ptr->pin, sig_mux_1, en_mux_1, "read", &value);
-      if(m_ptr->group_vpin < max_groups){ //will be true if it is moisture measurement (max_group as dummy for all values not assigned to a group)
-        float temp = (float)value * measurement_LSB5V * 1000;
-        #ifdef DEBUG
-        Serial.print(F("raw read:")); Serial.println(value);
-        Serial.print(F("raw read int:")); Serial.println((int)temp);
-        #endif
-        value = temp;
-        value = constrain(value, low_lim, high_lim); //x within borders else x = border value; (example 1221 wet; 3176 dry [in mV])
-                                                      //avoid using other functions inside the brackets of constrain
-        value = map(value, low_lim, high_lim, 100, 0);
-        m_ptr->val = value;
-      }
-      else{
-        m_ptr->val = (float)value * (float)measurement_LSB;
-      }
-    }
-  }
-
-  int data2[28] = {0}; //create data array
-  Helper::controll_mux(11, sig_mux_1, en_mux_1, "read", &value); //take battery measurement before devices are switched on
-
-  data2[4] = value;                                       //--> battery voltage (low load)
-  delay(100); //give sensor time to stabilize voltage
-  for(int i=0; i<16; i++){
-  Helper::controll_mux(i, sig_mux_1, en_mux_1, "read", &value);
-  delay(1); //was 3
-  data2[6+i] = value;
-  }
-  digitalWrite(sw_3_3v, HIGH);
-  delay(1);
+    ....
+*/
+ 
 
   // BME280 sensor (default)
   #ifdef BME280
@@ -970,21 +907,10 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
     #ifdef DEBUG
     Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
     #endif
-    data2[0] = 0; data2[1] = 0; data2[2] = 0;
-
-    bme_point[1].val = 0; 
-    bme_point[2].val = 0;
-    bme_point[0].val = 0;
   }
-  else{
-    data2[0] = (float)bme.readPressure() / (float)10+0;     //--> press reading
-    data2[1] = (float)bme.readHumidity() * (float)100+0;    //--> hum reading
-    data2[2] = (float)bme.readTemperature() * (float)100+0; //--> temp reading
+  // TODO ADD MEASURING CODE OF BME HERE:
 
-    bme_point[1].val = bme.readPressure(); 
-    bme_point[2].val = bme.readHumidity();
-    bme_point[0].val = bme.readTemperature();
-  }
+
   #endif
 
   // DHT11 sensor (alternative)
@@ -992,65 +918,15 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   //possible dht solution --- CURRENTLY NOT IMPLEMENTED!
   #endif
 
-  // log data to SD card (backup) ---  CURRENTLY NOT IMPLEMENTED!
-  #ifdef SD_log
-  /*
-  // --- data shape---
-  //data2[0] = (float)bme280.getPressure() / (float)10+0;     //--> press reading
-  //data2[1] = (float)bme280.getHumidity() * (float)100+0;    //--> hum reading
-  //data2[2] = (float)bme280.getTemperature() * (float)100+0; //--> temp reading
-  //data2[3] = readVcc();                     //--> vcc placeholder (not active with esp right now)
-  //data2[4] = battery_indicator;             //--> battery voltage (low load)
-  //data2[5] = 0;                             //--> placeholder
-  //data2 6-21                                //--> 15 Mux channels
-  //data2 22-27                               //--> unused
-  String data="";
-  data += timestamp();
-  data += ",";
-  for(uint8_t i=0; i<28; i++){
-    data += data2[i];
-    data += ",";
-  }
-  delay(100); //give time
-  save_datalog(data, chip_select, "datalog2.txt");
-  #ifdef DEBUG
-  Serial.print(F("data:"));
-  Serial.println(data);
-  #endif
-  data=""; //clear string
-  delay(150);
-  digitalWrite(sw_sens, LOW);   //deactivate mux & SD
-  digitalWrite(sw_sens2, LOW);   //deactivate sensor rail
-  digitalWrite(sw_3_3v, LOW);
-  */
-  #endif //sd log
-
   // log to INFLUXDB (default)
   #ifdef RasPi
   if(post_DATA){
     wakeModemSleep();
     delay(1);
     connect_MQTT();
-    int len = sizeof(measure_point)/sizeof(measure_point[0]);
-    struct sensors* data_ptr = measure_point;
-    for (int i=0; i<len; i++, data_ptr++ ) {
-      if(data_ptr->is_set){
-        String topic = topic_prefix + data_ptr->name;
-        String data = String(data_ptr->val);
-        msg_mqtt(topic, data);
-      }
-    }
-    //switch if using DHT
+    //TODO ADD POSTING MEASUREMENT POINTS
     #ifdef BME280
-    len = sizeof(bme_point)/sizeof(bme_point[0]);
-    struct sensors* data_ptr2 = bme_point;
-    for (int i=0; i<len; i++, data_ptr2++) {
-      if(data_ptr2->is_set){
-        String topic = topic_prefix + data_ptr2->name;
-        String data = String(data_ptr2->val);
-        msg_mqtt(topic, data);
-      }
-    }
+    //TODO ADD POSTING MEASUREMENT POINTS
     #endif
   }
   #endif
@@ -1141,14 +1017,17 @@ if(thirsty){
 // sleep
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 if (loop_t + measure_intervall > millis()){
+
   //sleep till next measure point
   int sleep_ = (long)(loop_t + measure_intervall - millis())/(TIME_TO_SLEEP * 1000UL);
+
   #ifdef DEBUG
   if(sleep_ < (int)measure_intervall / (TIME_TO_SLEEP * 1000)){
   Serial.println(F("Warning: sleep time calculation went wrong value too high!"));
   }
   Serial.print(F("sleep in s: ")); Serial.println((float)sleep_ * TIME_TO_SLEEP);
   #endif
+
   for(int i = 0; i < sleep_; i++){
     system_sleep(); //turn off all external transistors
     esp_light_sleep_start();
@@ -1157,6 +1036,7 @@ if (loop_t + measure_intervall > millis()){
     }
   }
 }
+
 #ifdef DEBUG
 Serial.println(F("End loop!"));
 #endif
