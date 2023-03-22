@@ -26,6 +26,11 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// TODO: vpin: - functionality to multiply ba a factor to compensate or bring measurment in correct relation
+//             - probably add groups, would be usefull if more than one sensor belongs two the same group
+//             - add getter and setters for the bool variable
+//             - add functionality to read config file
+
 // SensorController.h
 
 #ifndef SENSOR_CONTROLLER_H
@@ -39,6 +44,7 @@
 // BasicSensor
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// This is the Basic class holding sensor name, a status variable and a dummy measure function
 class BasicSensor {
 public:
     // Basic constructor that takes the name of the sensor as an argument
@@ -59,6 +65,7 @@ protected:
 //  MeasuringController
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Thias class should take a custom measurement function to read a sensor
 class MeasuringController : public BasicSensor {
 public:
     // Constructor that takes the name of the sensor and a std::function as arguments.
@@ -79,16 +86,24 @@ private:
 //  VpinController
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// This class should be read analog values and give back either raw reading or relative reading within boarders
 class VpinController : public BasicSensor {
 public:
-  // Constructor that takes the name of the sensor and a virtual pin number as arguments.
+  // Total Constructor
+  VpinController(const String& name, int vpin, int low_limit, int high_limit, float* factor);
+
+  // Short Constructor
   VpinController(const String& name, int vpin);
 
   // Override virtual measure function from base class to read and return the value from the specified virtual pin.
   float measure() override;
+  float measureRaw();
 
 private:
   int virtualPin; // Virtual pin number associated with this controller.
+  int low_limit; // Lower limit value for measurement
+  int high_limit; // Upper limit value for measurement
+  float* factor; // Factor to multiply measurement values by
 };
 
 #endif

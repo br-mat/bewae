@@ -62,12 +62,43 @@ float MeasuringController::measure() {
 //  VpinController
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Constructor with virtual pin number as argument
-VpinController::VpinController(const String& name, int vpin) : BasicSensor(name), virtualPin(vpin) {}
+// Total Constructor
+VpinController::VpinController(const String& name, int vpin, int low_limit, int high_limit, float* factor)
+    : BasicSensor(name), virtualPin(vpin), low_limit(low_limit), high_limit(high_limit), factor(factor) {}
+
+// Short Constructor
+VpinController::VpinController(const String& name, int vpin) : VpinController(name, vpin, low_lim, high_lim, nullptr) {}
 
 // Override virtual measure function from base class
-float VpinController::measure() {
+float VpinController::measureRaw() {
   int result = 0;
   Helper::controll_mux(this->virtualPin, sig_mux_1, en_mux_1, "read", &result); // use virtualPin on MUX and read its value
+
+  // return result
+  if (factor != nullptr) {
+    return result * (*factor);
+  }
   return (float)result;
+}
+
+// returns relative measurement in %
+float VpinController::measure() {
+  int value = 0;
+  Helper::controll_mux(this->virtualPin, sig_mux_1, en_mux_1, "read", &value); // use virtualPin on MUX and read its value
+  float temp = (float)value * measurement_LSB5V * 1000;
+  #ifdef DEBUG
+  Serial.print(F("raw read:")); Serial.println(value);
+  Serial.print(F("raw read int:")); Serial.println((int)temp);
+  #endif
+  value = temp;
+  value = constrain(value, low_lim, high_lim); //x within borders else x = border value; (example 1221 wet; 3176 dry [in mV])
+                                                //avoid using other functions inside the brackets of constrain
+  value = map(value, low_lim, high_lim, 1000, 0) / 10;
+  
+  // return result
+  if (factor != nullptr) {
+    return value * (*factor);
+  }
+  
+  return value;
 }
