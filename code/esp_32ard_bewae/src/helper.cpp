@@ -620,3 +620,31 @@ void Helper::blinkOnBoard(String howLong, int times) {
      delay(1500-duration); //1.5 seconds between blinks
    }
 }
+
+// returns num of JSON objects of specified key
+JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
+  // load the stored file and get all keys
+  DynamicJsonDocument doc(CONF_FILE_SIZE);
+  doc = Helper::readConfigFile(filepath);
+
+  JsonObject jsonobj;
+
+  // Check if doc is empty
+  if (doc.isNull()) {
+    Serial.println(F("Warning: Failed to read file or empty JSON object."));
+    return jsonobj;
+  }
+  
+  // Access the "groups" object
+  jsonobj = doc[key];
+  
+  // Check if key exists in the JSON object
+  if (jsonobj.isNull()) {
+    Serial.println(F("Warning: Key not found in JSON object."));
+    return jsonobj;
+  }
+  
+  doc.clear();
+  int numgroups = jsonobj.size();
+  return jsonobj;
+}
