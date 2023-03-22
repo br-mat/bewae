@@ -39,6 +39,9 @@
 SPIClass spiSD(HSPI);
 //spiSD.begin(SD_SCK, SD_MISO, SD_MOSI);
 
+// Create an instance of the InfluxDBClient class with the specified URL, database name and token
+InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLUXDB_TOKEN);
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  HELPER     functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -568,7 +571,7 @@ bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_L
 // send data to influxdb, return true when everything is ok
 bool Helper::pubInfluxData(String sensor_name, String field_name, float value) {
 
-  bool cond = connectWifi();
+  bool cond = Helper::connectWifi();
   if (!cond) {
     // if no connection is possible exit early
     #ifdef DEBUG
@@ -595,4 +598,25 @@ bool Helper::pubInfluxData(String sensor_name, String field_name, float value) {
     return true;
   }
 
+}
+
+
+// blink onboard LED
+void Helper::blinkOnBoard(String howLong, int times) {
+   int duration;
+  
+   if (howLong == "long") {
+     duration = 1000;
+   } else if (howLong == "short") {
+     duration = 250;
+   } else {
+     return;
+   }
+  
+   for (int i = 0; i < times; i++) {
+     digitalWrite(2, HIGH);
+     delay(duration);
+     digitalWrite(2, LOW);
+     delay(1500-duration); //1.5 seconds between blinks
+   }
 }

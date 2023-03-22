@@ -28,16 +28,14 @@
 #define PATH_LENGTH 25
 #endif
 
+#include <WiFi.h>
+#include <InfluxDbClient.h>
 #include <Arduino.h>
 #include "driver/adc.h"
 #include <config.h>
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
 #include <connection.h>
-#include <InfluxDb.h>
-
-// Create an instance of the InfluxDBClient class with the specified URL, database name and token
-InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLUXDB_TOKEN);
 
 namespace Helper{
     String timestamp();
@@ -67,6 +65,7 @@ namespace Helper{
     // Saves the values of the member variables to the config file
     bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
     bool pubInfluxData(String sensor_name, String field_name, float value); // send data to influxdb, return true when everything is ok
+    void blinkOnBoard(String howLong, int times); // blink onboard led to signal something
     struct solenoid{
                     bool is_set; //activate deactivate group
                     uint8_t pin; //pin of the solenoid (virtual pin!)
