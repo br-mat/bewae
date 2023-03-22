@@ -1,3 +1,4 @@
+#ifndef ASDASD
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // br-mat (c) 2022
@@ -58,6 +59,28 @@ using namespace Helper;
 //----------------------------------------------------------------------------------------------------------------------
 //######################################################################################################################
 
+
+//important global variables
+byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_;
+unsigned long up_time = 0;    //general estimated uptime
+unsigned long last_activation = 0; //timemark variable
+bool thirsty = false; //marks if a watering cycle is finished
+bool config = false;  //handle wireless configuration
+
+//wireless config array to switch on/off functions
+// watering time of specific group; binary values;
+//const int raspi_config_size = max_groups+2; //6 groups + 2 binary
+//int raspi_config[raspi_config_size]={0};
+
+bool post_DATA = true; //controlls if data is sent back to pi or not
+bool msg_stop = false; //is config finished or not
+bool sw6 = 1;  //system switch (ON/OFF) NOT IMPLEMENTED YET
+bool sw0 = 1; //bewae switch (ON/OFF)
+bool sw1 = 0; //water time override condition
+bool sw2 = 0; //timetable override condition
+
+Adafruit_BME280 bme; // use I2C interface
+
 //limitations & watering & other
 //group limits and watering (some hardcoded stuff)                          
 //          type                  amount of plant/brushes    estimated water amount in liter per day (average hot +30*C)
@@ -70,16 +93,6 @@ using namespace Helper;
 
 //stay global for access through more than one iteration of loop (keep memory in mind)
 //is_set, v-pin, pump_pin, name, watering default, timetable, watering base, watering time, last act,
-solenoid group[max_groups] =
-{ 
-  {true, 0, pump1, "Tom1", 100, 0, 0, 0, 0}, //group0
-  {true, 1, pump1, "Tom2", 80, 0, 0, 0, 0}, //group1
-  {true, 2, pump1, "Gewa", 30, 0, 0, 0, 0}, //group2
-  {true, 3, pump1, "Chil", 40, 0, 0, 0, 0}, //group3
-  {true, 6, pump1, "Krtr", 20, 0, 0, 0, 0}, //group4
-  {true, 7, pump1, "Erdb", 50, 0, 0, 0, 0}, //group5
-};
-
 
 //NEW IMPLEMENTATION
 // The idea is to use the config file to controll the watering groups. This way 
@@ -146,29 +159,34 @@ sensors bme_point[3] =
   {true, 0, "humi280", 0.0, max_groups+1},
 };
 
+// setup virtual measurementpins (additional pins at the MUX)
+VpinController vPin_mux[16] =
+{
+  {"v00", 0},
+  {"v01", 1},
+  {"v02", 2},
+  {"v03", 3},
+  {"v04", 4},
+  {"v05", 5},
+  {"v06", 6},
+  {"v07", 7},
+  {"v08", 8},
+  {"v09", 9},
+  {"v10", 10},
+  {"v11", 11},
+  {"v12", 12},
+  {"v13", 13},
+  {"v14", 14},
+  {"v15", 15},
+};
 
-
-
-//important global variables
-byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_;
-unsigned long up_time = 0;    //general estimated uptime
-unsigned long last_activation = 0; //timemark variable
-bool thirsty = false; //marks if a watering cycle is finished
-bool config = false;  //handle wireless configuration
-
-//wireless config array to switch on/off functions
-// watering time of specific group; binary values;
-//const int raspi_config_size = max_groups+2; //6 groups + 2 binary
-//int raspi_config[raspi_config_size]={0};
-
-bool post_DATA = true; //controlls if data is sent back to pi or not
-bool msg_stop = false; //is config finished or not
-bool sw6 = 1;  //system switch (ON/OFF) NOT IMPLEMENTED YET
-bool sw0 = 1; //bewae switch (ON/OFF)
-bool sw1 = 0; //water time override condition
-bool sw2 = 0; //timetable override condition
-
-Adafruit_BME280 bme; // use I2C interface
+// setup bme measurment
+MeasuringController bme_sensor[3] =
+{
+  {"bme_temp", [&]() { return bme.readTemperature(); }},
+  {"bme_hum", [&]() { return bme.readHumidity(); }},
+  {"bme_pres", [&]() { return bme.readPressure(); }}
+};
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -190,6 +208,8 @@ void sub_mqtt();
 //',' is the sepperator -- no leading ',' -- msg can end with or without ',' -- only int numbers
 // -- max_groups should be the same as in code for nano!!!
 void callback(char *topic, byte *payload, unsigned int msg_length){
+
+  // process incomming message
   #ifdef DEBUG
   Serial.print(F("Enter callback topic: "));
   Serial.println(topic);
@@ -202,10 +222,14 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
     Serial.print(F("Message got cut off, allowed len: "));
     Serial.println(MAX_MSG_LEN);
     #endif
+    return;
   }
   for(int i=0; i< msg_length; i++){
     msg+=String((char)payload[i]);
   }
+
+  /*
+  // TODO! Remove old code or reimplement mqtt controll of group watering
   //trigger correct topic to decode msg
   if(String(watering_topic) == topic){
     int c_index=0;
@@ -230,6 +254,7 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
       #endif
     }
   }
+  */
 
   if(String(bewae_sw) == topic){
     sw0 = (bool)msg.toInt(); //toInt returns long! naming is confusing
@@ -340,7 +365,8 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
         }
         break;
 
-      case 'T':
+      /*
+      case 'T': // timetable case
         int group_index;
         group_index = (high & 0xFF00)>>8; //get high 8 bits as group index
         high = high & 0x00FF; //get lower 8 bits as rest of timetable transmission
@@ -361,6 +387,7 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
         }
         break;
       }
+      */
 
       case 'X': //indicates finished configuration
         if(high == 8){
@@ -399,7 +426,8 @@ void callback(char *topic, byte *payload, unsigned int msg_length){
 
 void sub_mqtt(){
   if(WiFi.status() != WL_CONNECTED){
-    client.subscribe(watering_topic, 1);  //watering values (val1, val2, val3, ...)
+    // TODO! old code rework or remove later
+    //client.subscribe(watering_topic, 1);  //watering values (val1, val2, val3, ...)
     client.subscribe(bewae_sw, 1); //switch on/off default values for watering
     client.subscribe(watering_sw, 1); //switch on/off watering procedure
     client.subscribe(timetable_sw, 1); //switch on/off custom timetable
@@ -851,65 +879,12 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
     thirsty = true; //initialize watering phase
 
     #ifdef DEBUG
-    Serial.print("bool status: sw1 "); Serial.print(sw1); Serial.print(" sw0 "); Serial.print(sw0);
-    #endif
-    // take default values
-    //if(sw1){
-    if(sw1 && sw0){
-      //take recieved values
-      #ifdef DEBUG
-      Serial.println(F("consider sent watering configuration."));
-      #endif
-      int len = sizeof(group)/sizeof(group[0]);
-      struct solenoid* ptr = group;
-      for (int i=0; i<len; i++, ptr++){
-        if(ptr->is_set){
-          ptr->watering_time = ptr->watering_mqtt;
-        }
-      }
-    }
-    if(!sw1 && sw0){
-      // take default values
-      #ifdef DEBUG
-      Serial.println(F("consider default watering configuration."));
-      #endif
-      int len = sizeof(group)/sizeof(group[0]);
-      struct solenoid* ptr = group;
-      for (int i=0; i<len; i++, ptr++){
-        if(ptr->is_set){
-          ptr->watering_time = ptr->watering_default;
-        }
-      }
-    }
-
-    if(!sw0){
-      #ifdef DEBUG
-      Serial.print(F("Set watering of all active groups to 0."));
-      #endif
-      int len = sizeof(group)/sizeof(group[0]);
-      struct solenoid* ptr = group;
-      for(int i=0; i<len; i++, ptr++){
-        if(ptr->is_set){
-          ptr->watering_time = 0;
-        }
-      }
-    }
-
-    #ifdef DEBUG
     if(sw0)
     {
       Serial.println(F("Watering ON"));
     }
     else{
       Serial.println(F("Watering OFF"));
-    }
-    if(1){
-      Serial.println(F("Water configuration:"));
-      int len = sizeof(group)/sizeof(group[0]);
-      struct solenoid* ptr = group;
-      for(int i=0; i<len; i++, ptr++){
-        Serial.print(F("Group - ")); Serial.print(ptr->name); Serial.print(F(" - time - ")); Serial.println(ptr->watering_time);
-      }
     }
     #endif
     
@@ -919,7 +894,7 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
 Serial.println(F("Config: ")); Serial.print(F("Bewae switch: ")); Serial.println(sw0);
 Serial.print(F("Value override: ")); Serial.println(sw1);
 Serial.print(F("timetable override: ")); Serial.println(sw2);
-Serial.print(F("Timetable: ")); Serial.print(timetable_raspi, BIN); Serial.print(F(" value ")); Serial.println(timetable, BIN); 
+Serial.print(F("Timetable: ")); Serial.print(timetable_raspi, BIN);
 #endif
 
 //update global time related variables
@@ -1011,13 +986,6 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
     bme_point[0].val = bme.readTemperature();
   }
   #endif
-
-MeasuringController bme_sensor[3] =
-{
-  {"bme_temp", [&]() { return bme.readTemperature(); }},
-  {"bme_hum", [&]() { return bme.readHumidity(); }},
-  {"bme_pres", [&]() { return bme.readPressure(); }}
-};
 
   // DHT11 sensor (alternative)
   #ifdef DHT
@@ -1193,3 +1161,4 @@ if (loop_t + measure_intervall > millis()){
 Serial.println(F("End loop!"));
 #endif
 }
+#endif
