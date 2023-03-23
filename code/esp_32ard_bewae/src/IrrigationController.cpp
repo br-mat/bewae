@@ -93,14 +93,14 @@ void IrrigationController::createNewController(
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int IrrigationController::readyToWater(int currentHour) {
-  //INPUT: currentHour is the int digits of the full hour
-  //Function:
-  //It checks if the irrigation system is ready to water.
-  //If the system is ready,
-  //it calculates the remaining watering time and updates the waterTime variable and returns the active time.
-  //It returns 0 if the system is not ready to water.
+  // INPUT: currentHour is the int digits of the full hour
+  // Function:
+  // It checks if the irrigation system is ready to water.
+  // If the system is ready,
+  // it calculates the remaining watering time and updates the waterTime variable and returns the active time.
+  // It returns 0 if the system is not ready to water.
 
-  //to prevent unexpected behaviour its important to pass only valid hours
+  // to prevent unexpected behaviour its important to pass only valid hours
 
   if(!is_set){ //return 0 if the group is not set
     #ifdef DEBUG
@@ -118,7 +118,7 @@ int IrrigationController::readyToWater(int currentHour) {
   }
 
   // get the current time in milliseconds
-  //unsigned long currentMillis = millis();
+  // unsigned long currentMillis = millis();
   unsigned long currentMillis = millis();
 
   // check if the solenoid has been active for too long, max_axtive_time_sec have to be multiplied as lastActivation is ms
@@ -152,6 +152,11 @@ int IrrigationController::readyToWater(int currentHour) {
   int remainingTime = min(water_time, max_active_time_sec);
   remainingTime = max(remainingTime, (int)0); //avoid values beyond 0
   this->water_time -= remainingTime; // update the water time
+
+  // save water time variable
+  if (!saveScheduleConfig(CONFIG_FILE_PATH, this->solenoid_pin)){
+    return 0; // saving variable error
+  }
 
   // update the last activation time of the solenoid and pump
   solenoid->lastActivation = currentMillis;
@@ -195,7 +200,7 @@ bool IrrigationController::loadScheduleConfig(const char path[PATH_LENGTH], int 
 
 // Updates the values of a number of member variables in the IrrigationController class in the JSON file at the specified file path.
 // Returns true if the file was updated successfully, false if the file path is invalid or if there is an error reading or writing the file.
-bool IrrigationController::saveScheduleConfig(const char path[20], int pin) {
+bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], int pin) {
   DynamicJsonDocument jsonDoc =  Helper::readConfigFile(path); // read the config file
   if (jsonDoc.isNull()) {
     return false;
@@ -229,10 +234,10 @@ void IrrigationController::reset() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void IrrigationController::activatePWM(int time_s) {
-  //Function description: Controlls the watering procedure on valves and pump
+  // Function description: Controlls the watering procedure on valves and pump
   // Careful with interupts! To avoid unwanted flooding.
-  //FUNCTION PARAMETER:
-  //time        -- time in seconds, max 60 seconds                                    int
+  // FUNCTION PARAMETER:
+  // time        -- time in seconds, max 60 seconds                                    int
   //------------------------------------------------------------------------------------------------
   // check if time is within range
   time_s = max(0, time_s);
@@ -264,7 +269,7 @@ void IrrigationController::activatePWM(int time_s) {
   Serial.println(vent_pin); Serial.print(F("time: ")); Serial.println(time_ms);
   #endif
   // perform actual function
-  //byte value = (1 << vent_pin) + (1 << pump_pin);
+  // byte value = (1 << vent_pin) + (1 << pump_pin);
 
   byte value = solenoid == nullptr ? 0 : ((1 << solenoid->pin) | (pump == nullptr ? 0 : (1 << pump->pin)));
 
@@ -273,7 +278,7 @@ void IrrigationController::activatePWM(int time_s) {
   #endif
   Helper::shiftvalue8b(value);
   delay(100); //wait balance load after pump switches on
-  //control this PWM pin by changing the duty cycle:
+  // control this PWM pin by changing the duty cycle:
   // ledcWrite(PWM_Ch, DutyCycle);
   ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 1);
   delay(2);
@@ -302,10 +307,10 @@ void IrrigationController::activatePWM(int time_s) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void IrrigationController::activate(int time_s) {
-  //Function description: Controlls the watering procedure on valves and pump
+  // Function description: Controlls the watering procedure on valves and pump
   // Careful with interupts! To avoid unwanted flooding.
-  //FUNCTION PARAMETER:
-  //time        -- time in seconds, max 40 seconds                                    int
+  // FUNCTION PARAMETER:
+  // time        -- time in seconds, max 40 seconds                                    int
   //------------------------------------------------------------------------------------------------
   // check if time is within range
   time_s = max(0, time_s);
@@ -360,11 +365,12 @@ void IrrigationController::activate(int time_s) {
 // Member function to start watering process
 int IrrigationController::waterOn(int hour) {
   // Function description: Starts the irrigation procedure after checking if the hardware is ready
-  //FUNCTION PARAMETER:
+  // FUNCTION PARAMETER:
   // currentHour - the active hour to check the with the timetable
 
   // Check if hardware is ready to water
   int active_time = readyToWater(hour);
+  
   if (active_time > 0) {
     // Activate watering process
     activatePWM(active_time);
@@ -469,6 +475,7 @@ DynamicJsonDocument IrrigationController::getJSONData(const char* server, int se
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/*
 // Getter & Setters
 bool IrrigationController::getMainSwitch() const { return main_switch; }
 void IrrigationController::setMainSwitch(bool value) { main_switch = value; }
@@ -478,3 +485,4 @@ bool IrrigationController::getDataloggingSwitch() const { return dataloging_swit
 void IrrigationController::setDataloggingSwitch(bool value) { dataloging_switch = value; }
 bool IrrigationController::getIrrigationSystemSwitch() const { return irrigation_system_switch; }
 void IrrigationController::setIrrigationSystemSwitch(bool value) { irrigation_system_switch = value; }
+*/

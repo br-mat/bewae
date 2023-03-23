@@ -544,7 +544,8 @@ DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
 // Writes the specified DynamicJsonDocument to the file at the specified file path as a JSON file.
 // Returns true if the file was written successfully, false if the file path is invalid or if there is an error writing the file.
 bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
-  if (path == nullptr) { // check for valid path
+  // TODO improve error handling on file path!
+  if (path == nullptr) { // check for valid path, a function could possibly use this and set a nullptr as path
     #ifdef DEBUG
     Serial.println("Invalid file path");
     #endif
@@ -557,13 +558,13 @@ bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_L
     Serial.println("Failed to open config file for writing");
     #endif
     newFile.close();
-    return false;
+    return false; // error occured
   }
 
   // Write the JSON data to the config file
   serializeJson(jsonDoc, newFile);
   newFile.close();
-  return true;
+  return true; // all good
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

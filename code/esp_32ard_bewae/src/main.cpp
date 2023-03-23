@@ -1,4 +1,3 @@
-#ifndef ASDASD
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // br-mat (c) 2022
@@ -39,10 +38,12 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 
+//custom
 #include <connection.h>
 #include <Helper.h>
 #include <IrrigationController.h>
 #include <SensorController.h>
+#include <SwitchController.h>
 #include <config.h>
 
 using namespace std;
@@ -201,10 +202,10 @@ void setup() {
   pinMode(st_cp_shft, OUTPUT);    //74hc595 ST_CP                                 GPIO26()
   pinMode(data_shft, OUTPUT);     //74hc595 Data                                  GPIO33()
   pinMode(vent_pwm, OUTPUT);      //vent pwm output                               GPIO32()
-  pinMode(chip_select, OUTPUT);   //SPI CS                                        GPIO15()
-  //hardware defined SPI pin      //SPI MOSI                                      GPIO13()
-  //hardware defined SPI pin      //SPI MISO                                      GPIO12()
-  //hardware defined SPI pin      //SPI CLK                                       GPIO14()
+  //pinMode(chip_select, OUTPUT);   //SPI CS                                        GPIO15()
+  //hardware defined SPI pin        //SPI MOSI                                      GPIO13()
+  //hardware defined SPI pin        //SPI MISO                                      GPIO12()
+  //hardware defined SPI pin        //SPI CLK                                       GPIO14()
   //pinMode(A0, INPUT);             //analog in?                                  GPIO()
   pinMode(sig_mux_1, INPUT);      //mux sig in                                    GPIO39()
   pinMode(en_mux_1, OUTPUT);      //mux enable                                    GPIO05() bei boot nicht high!
@@ -358,8 +359,8 @@ byte rtc_status = Wire.endTransmission();
 //delay(200);
 byte sec1, min1, hour1, day_w1, day_m1, mon1 , y1;
 
-//check real time clock module,
-// check for hour change and request config update from pi or use default settings
+// check real time clock module
+// check for hour change and update config
 if(rtc_status != 0){
   #ifdef DEBUG
   Serial.println(F("Error: rtc device not available!"));
@@ -388,9 +389,10 @@ if(rtc_status != 0){
 else{
   Serial.println(F("rtc found"));
 }
+
 if (!(bool)rtc_status)
 {
-  read_time(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1);
+  read_time(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
 }
   #ifdef DEBUG
   delay(1);
@@ -401,23 +403,30 @@ if (!(bool)rtc_status)
 if((hour_ != hour1) & (!(bool)rtc_status)){
 //if(true){
   // check for hour change
-  up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); //refresh the up_time every hour, no need for extra function or lib to calculate the up time
-  read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
+  up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); // refresh the up_time every hour, no need for extra function or lib to calculate the up time
+  read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_); // update long time timestamp
+
+  // setup empty class instance
+  IrrigationController controller;
 
   #ifdef RasPi
   // look for config updates
   wakeModemSleep();
   delay(1);
-  // setup empty class instance
-  IrrigationController controller;
-  // update the config file stored in spiffs
+  // update the config file stored in spiffs with a file from the local network
   // in order to work a RasPi with node-red and configured flow is needed
   controller.updateController();
-  timetable = controller.combineTimetables();
   #endif
 
+  // combine timetables
+  timetable = controller.combineTimetables();
+
+  // check if current hour is in timetable
   //if(true){
   if(bitRead(timetable, hour1)){
+    // get switches
+    JsonObject switches = getJsonObjects("switches", CONFIG_FILE_PATH);
+
     thirsty = true; //initialize watering phase
 
     #ifdef DEBUG
@@ -620,4 +629,3 @@ if (loop_t + measure_intervall > millis()){
 Serial.println(F("End loop!"));
 #endif
 }
-#endif

@@ -87,12 +87,6 @@ class IrrigationController {
     int solenoid_pin; //storing registered struct solenoid pin, value will get saved to config
     int pump_pin; //storing registered struct pump pin, value will get saved to config
 
-    // SWITCH VARIABLES:
-    bool main_switch; // main switch
-    bool dataloging_switch; // dataloging switch
-    bool irrigation_system_switch; // irrigation system switch
-    bool placeholder3; // switch
-
     // PRIVATE METHODS:
     // Loads the config file and sets the values of the member variables
     //DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
