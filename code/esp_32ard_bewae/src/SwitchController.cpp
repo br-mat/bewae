@@ -25,6 +25,11 @@ SwitchController::SwitchController() {
       placeholder3 = false;
     }
   }
+  else{
+    #ifdef DEBUG
+    Serial.println(F("WARNING: Switching Class could not be initialized! All States are set to 'false'."));
+    #endif
+  }
 }
 
 bool SwitchController::saveSwitches() {
@@ -54,6 +59,57 @@ bool SwitchController::saveSwitches() {
   return true;
 }
 
+DynamicJsonDocument SwitchController::getJSONData(const char* server, int serverPort, const char* serverPath) {
+  // Send the HTTP GET request to the Raspberry Pi server
+  DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
+  HTTPClient http;
+  http.begin(String("http://") + server + ":" + serverPort + serverPath);
+  int httpCode = http.GET();
+
+  // Check the status code
+  if (httpCode == HTTP_CODE_OK) {
+    // Parse the JSON data
+    DeserializationError error = deserializeJson(JSONdata, http.getString());
+
+    if (error) {
+      #ifdef DEBUG
+      Serial.println(F("Error parsing JSON data"));
+      #endif
+      return JSONdata;
+    } else {
+      return JSONdata;
+    }
+  } else {
+    #ifdef DEBUG
+    Serial.println(F("Error sending request to server"));
+    #endif
+    return JSONdata;
+  }
+
+  http.end();
+  return JSONdata;
+}
+
+bool SwitchController::updateSwitches() {
+  // SwitchController update
+  SwitchController status_switches;
+
+  DynamicJsonDocument jsonDoc = SwitchController::getJSONData(SERVER, SERVER_PORT, SERVER_PATH);
+
+  // check if file could be found
+  if (jsonDoc.isNull()) {
+    return false;
+  }
+
+  // Update the switch values in the config file
+  JsonObject switches = jsonDoc["switches"].as<JsonObject>();
+  switches["main_switch"] = this->main_switch;
+  switches["dataloging_switch"] = this->dataloging_switch;
+  switches["irrigation_system_switch"] = this->irrigation_system_switch;
+  switches["placeholder3"] = this->placeholder3;
+
+  return SwitchController::saveSwitches();
+}
 
 // Getters
 bool SwitchController::getMainSwitch() {

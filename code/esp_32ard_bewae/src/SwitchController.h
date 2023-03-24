@@ -12,12 +12,16 @@ class SwitchController {
     bool irrigation_system_switch; // irrigation system switch
     bool placeholder3; // switch
 
+    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath);
+
   public:
     // Constructor
     SwitchController();
 
     // SAVE SWITCH SETTINGS TO CONFIG FILE:
     bool saveSwitches();
+    // Member function to update related data
+    bool updateSwitches();
 
     // Getters
     bool getMainSwitch();
