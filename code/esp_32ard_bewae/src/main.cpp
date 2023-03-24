@@ -383,7 +383,6 @@ if(rtc_status != 0){
     }
     i++;
   }
-
   //store into variable available for all following functions
 }
 else{
@@ -394,11 +393,16 @@ if (!(bool)rtc_status)
 {
   read_time(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
 }
-  #ifdef DEBUG
-  delay(1);
-  Serial.print(F("Time hour: ")); Serial.print(hour1); Serial.print(F(" last ")); Serial.println(hour_);
-  Serial.print("rtc status: "); Serial.println(rtc_status); Serial.println(!(bool) rtc_status);
-  #endif
+
+#ifdef DEBUG
+delay(1);
+Serial.print(F("Time hour: ")); Serial.print(hour1); Serial.print(F(" last ")); Serial.println(hour_);
+Serial.print("rtc status: "); Serial.println(rtc_status); Serial.println(!(bool) rtc_status);
+#endif
+
+// get status viariables
+SwitchController status_switches;
+status_switches.updateSwitches();
 
 if((hour_ != hour1) & (!(bool)rtc_status)){
 //if(true){
@@ -406,7 +410,7 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
   up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); // refresh the up_time every hour, no need for extra function or lib to calculate the up time
   read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_); // update long time timestamp
 
-  // setup empty class instance
+  // setup empty class instance & update it
   IrrigationController controller;
 
   #ifdef RasPi
@@ -424,17 +428,15 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
   // check if current hour is in timetable
   //if(true){
   if(bitRead(timetable, hour1)){
-    // get switches
-    JsonObject switches = getJsonObjects("switches", CONFIG_FILE_PATH);
-
-    thirsty = true; //initialize watering phase
 
     #ifdef DEBUG
-    if(sw0)
+    if(status_switches.getIrrigationSystemSwitch())
     {
+      thirsty = true; //initialize watering phase
       Serial.println(F("Watering ON"));
     }
     else{
+      thirsty = false;
       Serial.println(F("Watering OFF"));
     }
     #endif
@@ -444,7 +446,7 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
 #ifdef DEBUG
 Serial.println(F("Config: ")); Serial.print(F("Bewae switch: ")); Serial.println(sw0);
 Serial.print(F("Value override: ")); Serial.println(sw1);
-Serial.print(F("timetable override: ")); Serial.println(sw2);
+Serial.print(F("Timetable override: ")); Serial.println(sw2);
 Serial.print(F("Timetable: ")); Serial.print(timetable, BIN);
 #endif
 

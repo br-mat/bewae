@@ -179,7 +179,10 @@ bool IrrigationController::loadScheduleConfig(const char path[PATH_LENGTH], int 
   }
 
   // check if pin is valid
-  if (pin >= max_groups) {
+  if (pin > max_groups+MAX_PUMPS) {
+    #ifdef DEBUG
+    Serial.println(F("Invalid pin number for group"));
+    #endif
     return false;
   }
 
