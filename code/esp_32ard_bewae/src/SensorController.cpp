@@ -91,9 +91,9 @@ float VpinController::measure() {
   Serial.print(F("raw read int:")); Serial.println((int)temp);
   #endif
   value = temp;
-  value = constrain(value, low_lim, high_lim); //x within borders else x = border value; (example 1221 wet; 3176 dry [in mV])
+  value = constrain(value, this->low_limit, this->high_limit); //x within borders else x = border value; (example 1221 wet; 3176 dry [in mV])
                                                 //avoid using other functions inside the brackets of constrain
-  value = map(value, low_lim, high_lim, 1000, 0) / 10;
+  value = map(value, this->low_limit, this->high_limit, 1000, 0) / 10;
   
   // return result
   if (factor != nullptr) {

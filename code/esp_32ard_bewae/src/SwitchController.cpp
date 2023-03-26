@@ -2,28 +2,41 @@
 
 // Constructor
 SwitchController::SwitchController() {
-  JsonObject switches = Helper::getJsonObjects("switches", CONFIG_FILE_PATH);
+  JsonObject switches = Helper::getJsonObjects("switches", SENSOR_FILE_PATH);
+  int reading_errors = 0;
   if (!switches.isNull()) {
     if (switches.containsKey("main_switch")) {
       main_switch = switches["main_switch"];
     } else {
-      main_switch = false;
+      main_switch = false; // set default in case of false reading
+      reading_errors++;
     }
     if (switches.containsKey("dataloging_switch")) {
       dataloging_switch = switches["dataloging_switch"];
     } else {
       dataloging_switch = false;
+      reading_errors++;
     }
     if (switches.containsKey("irrigation_system_switch")) {
       irrigation_system_switch = switches["irrigation_system_switch"];
     } else {
       irrigation_system_switch = false;
+      reading_errors++;
     }
     if (switches.containsKey("placeholder3")) {
       placeholder3 = switches["placeholder3"];
     } else {
       placeholder3 = false;
+      reading_errors++;
     }
+    if (reading_errors > 0) // if some errors occure output a warning to serial for debuging
+    {
+    #ifdef DEBUG
+    Serial.print(F("WARNING: Switching Class config file could not be read correctly! Some states are set to 'false', count: "));
+    Serial.println(reading_errors);
+    #endif
+    }
+    
   }
   else{
     #ifdef DEBUG
@@ -103,10 +116,10 @@ bool SwitchController::updateSwitches() {
 
   // Update the switch values in the config file
   JsonObject switches = jsonDoc["switches"].as<JsonObject>();
-  switches["main_switch"] = this->main_switch;
-  switches["dataloging_switch"] = this->dataloging_switch;
-  switches["irrigation_system_switch"] = this->irrigation_system_switch;
-  switches["placeholder3"] = this->placeholder3;
+  this->main_switch = switches["main_switch"];
+  this->dataloging_switch = switches["dataloging_switch"];
+  this->irrigation_system_switch = switches["irrigation_system_switch"];
+  this->placeholder3 = switches["placeholder3"];
 
   return SwitchController::saveSwitches();
 }

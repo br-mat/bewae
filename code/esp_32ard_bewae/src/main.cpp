@@ -143,36 +143,36 @@ bool measure_sensors(){
 
 
   //VpinController configured_sensors[num];
-/*
-// setup virtual measurementpins (additional pins at the MUX)
-VpinController vPin_mux[16] =
-{
-  {"v00", 0},
-  {"v01", 1},
-  {"v02", 2},
-  {"v03", 3},
-  {"v04", 4},
-  {"v05", 5},
-  {"v06", 6},
-  {"v07", 7},
-  {"v08", 8},
-  {"v09", 9},
-  {"v10", 10},
-  {"v11", 11},
-  {"v12", 12},
-  {"v13", 13},
-  {"v14", 14}, //battery voltage - needs calculation
-  {"v15", 15}, //photo resistor - needs calculation
-};
+  /*
+  // setup virtual measurementpins (additional pins at the MUX)
+  VpinController vPin_mux[16] =
+  {
+    {"v00", 0},
+    {"v01", 1},
+    {"v02", 2},
+    {"v03", 3},
+    {"v04", 4},
+    {"v05", 5},
+    {"v06", 6},
+    {"v07", 7},
+    {"v08", 8},
+    {"v09", 9},
+    {"v10", 10},
+    {"v11", 11},
+    {"v12", 12},
+    {"v13", 13},
+    {"v14", 14}, //battery voltage - needs calculation
+    {"v15", 15}, //photo resistor - needs calculation
+  };
 
-// setup bme measurment
-MeasuringController bme_sensor[3] =
-{
-  {"bme_temp", [&]() { return bme.readTemperature(); }},
-  {"bme_hum", [&]() { return bme.readHumidity(); }},
-  {"bme_pres", [&]() { return bme.readPressure(); }}
-};
-*/
+  // setup bme measurment
+  MeasuringController bme_sensor[3] =
+  {
+    {"bme_temp", [&]() { return bme.readTemperature(); }},
+    {"bme_hum", [&]() { return bme.readHumidity(); }},
+    {"bme_pres", [&]() { return bme.readPressure(); }}
+  };
+  */
 return true;
 }
 
@@ -464,7 +464,7 @@ Serial.println(actual_time); Serial.println(last_activation); Serial.println(mea
 Serial.println((float)((float)actual_time-(float)last_activation)); Serial.println(up_time);
 #endif
 //if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall-500000UL)) //replace for debuging
-if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall))
+if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall)) && (status_switches.getDatalogingSwitch()))
 //if(true)
 //if(false)
 {
@@ -477,7 +477,7 @@ if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_interv
   delay(1);
   digitalWrite(sw_sens, HIGH);   //activate mux & SD
   digitalWrite(sw_sens2, HIGH);  //activate sensor rail
-  delay(1000);
+  delay(500);
   
   //TODO ADD MEASURING CODE OF VPINCLASS HERE
 /*
