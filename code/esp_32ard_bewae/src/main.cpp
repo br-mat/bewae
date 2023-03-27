@@ -164,14 +164,6 @@ bool measure_sensors(){
     {"v14", 14}, //battery voltage - needs calculation
     {"v15", 15}, //photo resistor - needs calculation
   };
-
-  // setup bme measurment
-  MeasuringController bme_sensor[3] =
-  {
-    {"bme_temp", [&]() { return bme.readTemperature(); }},
-    {"bme_hum", [&]() { return bme.readHumidity(); }},
-    {"bme_pres", [&]() { return bme.readPressure(); }}
-  };
   */
 return true;
 }
@@ -479,16 +471,47 @@ if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_inter
   digitalWrite(sw_sens2, HIGH);  //activate sensor rail
   delay(500);
   
-  //TODO ADD MEASURING CODE OF VPINCLASS HERE
-/*
-  //measure all moisture sensors
-  int len = sizeof(measure_point)/sizeof(measure_point[0]);
-  struct sensors* m_ptr = measure_point;
-  for (int i=0; i<len; i++, m_ptr++ ) {
-    if(m_ptr->is_set){ //convert moisture reading to relative moisture and clip bad data with constrain
-    ....
-*/
- 
+  // Update config
+  IrrigationController controller;
+  // update the config file stored in spiffs
+  // in order to work a RasPi with node-red and configured flow is needed
+  controller.updateController();
+
+  JsonObject sens = getJsonObjects("sensors", SENSOR_FILE_PATH);
+  // check for valid object
+  if (sens.isNull()) {
+    #ifdef DEBUG
+    Serial.println(F("Error: No 'Group' found in file!"));
+    #endif
+  }
+  else{
+    int numsens = sens.size();
+    // iterate over json object, find all configured sensors measure and post the results
+    for(JsonPair kv : sens){
+      bool status = kv.value()["is_set"].as<bool>();
+      // check status
+      if (!status) {
+        continue; // skip iteration if sensor is not set
+      }
+      int pin = String(kv.key().c_str()).toInt();
+      String name = kv.value()["name"].as<String>();
+      int low = kv.value()["llim"].as<int>();
+      int high = kv.value()["hlim"].as<int>();
+      float factor = kv.value()["fac"].as<float>();
+
+      VpinController sensor(name, pin, low, high, factor);
+      float result = sensor.measure();
+      bool cond = pubInfluxData(name, String(INFLUXDB_FIELD), result);
+
+      #ifdef DEBUG
+      if (!cond) {
+        Serial.print(F("Problem occured when publishing data to InfluxDB!"));
+      }
+      Serial.print(F("Publishing data from: ")); Serial.println(name);
+      Serial.print(F("Value: ")); Serial.println(result);
+      #endif
+    }
+  }
 
   // BME280 sensor (default)
   #ifdef BME280
@@ -497,27 +520,33 @@ if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_inter
     Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
     #endif
   }
-  // TODO ADD MEASURING CODE OF BME HERE:
+  #ifdef DEBUG
+  Serial.print(F("Start measuring BME280"));
+  #endif
 
+  // setup bme measurment
+  MeasuringController bme_sensor[3] =
+  {
+    {"bme_temp", [&]() { return bme.readTemperature(); }},
+    {"bme_hum", [&]() { return bme.readHumidity(); }},
+    {"bme_pres", [&]() { return bme.readPressure(); }}
+  };
+
+  for(int i=0; i < 3; i++){
+    float result = bme_sensor->measure();
+    bool cond = pubInfluxData(bme_sensor->getSensorName(), String(INFLUXDB_FIELD), result);
+    #ifdef DEBUG
+    if (!cond){
+    Serial.println(F("Problem publishing BME!"));
+    }
+    #endif
+  }
 
   #endif
 
   // DHT11 sensor (alternative)
   #ifdef DHT
   //possible dht solution --- CURRENTLY NOT IMPLEMENTED!
-  #endif
-
-  // log to INFLUXDB (default)
-  #ifdef RasPi
-  if(post_DATA){
-    wakeModemSleep();
-    delay(1);
-
-    //TODO ADD POSTING MEASUREMENT POINTS
-    #ifdef BME280
-    //TODO ADD POSTING MEASUREMENT POINTS
-    #endif
-  }
   #endif
 }
 

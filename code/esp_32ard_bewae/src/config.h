@@ -24,6 +24,10 @@
 #define SENSOR_FILE_PATH "/sensors.JSON" //specifies name of config file stored within spiffs
 #endif
 
+#ifndef INFLUXDB_FIELD
+#define INFLUXDB_FIELD "bewae-sensors"
+#endif
+
 #ifndef CONF_FILE_SIZE
 #define CONF_FILE_SIZE 2048 // estimate at https://arduinojson.org/v6/assistant/#/step1
 #endif
