@@ -38,6 +38,23 @@ BasicSensor::BasicSensor(const String& name) : sensorName(name), status(true) {}
 // Basic Destructor
 BasicSensor::~BasicSensor() {}
 
+// getters & setters
+String BasicSensor::getSensorName() const {
+    return sensorName;
+}
+
+void BasicSensor::setSensorName(const String& name) {
+    sensorName = name;
+}
+
+bool BasicSensor::getStatus() const {
+    return status;
+}
+
+void BasicSensor::setStatus(bool status) {
+    this->status = status;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  MeasuringController
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -63,11 +80,11 @@ float MeasuringController::measure() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Total Constructor
-VpinController::VpinController(const String& name, int vpin, int low_limit, int high_limit, float* factor)
+VpinController::VpinController(const String& name, int vpin, int low_limit, int high_limit, float factor)
     : BasicSensor(name), virtualPin(vpin), low_limit(low_limit), high_limit(high_limit), factor(factor) {}
 
 // Short Constructor
-VpinController::VpinController(const String& name, int vpin) : VpinController(name, vpin, low_lim, high_lim, nullptr) {}
+VpinController::VpinController(const String& name, int vpin) : VpinController(name, vpin, 0, 0, 1) {}
 
 // Override virtual measure function from base class
 float VpinController::measureRaw() {
@@ -75,10 +92,7 @@ float VpinController::measureRaw() {
   Helper::controll_mux(this->virtualPin, sig_mux_1, en_mux_1, "read", &result); // use virtualPin on MUX and read its value
 
   // return result
-  if (factor != nullptr) {
-    return result * (*factor);
-  }
-  return (float)result;
+  return result;
 }
 
 // returns relative measurement in %
@@ -96,9 +110,5 @@ float VpinController::measure() {
   value = map(value, this->low_limit, this->high_limit, 1000, 0) / 10;
   
   // return result
-  if (factor != nullptr) {
-    return value * (*factor);
-  }
-  
-  return value;
+  return factor * (float)value;
 }

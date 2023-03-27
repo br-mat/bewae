@@ -56,6 +56,13 @@ public:
     // Pure virtual measure function that must be overridden by derived classes
     virtual float measure() = 0;
 
+    // setters & getters
+    String getSensorName() const;
+    void setSensorName(const String& name);
+
+    bool getStatus() const;
+    void setStatus(bool status);
+
 protected:
     String sensorName; // Name of the sensor
     bool status;       // Status of the sensor (true = on, false = off)
@@ -80,6 +87,9 @@ public:
 
 private:
     std::function<float()> measurementFunction; // std::function that returns a float and takes no arguments.
+
+    using BasicSensor::sensorName;
+    using BasicSensor::status;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -90,7 +100,7 @@ private:
 class VpinController : public BasicSensor {
 public:
   // Total Constructor
-  VpinController(const String& name, int vpin, int low_limit, int high_limit, float* factor);
+  VpinController(const String& name, int vpin, int low_limit, int high_limit, float factor);
 
   // Short Constructor
   VpinController(const String& name, int vpin);
@@ -103,7 +113,10 @@ private:
   int virtualPin; // Virtual pin number associated with this controller.
   int low_limit; // Lower limit value for measurement
   int high_limit; // Upper limit value for measurement
-  float* factor; // Factor to multiply measurement values by
+  float factor; // Factor to multiply measurement values by
+
+  using BasicSensor::sensorName;
+  using BasicSensor::status;
 };
 
 #endif
