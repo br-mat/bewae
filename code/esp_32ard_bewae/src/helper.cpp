@@ -20,7 +20,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Standard
-//#include <ArduinoSTL.h>
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -33,14 +32,15 @@
 
 #include <Helper.h>
 
-//#define DEBUG
-
 #define SD_MOSI      13
 #define SD_MISO      5
 #define SD_SCK       14
 
 SPIClass spiSD(HSPI);
 //spiSD.begin(SD_SCK, SD_MISO, SD_MOSI);
+
+// Create an instance of the InfluxDBClient class with the specified URL, database name and token
+InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLUXDB_TOKEN);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  HELPER     functions
@@ -86,6 +86,7 @@ void Helper::copy(int* src, int* dst, int len) {
   memcpy(dst, src, sizeof(src[0])*len);
 }
 
+/*
 // OLD FUNCTION NOW HANDLED IN IRRIGATIONCONTROLLER CLASS
 void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _time, uint8_t vent_pin, uint8_t pump_pin, uint8_t en, uint8_t pwm){
   //Function description: Controlls the watering procedure on valves and pump
@@ -164,7 +165,7 @@ void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _ti
   digitalWrite(datapin, LOW);
   digitalWrite(en, LOW);
 }
-
+*/
 
 void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
   //Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
@@ -246,7 +247,7 @@ void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, Strin
   }
 }
 
-
+/*
 bool Helper::save_datalog(String data, uint8_t cs, const char * file){
   //Function: saves data given as string to a sd card via spi
   //FUNCTION PARAMETER
@@ -303,14 +304,15 @@ bool Helper::save_datalog(String data, uint8_t cs, const char * file){
   delay(1000);  //need time to save for some reason to work without mistakes
   return true;
 }
+*/
 
 // Convert normal decimal numbers to binary coded decimal
-byte dec_bcd(byte val)
+byte  Helper::dec_bcd(byte val)
 {
   return( (val/10*16) + (val%10) );
 }
 // Convert binary coded decimal to normal decimal numbers
-byte bcd_dec(byte val)
+byte  Helper::bcd_dec(byte val)
 {
   return( (val/16*10) + (val%16) );
 }
@@ -393,44 +395,39 @@ String Helper::timestamp(){
 
 // Attempts to enable the WiFi and connect to a specified network.
 // Returns true if the connection was successful, false if not.
-bool Helper::enableWifi(){
-  // Disconnect from any current WiFi connection and set the WiFi mode to station mode.
-  WiFi.disconnect(true);  
-  delayMicroseconds(100);
-  WiFi.mode(WIFI_STA);    
+bool Helper::connectWifi(){
+  if (WiFi.status() != WL_CONNECTED) {
+    // Disconnect from any current WiFi connection and set the WiFi mode to station mode.
+    WiFi.disconnect(true);  
+    delayMicroseconds(100);
+    WiFi.mode(WIFI_STA);    
 
-  // Begin the process of connecting to the specified WiFi network.
-  WiFi.begin(ssid, wifi_password);
+    // Begin the process of connecting to the specified WiFi network.
+    WiFi.begin(ssid, wifi_password);
+  }
 
   // Initialize a counter to keep track of the number of connection attempts.
   int tries = 0;
 
   // Loop until the WiFi connection is established or the maximum number of attempts is reached.
   while (WiFi.status() != WL_CONNECTED) {
-      // Wait 1 second before trying again.
-      delay(1000);
+    // Wait 1 second before trying again.
+    delay(750);
+    WiFi.begin(ssid, wifi_password);
+    delay(250);
 
-      // Increment the counter.
-      tries++;
+    // Increment the counter.
+    tries++;
 
-      // If 15 attempts have been made, disable and re-enable the WiFi and try to reconnect.
-      if(tries == 15) {
-        disableWiFi();
-        delay(100);
-        enableWifi();
-        delay(2500);
-        WiFi.begin(ssid, wifi_password);
-      }
-
-      // If 30 attempts have been made, exit the loop and return false.
-      if(tries > 30){
-        #ifdef DEBUG
-        Serial.println();
-        Serial.print(F("Error: Wifi connection could not be established! "));
-        Serial.println(tries);
-        #endif
-        return false;
-      }
+    // If 30 attempts have been made, exit the loop and return false.
+    if(tries > 30){
+      #ifdef DEBUG
+      Serial.println();
+      Serial.print(F("Error: Wifi connection could not be established! "));
+      Serial.println(tries);
+      #endif
+      return false;
+    }
   }
 
   // If the loop exits normally, the WiFi connection was successful. Print the IP address of the device and return true.
@@ -444,13 +441,14 @@ bool Helper::enableWifi(){
 
 
 void Helper::setModemSleep() {
-    WiFi.setSleep(true);
-    if (!setCpuFrequencyMhz(80)){
-        Serial.println("Not valid frequency!");
-    }
-    // Use this if 40Mhz is not supported
-    // setCpuFrequencyMhz(80); //(40) also possible
+  WiFi.setSleep(true);
+  if (!setCpuFrequencyMhz(80)){
+      Serial.println("Not valid frequency!");
+  }
+  // Use this if 40Mhz is not supported
+  // setCpuFrequencyMhz(80); //(40) also possible
 }
+
 
 // Disables the WiFi on the device.
 // Returns true if the WiFi was successfully disabled, false if an error occurred.
@@ -478,21 +476,22 @@ bool Helper::disableWiFi(){
 
 
 void Helper::disableBluetooth(){
-    // Quite unusefully, no relevable power consumption
-    btStop();
-    #ifdef DEBUG
-    Serial.println("");
-    Serial.println("Bluetooth stop!");
-    #endif
+  // Quite unusefully, no relevable power consumption
+  btStop();
+  #ifdef DEBUG
+  Serial.println("");
+  Serial.println("Bluetooth stop!");
+  #endif
 }
 
 void Helper::wakeModemSleep() {
-    #ifdef DEBUG
-    Serial.println(F("Waking up modem!"));
-    #endif
-    setCpuFrequencyMhz(240);
-    Helper::enableWifi();
+  #ifdef DEBUG
+  Serial.println(F("Waking up modem!"));
+  #endif
+  setCpuFrequencyMhz(240);
+  Helper::connectWifi();
 }
+
 
 bool Helper::find_element(int *array, int item){
   int len = sizeof(array);
@@ -504,45 +503,149 @@ bool Helper::find_element(int *array, int item){
   return false;
 }
 
-bool Helper::load_conf(const char path[20], DynamicJsonDocument &doc){
-  // function load Json data from file
-  // path - const char array max 20 chars
-  // doc - buffer document (memory &address needed)
-  File file = SPIFFS.open(path, "r");
-  if (!file) {
+
+// Reads the JSON file at the specified file path and returns the data as a DynamicJsonDocument.
+// If the file path is invalid or if there is an error reading or parsing the file, an empty DynamicJsonDocument is returned.
+DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
+  DynamicJsonDocument jsonDoc(CONF_FILE_SIZE); // create JSON doc, if an error occurs it will return an empty jsonDoc
+                                     // which can be checked using jsonDoc.isNull()
+
+  if (path == nullptr) { // check for valid path
     #ifdef DEBUG
-    Serial.println(F("error in load_conf file creation failed"));
+    Serial.println("Invalid file path");
     #endif
-    return false;
+    return jsonDoc;
   }
-  DeserializationError error = deserializeJson(doc, file);
-  file.close();
-  if (!error) {
+
+  File configFile = SPIFFS.open(path, "r"); // open the config file for reading
+  if (!configFile) { // check if file was opened successfully
+    #ifdef DEBUG
+    Serial.println("Failed to open config file for reading");
+    #endif
+    return jsonDoc;
+  }
+
+  // Load the JSON data from the config file
+  DeserializationError error = deserializeJson(jsonDoc, configFile);
+  configFile.close();
+  if (error) { // check for error in parsing JSON data
     #ifdef DEBUG
     Serial.println("Failed to parse config file");
     #endif
+    jsonDoc.clear();
+    return jsonDoc;
+  }
+  
+  return jsonDoc;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Writes the specified DynamicJsonDocument to the file at the specified file path as a JSON file.
+// Returns true if the file was written successfully, false if the file path is invalid or if there is an error writing the file.
+bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
+  // TODO improve error handling on file path!
+  if (path == nullptr) { // check for valid path, a function could possibly use this and set a nullptr as path
+    #ifdef DEBUG
+    Serial.println("Invalid file path");
+    #endif
     return false;
   }
-  return true;
+
+  File newFile = SPIFFS.open(path, "w"); // open the config file for writing
+  if (!newFile) { // check if file was opened successfully
+    #ifdef DEBUG
+    Serial.println("Failed to open config file for writing");
+    #endif
+    newFile.close();
+    return false; // error occured
+  }
+
+  // Write the JSON data to the config file
+  serializeJson(jsonDoc, newFile);
+  newFile.close();
+  return true; // all good
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// send data to influxdb, return true when everything is ok
+bool Helper::pubInfluxData(String sensor_name, String field_name, float value) {
+
+  bool cond = Helper::connectWifi();
+  if (!cond) {
+    // if no connection is possible exit early
+    #ifdef DEBUG
+    Serial.print(F("Error in Wifi connection."));
+    #endif
+    return false;
+  }
+
+  Point point(sensor_name);
+  point.addField(field_name, value);  // Add temperature field to the Point object
+
+  // Write the Point object to InfluxDB
+  if (!influx_client.writePoint(point)) {
+    #ifdef DEBUG
+    Serial.print(F("InfluxDB write failed: "));
+    Serial.println(influx_client.getLastErrorMessage());  // Print error message if write operation is unsuccessful
+    #endif
+    return false;
+  }
+  else{
+    #ifdef DEBUG
+    Serial.println(F("InfluxDB points sent"));
+    #endif
+    return true;
+  }
+
 }
 
-bool Helper::save_conf(const char path[20], DynamicJsonDocument &doc){
-  // function saves Json data to file
-  // path - const char array max 20 chars
-  // doc - json buffer document holding content (memory &address needed)
-  //SPIFFS.remove(path); //remove is not necessary serialize should handle this
-  File file = SPIFFS.open(path, "w");
-  if (!file) {
-    #ifdef DEBUG
-    Serial.println(F("error in save_conf file creation failed"));
-    #endif
-    return false;
+
+// blink onboard LED
+void Helper::blinkOnBoard(String howLong, int times) {
+   int duration;
+  
+   if (howLong == "long") {
+     duration = 1000;
+   } else if (howLong == "short") {
+     duration = 250;
+   } else {
+     return;
+   }
+  
+   for (int i = 0; i < times; i++) {
+     digitalWrite(2, HIGH);
+     delay(duration);
+     digitalWrite(2, LOW);
+     delay(1500-duration); //1.5 seconds between blinks
+   }
+}
+
+// returns num of JSON objects of specified key
+JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
+  // load the stored file and get all keys
+  DynamicJsonDocument doc(CONF_FILE_SIZE);
+  doc = Helper::readConfigFile(filepath);
+
+  JsonObject jsonobj;
+
+  // Check if doc is empty
+  if (doc.isNull()) {
+    Serial.println(F("Warning: Failed to read file or empty JSON object."));
+    return jsonobj;
   }
-  if (serializeJson(doc, file) == 0) {
-    #ifdef DEBUG
-    Serial.println(F("Failed to write to file"));
-    #endif
+  
+  // Access the "groups" object
+  jsonobj = doc[key];
+  
+  // Check if key exists in the JSON object
+  if (jsonobj.isNull()) {
+    Serial.println(F("Warning: Key not found in JSON object."));
+    return jsonobj;
   }
-  file.close();
-  return true;
+  
+  doc.clear();
+  int numgroups = jsonobj.size();
+  return jsonobj;
 }

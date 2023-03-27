@@ -20,7 +20,16 @@
 #ifndef __Helper_H__
 #define __Helper_H__
 
+#ifndef DEBUG
+#define DEBUG
+#endif
 
+#ifndef PATH_LENGTH
+#define PATH_LENGTH 25
+#endif
+
+#include <WiFi.h>
+#include <InfluxDbClient.h>
 #include <Arduino.h>
 #include "driver/adc.h"
 #include <config.h>
@@ -30,23 +39,34 @@
 
 namespace Helper{
     String timestamp();
-    void shiftvalue8b(uint8_t val);
-    void system_sleep();
-    void copy(int* src, int* dst, int len);
+    void shiftvalue8b(uint8_t val); // set shift register to value
+    void system_sleep(); // prepare low power mode (currently without light or deepsleep; TODO!)
+    void copy(int* src, int* dst, int len); // copy string from dest to src
+    /*
     void watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _time, 
         uint8_t vent_pin, uint8_t pump_pin, uint8_t en, uint8_t pwm);
+    */
     void controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val);
+    /*
     bool save_datalog(String data, uint8_t cs, const char * file);
+    */
+    byte dec_bcd(byte val); // Convert normal decimal numbers to binary coded decimal 
+    byte bcd_dec(byte val); // Convert binary coded decimal to normal decimal numbers
     void set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year);
     void read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year);
-    bool disableWiFi();
-    bool enableWifi();
-    void setModemSleep();
-    void wakeModemSleep();
+    bool disableWiFi(); // disables Wifi
+    bool connectWifi(); // enables Wifi and connect
+    void setModemSleep(); // disable wifi and reduce clock speed
+    void wakeModemSleep(); // enable wifi and set clock to normal speed
     void disableBluetooth();
     bool find_element(int *array, int item);
-    bool load_conf(const char path[20], DynamicJsonDocument &doc);
-    bool save_conf(const char path[20], DynamicJsonDocument &doc);
+    // Loads the config file and sets the values of the member variables
+    DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
+    // Saves the values of the member variables to the config file
+    bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
+    bool pubInfluxData(String sensor_name, String field_name, float value); // send data to influxdb, return true when everything is ok
+    void blinkOnBoard(String howLong, int times); // blink onboard led to signal something
+    JsonObject getJsonObjects(const char* key, const char* filepath); // returns num of JSON objects of specified key
     struct solenoid{
                     bool is_set; //activate deactivate group
                     uint8_t pin; //pin of the solenoid (virtual pin!)
