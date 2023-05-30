@@ -48,15 +48,15 @@ Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step A
 - Solarladeregler
 
 ### Beschreibung
-Übersicht des Schaltungsaufbaus im beigefügten [*Systemdiagramm.png*](#systemdiagramm) als Blockschaltbild. Zur Steuerung wird ein [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) verwendet. Sensoren und Module zeichnen jede Menge Daten auf, dazu zählen Bodenfeuchtigkeits Sensoren, Temperatur-, Luftfeuchte- und Luftdruckdaten sowie Sonnenscheindauer. Die Daten werden via [*MQTT*](#mqtt) an den [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt. <br> 
- Die Bewässrung folgt einem Zeitplan. Der entweder mit einprogrammierten Werten arbeitet oder über das Netzwerk gesteuert werden kann. Mit einem [*MQTT*](#mqtt) messaging client ist möglich in die Bewässerung einzugreifen. Mit einem eingerichtetem [*VPN*](https://www.pivpn.io/) kann man auch von unterwegs seine Pflanzen im Auge behalten und bewässern.
-In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard und die Python scripts zur Verarbeitung der [*MQTT*](#mqtt) messages. Die verwendete Datenbank ist [*InfluxDB*](#influxdb) in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang. <br>
+Übersicht des Schaltungsaufbaus im beigefügten [*Systemdiagramm.png*](#systemdiagramm) als Blockschaltbild. Zur Steuerung wird ein ESP-32 verwendet. Sensoren und Module zeichnen jede Menge Daten auf, dazu zählen Bodenfeuchtigkeits Sensoren, Temperatur-, Luftfeuchte- und Luftdruckdaten sowie Sonnenscheindauer. Die Daten werden via *MQTT* an den RaspberryPi gesendet, dort gespeichert und dank Grafana als schöne Diagramme dargestellt. <br> 
+ Die Bewässrung folgt einem Zeitplan. Der entweder mit einprogrammierten Werten arbeitet oder über das Netzwerk gesteuert werden kann. Mit einem *MQTT* messaging client ist möglich in die Bewässerung einzugreifen. Mit einem eingerichtetem *VPN* (z.B PiVPN) kann man auch von unterwegs seine Pflanzen im Auge behalten und bewässern.
+In den weiteren Ordnern befinden sich der Code für beide Controller sowie das json export für das Grafana Dashboard und die Python scripts zur Verarbeitung der *MQTT* messages. Die verwendete Datenbank ist *InfluxDB* in der alle gesendeten Daten gespeichert werden. Alle relevanten Programme und Scripte starten automatisiert dank crontab bei jedem bootvorgang. <br>
 
 <br>
 
 **Stand jetzt:** <br>
 
-**Technik:** Für die einfachere Handhabung wurde mit [fritzing](https://fritzing.org/) ein Plan für ein [PCB](#platinen) erstellt und gedruckt. Sensordaten von diversen Sensoren (Bodenfeuchte, Temperatur etc.) werden an einen [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) gesendet und dort in eine Datenbank gespeichert. Die Steuerung der Bewässerung funktioniert entweder automatisiert Sensorgesteuert oder über eine [MQTT-messaging App](#mqttdash-app-optional) über das Smartphone. Dank [VPN](https://www.pivpn.io/) sind auch von unterwegs Steuerung und Beobachtung möglich. <br>
+**Technik:** Für die einfachere Handhabung wurde mit [fritzing](https://fritzing.org/) ein Plan für ein [PCB](#platinen) erstellt und gedruckt. Sensordaten von diversen Sensoren (Bodenfeuchte, Temperatur etc.) werden an einen RaspberryPi gesendet und dort in eine Datenbank gespeichert. Die Steuerung der Bewässerung funktioniert entweder automatisiert Sensorgesteuert oder über eine [MQTT-messaging App](#mqttdash-app-optional) über das Smartphone. Dank *VPN* sind auch von unterwegs Steuerung und Beobachtung möglich. <br>
 
 **Versorgung:** Mittlerweile wurde daraus ein autonom funktionierendes System, ausgestattet mit einem kleinen PV Modul einem Blei Akku und einem kleinen *100l* Wassertank. Je nach Temperatur muss nun nur noch einmal pro Woche daran gedacht werden den Tank zu füllen.
 <br>
@@ -172,43 +172,25 @@ Diese Platine könnte individuell angepasst werden, um geänderte Anforderungen 
 [Arduino-Nano Code](/code/bewae_main_nano/bewae_v3_nano/src/main.cpp)
 <br>
 
-### Allgemein
-Der Code wird mit Visual Studio Code und der Platformio extension aufgespielt, VS code bietet eine umfangreiche IDE und eignet sich für größere Projekte ausgezeichnet. <br>
+### How to deploy the code:
+First, make sure you have PlatformIO installed in Visual Studio Code. Then, open the project folder in VS Code. Next, plug in your ESP-32 Controller and click on the arrow icon in the PlatformIO taskbar to upload your code. The device should be detected automatically. <br>
 
-Damit das Programm ausgeführt werden kann muss das RTC Module richtig angeschlossen sein und funktionieren. Die SD Karte, den BME280 sowie Netzwerksteuerung können über dei config deaktiviert werden. Dazu werden einfach die dafür vorgesehenen definitionen im *config.h* file auskommentiert. <br>
+Before executing the program on the controller, it will check if the RTC Module is responding, so be sure to connect it properly. <br>
 
-Damit die Steuerung und Kommunikation über das Netzwerk funktioniert müssen die WLAN Einstellungen richtig konfiguriert sein. Hier sind lediglich die Daten des jeweiligen Netzwerks auszufüllen. <br>
+Don’t forget to update your connection settings. Simply change the ‘connection.h’ file within the src folder to match your network configuration. <br>
 
-Für Debugging zwecke empfielt es sich RX und TX pins am Mikrocontroller abzugreifen und die *DEBUG* definition zu setzten. <br>
+### Change time of RTC:
 
 ## Raspberrypi
-### Allgemein
-Persönlich verwende ich gerade einen [**RaspberryPi 4B**](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) mit *4GB* Ram auf dem auch ein [*VPN*](https://www.pivpn.io/) (**wireguard**) und [*Pihole*](https://pi-hole.net/) installiert sind. Durch den [*VPN*](https://www.pivpn.io/) kann ich auch von unterwegs auf die Daten zugreifen oder gegebenenfalls in die Bewässerung eingreifen. Auf die Installation gehe ich nicht weiter ein, sie ist aber relativ einfach und in zahlreichen Tutorials gut beschrieben. <br>Für den Betrieb genügt auch die Verfügbarkeit im lokalen Netzwerk, hierbei notwendig sind:
+### How to:
+Persönlich verwende ich gerade einen [**RaspberryPi 4B**](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) mit *4GB* Ram auf dem ein [*VPN*](https://www.pivpn.io/) (**wireguard**) installiert ist. Durch den *VPN* kann ich auch von unterwegs auf die Daten zugreifen oder gegebenenfalls in die Bewässerung eingreifen. Auf die Installation gehe ich nicht weiter ein, sie ist aber relativ einfach und in zahlreichen Tutorials gut beschrieben. <br>
+Für den Betrieb genügt auch die Verfügbarkeit im lokalen Netzwerk, hierbei notwendig sind:
 - SSid (Netzwerkname): BeispielNetzwerkXY
 - Passwort:            BeispielpasswortXY
 - IP oder hostname des RaspberryPi (IP statisch vergeben)
 Für die erleichterte Konfiguration entweder Bildschirm, ssh, teamviewer, vnc viewer ... am Raspberrypi auch auf diese Punkte gehe ich nicht weiter ein, da sie anderswo gut zu finden sind. <br>
 
-### InfluxDB
-Falls influx noch nicht installiert wurde, gibt es nach kurzer Suche jede Menge brauchbare Anleitungen z.B: [(pimylifeup)](https://pimylifeup.com/raspberry-pi-influxdb/).
-<br>
-
-Für Einrichtung der Datenbank beginnen wir erstmal mit dem Erstellen eines Users. Dafür wird InfluxDB gestartet indem man in das Terminal folgende Zeile eingibt.
-```
-influx
-```
-Influx sollte nun gestartet haben, nun weiter in das Interface eingeben:
-```
-CREATE USER "username" WITH PASSWORD "password"
-CREATE DATABASE "database"
-GRANT ALL ON "username" TO "database"
-```
-Diesen ***username*** sowie ***password*** und die ***database*** müssen im Code der Mikrocontroller ausgefüllt werden.
-<br>
-Um aus diesem "interface" wieder herauszukommen muss man einfach den Befehl **exit** eingeben und man befindet sich wieder im Terminal.
-```
-exit
-```
+### InfluxDB 2.0
 
 ### Grafana
 ![grafana dashboard example](/docs/pictures/grafanarainyday.png "Grafana rainy day") <br>
@@ -255,8 +237,8 @@ Auch hier gibt es einen [link](https://pimylifeup.com/raspberry-pi-mosquitto-mqt
 Benutzername und Passwort müssen im Code wieder an allen Stellen angepasst werden.
 
 #### Python
-Um an die über [*MQTT*](#mqtt) gesendeten Daten nun in die Datenbank schreiben oder lesen zu können wird das Python script [MQTTInfluxDBBridge3.py](/code/pi_scripts/MQTTInfluxDBBridge3.py) verwendet. Das script selbst stammt aus einem [Tutorial](https://diyi0t.com/visualize-mqtt-data-with-influxdb-and-grafana/) und wurde adaptiert um es an die Anforderungen in meinem Projekt anzupassen. Der Python code kann mit dem shell script [launcher1.sh](/code/pi_scripts/launcher1.sh) automatisiert mit crontab bei jedem Bootvorgang mitgestartet werden. Da der Pi beim Hochfahren eine gewisse Zeit benötigt um alles fehlerfrei zu starten, verzögere ich den Start des scripts um *20* Sekunden. <br>
-Um Fehler zu vermeiden sollten über [*MQTT*](#mqtt) nur **int** Werte verschickt werden (*2* **byte**), der Datentyp **int** ist am [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) *2* **byte** groß. <br>
+Um an die über *MQTT* gesendeten Daten nun in die Datenbank schreiben oder lesen zu können wird das Python script [MQTTInfluxDBBridge3.py](/code/pi_scripts/MQTTInfluxDBBridge3.py) verwendet. Das script selbst stammt aus einem [Tutorial](https://diyi0t.com/visualize-mqtt-data-with-influxdb-and-grafana/) und wurde adaptiert um es an die Anforderungen in meinem Projekt anzupassen. Der Python code kann mit dem shell script [launcher1.sh](/code/pi_scripts/launcher1.sh) automatisiert mit crontab bei jedem Bootvorgang mitgestartet werden. Da der Pi beim Hochfahren eine gewisse Zeit benötigt um alles fehlerfrei zu starten, verzögere ich den Start des scripts um *20* Sekunden. <br>
+Um Fehler zu vermeiden sollten über *MQTT* nur **int** Werte verschickt werden (*2* **byte**), der Datentyp **int** ist bei *Arduino* *2* **byte** groß! <br>
 ```
 sudo crontab -e
 ```
@@ -264,10 +246,11 @@ sudo crontab -e
 ```
 @reboot /path/file.sh
 ```
-Zusätzliche [Informationen](https://pimylifeup.com/cron-jobs-and-crontab/) zu cron.
+
 
 #### mqttdash app (optional)
-Auf mein **Android** Smartphone habe ich die App [mqttdash](https://play.google.com/store/apps/details?id=net.routix.mqttdash&hl=de_AT&gl=US) geladen. Diese ist sehr einfach und intuitiv zu verwenden man muss Adresse Nutzer und Passwort die oben angelegt wurden eintragen und kann dann die Topics konfigurieren. Wichtig ist das nur **int** werte gesendet werden können. Bei mehr als *6* Gruppen muss man die Variable max_groups ebenfalls wieder an jeder Stelle in allen Programmen anpassen. Alle topics die über [*MQTT*](#mqtt) gesendet werden und als *'measurement'* *'water_time'* eingetragen haben werden an den [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) weitergeleitet und in die Datenbank eingetragen. Über den eintrag *'location'* können sie unterschieden werden deshalb empfiehlt es sich gleichen Namen und eine Nummerierung zu verwenden da die *'locations'* sortiert und in aufsteigender Reihenfolge vom [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) über [*MQTT*](#mqtt) an den [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano) gesendet werden.
+
+Auf mein **Android** Smartphone habe ich die App [mqttdash](https://play.google.com/store/apps/details?id=net.routix.mqttdash&hl=de_AT&gl=US) geladen. Diese ist sehr einfach und intuitiv zu verwenden man muss Adresse Nutzer und Passwort die oben angelegt wurden eintragen und kann dann die Topics konfigurieren. Wichtig ist das nur **int** werte gesendet werden können. Bei mehr als *6* Gruppen muss man die Variable max_groups ebenfalls wieder an jeder Stelle in allen Programmen anpassen. Alle topics die über *MQTT* gesendet werden und als *'measurement'* *'water_time'* eingetragen haben werden an den *ESP-01* über *MQTT* weitergeleitet und in die Datenbank eingetragen. Über den eintrag *'location'* können sie unterschieden werden deshalb empfiehlt es sich gleichen Namen und eine Nummerierung zu verwenden da die *'locations'* sortiert und in aufsteigender Reihenfolge vom *ESP-01* über *MQTT* an den *Arduino Nano* gesendet werden.
 
 Ein Beispiel Screenshot aus der App, die Zahlen stehen für die Zeit (s) in der das jeweilige Ventil geöffnet ist und Wasser gepumpt wird (ca. 0.7l/min):
 ![mqttdash app](/docs/pictures/mqttdash.jpg) <br>
