@@ -150,7 +150,7 @@ Das Bewässerungssystem selbst behällt eine kopie des files im Speicher und akt
 # Details
 
 ## Platinen
-Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen. Ab einer gewissen größe des Projekts ist fritzing allerdings nicht mehr ideal. <br>
+Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen. Ab einer gewissen größe des Projekts ist fritzing allerdings nicht mehr ideal. Gerber files sind vorhanden. Für die Fritzing files ist lediglich die Platinenansicht relevant. <br>
 
 Board 1:          |  Board 2:
 :-------------------------:|:-------------------------:
