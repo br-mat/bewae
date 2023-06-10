@@ -312,21 +312,21 @@ void setup() {
   
   wakeModemSleep();
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//init Irrigation Controller instance and update config
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef RasPi
-// setup empty class instance
-IrrigationController controller;
-// update the config file stored in spiffs
-// in order to work a RasPi with node-red and configured flow is needed
-controller.updateController();
-#endif
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //init Irrigation Controller instance and update config
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  #ifdef RasPi
+  // update the config file stored in spiffs
+  // in order to work a RasPi with node-red and configured flow is needed
+  updateConfig(CONFIG_FILE_PATH);
+  updateConfig(SENSOR_FILE_PATH);
+  updateConfig(SWITCH_FILE_PATH);
+  #endif
   //hour_ = 0;
   //disableWiFi();
 
-    system_sleep(); //turn off all external transistors
-  }
+  system_sleep(); //turn off all external transistors
+}
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -392,7 +392,7 @@ Serial.print(F("Time hour: ")); Serial.print(hour1); Serial.print(F(" last ")); 
 Serial.print("rtc status: "); Serial.println(rtc_status); Serial.println(!(bool) rtc_status);
 #endif
 
-// get status viariables
+// update configuration
 SwitchController status_switches;
 status_switches.updateSwitches();
 
@@ -409,9 +409,12 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
   // look for config updates
   wakeModemSleep();
   delay(1);
-  // update the config file stored in spiffs with a file from the local network
+
+  // update whole config
   // in order to work a RasPi with node-red and configured flow is needed
-  controller.updateController();
+  updateConfig(CONFIG_FILE_PATH);
+  updateConfig(SENSOR_FILE_PATH);
+  updateConfig(SWITCH_FILE_PATH);
   #endif
 
   // combine timetables
@@ -471,11 +474,8 @@ if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_inter
   digitalWrite(sw_sens2, HIGH);  //activate sensor rail
   delay(500);
   
-  // Update config
-  IrrigationController controller;
-  // update the config file stored in spiffs
-  // in order to work a RasPi with node-red and configured flow is needed
-  controller.updateController();
+  // Update sensor config
+  updateConfig(SENSOR_FILE_PATH);
 
   JsonObject sens = getJsonObjects("sensors", SENSOR_FILE_PATH);
   // check for valid object
@@ -572,11 +572,9 @@ if(thirsty){
     // process will trigger multiple loop iterations until thirsty is set false
     // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
 
-    // Update config
-    IrrigationController controller;
-    // update the config file stored in spiffs
-    // in order to work a RasPi with node-red and configured flow is needed
-    controller.updateController();
+    // Update config of controller
+    updateConfig(CONFIG_FILE_PATH);
+    delay(15);
 
     JsonObject groups = getJsonObjects("groups", CONFIG_FILE_PATH);
     // check for valid object
@@ -586,7 +584,18 @@ if(thirsty){
       #endif
       break; // break loop and continue programm
     }
+    
+    // get number of kv pairs within JSON object
     int numgroups = groups.size();
+
+    // sanity check
+    if (numgroups > max_groups){
+      #ifdef DEBUG
+      Serial.println(F("Warning: too many groups! Exiting procedure"));
+      #endif
+      thirsty = false;
+      break;
+    }
     
     IrrigationController Group[numgroups];
     int j = 0;

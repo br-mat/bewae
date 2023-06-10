@@ -56,6 +56,7 @@ void Helper::shiftvalue8b(uint8_t val){
   delayMicroseconds(100);
   digitalWrite(st_cp_shft, LOW);
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Helper::system_sleep(){
   //Function: deactivate the modules, prepare for sleep & setting mux to "lowpower standby" mode:
@@ -75,6 +76,7 @@ void Helper::system_sleep(){
   //esp_light_sleep_start();
   Serial.println(F("Output on standby"));
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Helper::copy(int* src, int* dst, int len) {
   //Function description: copy strings
@@ -85,6 +87,7 @@ void Helper::copy(int* src, int* dst, int len) {
   //------------------------------------------------------------------------------------------------
   memcpy(dst, src, sizeof(src[0])*len);
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
 // OLD FUNCTION NOW HANDLED IN IRRIGATIONCONTROLLER CLASS
@@ -166,6 +169,7 @@ void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _ti
   digitalWrite(en, LOW);
 }
 */
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
   //Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
@@ -316,7 +320,7 @@ byte  Helper::bcd_dec(byte val)
 {
   return( (val/16*10) + (val%16) );
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
 //Function: sets the time on the rtc module (iic)
@@ -340,7 +344,7 @@ void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte 
   Wire.write(dec_bcd(year)); // set year (0 to 99)
   Wire.endTransmission();
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
 {
@@ -368,7 +372,7 @@ void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte
   *month = bcd_dec(Wire.read());
   *year = bcd_dec(Wire.read());
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 String Helper::timestamp(){
 //Function: give back a timestamp as string (iic)
@@ -391,7 +395,7 @@ String Helper::timestamp(){
   time_data += String(month, DEC);
   return time_data;
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Attempts to enable the WiFi and connect to a specified network.
 // Returns true if the connection was successful, false if not.
@@ -403,6 +407,10 @@ bool Helper::connectWifi(){
     WiFi.mode(WIFI_STA);    
 
     // Begin the process of connecting to the specified WiFi network.
+    #ifdef DEBUG
+    Serial.println(F("Connecting:"));
+    #endif
+    
     WiFi.begin(ssid, wifi_password);
   }
 
@@ -412,9 +420,12 @@ bool Helper::connectWifi(){
   // Loop until the WiFi connection is established or the maximum number of attempts is reached.
   while (WiFi.status() != WL_CONNECTED) {
     // Wait 1 second before trying again.
-    delay(750);
-    WiFi.begin(ssid, wifi_password);
-    delay(250);
+    delay(1000);
+    //WiFi.begin(ssid, wifi_password);
+    #ifdef DEBUG
+    Serial.print(F(" ."));
+    #endif
+    
 
     // Increment the counter.
     tries++;
@@ -432,13 +443,14 @@ bool Helper::connectWifi(){
 
   // If the loop exits normally, the WiFi connection was successful. Print the IP address of the device and return true.
   #ifdef DEBUG
+  Serial.println("");
   Serial.println("WiFi connected");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
   #endif
   return true;
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Helper::setModemSleep() {
   WiFi.setSleep(true);
@@ -448,7 +460,7 @@ void Helper::setModemSleep() {
   // Use this if 40Mhz is not supported
   // setCpuFrequencyMhz(80); //(40) also possible
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Disables the WiFi on the device.
 // Returns true if the WiFi was successfully disabled, false if an error occurred.
@@ -457,7 +469,12 @@ bool Helper::disableWiFi(){
   WiFi.disconnect(true);  
   // Set the WiFi mode to off.
   WiFi.mode(WIFI_OFF);    
-
+  #ifdef DEBUG
+  Serial.print(F("Wifi status: ")); Serial.println(WiFi.status());
+  #endif
+  return true;
+  
+  /*
   // Check the WiFi status to make sure that it was successfully disabled.
   if (WiFi.status() == WL_DISCONNECTED) {
     Serial.println("");
@@ -472,8 +489,9 @@ bool Helper::disableWiFi(){
     Serial.println("Error: WiFi could not be disabled!");
     return false;
   }
+  */
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Helper::disableBluetooth(){
   // Quite unusefully, no relevable power consumption
@@ -483,6 +501,7 @@ void Helper::disableBluetooth(){
   Serial.println("Bluetooth stop!");
   #endif
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Helper::wakeModemSleep() {
   #ifdef DEBUG
@@ -491,7 +510,7 @@ void Helper::wakeModemSleep() {
   setCpuFrequencyMhz(240);
   Helper::connectWifi();
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool Helper::find_element(int *array, int item){
   int len = sizeof(array);
@@ -502,7 +521,7 @@ bool Helper::find_element(int *array, int item){
   }
   return false;
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Reads the JSON file at the specified file path and returns the data as a DynamicJsonDocument.
 // If the file path is invalid or if there is an error reading or parsing the file, an empty DynamicJsonDocument is returned.
@@ -600,7 +619,7 @@ bool Helper::pubInfluxData(String sensor_name, String field_name, float value) {
   }
 
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // blink onboard LED
 void Helper::blinkOnBoard(String howLong, int times) {
@@ -621,6 +640,7 @@ void Helper::blinkOnBoard(String howLong, int times) {
      delay(1500-duration); //1.5 seconds between blinks
    }
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // returns num of JSON objects of specified key
 JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
@@ -649,3 +669,62 @@ JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
   int numgroups = jsonobj.size();
   return jsonobj;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+DynamicJsonDocument Helper::getJSONData(const char* server, int serverPort, const char* serverPath) {
+  // Send the HTTP GET request to the Raspberry Pi server
+  DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
+  HTTPClient http;
+  http.begin(String("http://") + server + ":" + serverPort + serverPath);
+  int httpCode = http.GET();
+
+  // Check the status code
+  if (httpCode == HTTP_CODE_OK) {
+    // Parse the JSON data
+    DeserializationError error = deserializeJson(JSONdata, http.getString());
+
+    if (error) {
+      #ifdef DEBUG
+      Serial.println(F("Error parsing JSON data"));
+      #endif
+      return JSONdata;
+    } else {
+      return JSONdata;
+    }
+  } else {
+    #ifdef DEBUG
+    Serial.println(F("Error sending request to server"));
+    #endif
+    return JSONdata;
+  }
+
+  http.end();
+  return JSONdata;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool Helper::updateConfig(const char* path){
+  // call this function once per hour it uses timetable to determine if it should set water_time variable with content either
+  // watering_default or watering_mqtt depending on a modus variable past with the function (this can be an integer about 0-5)
+  // water time variable holds information about the water cycle for the active hour if its 0 theres nothing to do
+  // if its higher then it should be recognized by the readyToWater function, this value
+
+  if (WiFi.status() == WL_CONNECTED) {
+    DynamicJsonDocument newdoc = Helper::getJSONData(SERVER, SERVER_PORT, path);
+    if(newdoc.isNull()){
+      #ifdef DEBUG
+      Serial.println(F("Error reading server file"));
+      #endif
+      return false;
+    }
+
+    return Helper::writeConfigFile(newdoc, CONFIG_FILE_PATH); // write the updated JSON data to the config file
+  }
+  else{
+    #ifdef DEBUG
+    Serial.println(F("Error no Wifi connection established"));
+    #endif
+    return false;
+  }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////

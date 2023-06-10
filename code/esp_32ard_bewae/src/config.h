@@ -17,11 +17,15 @@
 #define RasPi 1
 
 #ifndef CONFIG_FILE_PATH
-#define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
+#define CONFIG_FILE_PATH "/controller-config.JSON" //specifies name of config file stored within spiffs
 #endif
 
 #ifndef SENSOR_FILE_PATH
-#define SENSOR_FILE_PATH "/sensors.JSON" //specifies name of config file stored within spiffs
+#define SENSOR_FILE_PATH "/sensor-config.JSON" //specifies name of config file stored within spiffs
+#endif
+
+#ifndef SWITCH_FILE_PATH
+#define SWITCH_FILE_PATH "/switch-config.JSON"
 #endif
 
 #ifndef INFLUXDB_FIELD
@@ -180,7 +184,7 @@
     #endif
 
     #ifndef max_groups
-    #define max_groups 6 //number of possible solenoids (v-pins)
+    #define max_groups 16 //number of possible solenoids (v-pins)
     #endif
 
     #ifndef MAX_PUMPS
