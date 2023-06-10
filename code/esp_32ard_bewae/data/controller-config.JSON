@@ -2,30 +2,30 @@
 "group": {
 "99": {
 "name": "master",
-"is_set": "0",
-"watering": "0",
-"water-time": "0",
-"timetable": "0",
-"solenoid_pin" : "0",
-"pump_pin" : "0"
+"is_set": 0,
+"watering": 0,
+"water-time": 0,
+"timetable": 0,
+"solenoid_pin" : 0,
+"pump_pin" : 0
 },
 "0": {
 "name": "Tom1",
-"is_set": "0",
-"watering": "0",
-"water-time": "0",
-"timetable": "0",
-"solenoid_pin" : "0",
-"pump_pin" : "0"
+"is_set": 0,
+"watering": 0,
+"water-time": 0,
+"timetable": 0,
+"solenoid_pin" : 0,
+"pump_pin" : 0
 },
 "1": {
 "name": "Tom2",
-"is_set": "1",
-"watering": "0",
-"water-time": "0",
-"timetable": "0",
-"solenoid_pin" : "0",
-"pump_pin" : "0"
+"is_set": 1,
+"watering": 0,
+"water-time": 0,
+"timetable": 0,
+"solenoid_pin" : 0,
+"pump_pin" : 0
 },
 "2": {
 "name": "Gewa",
@@ -62,20 +62,4 @@
 "timetable": "0",
 "solenoid_pin" : "0",
 "pump_pin" : "0"
-}
-},
-"switches": {
-"sw6": {
-"value": "1"
-},
-"sw0": {
-"value": "1"
-},
-"sw1": {
-"value": "0"
-},
-"sw2": {
-"value": "0"
-}
-}
-}
+}}}
