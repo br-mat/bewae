@@ -132,15 +132,17 @@ unsigned long int timetable = 0; //initialize on default
 
 // Initialise the WiFi and MQTT Client objects
 WiFiClient wificlient;
+
 // measurement function
 bool measure_sensors(){
-  JsonObject muxPins = getJsonObjects("test", CONFIG_FILE_PATH);
+  JsonObject muxPins = getJsonObjects("sensors", CONFIG_FILE_PATH);
   // check for valid object
   if (muxPins.isNull()) {
     return false;
   }
   int num = muxPins.size();
 
+  // TODO: Implement new measuring function
 
   //VpinController configured_sensors[num];
   /*

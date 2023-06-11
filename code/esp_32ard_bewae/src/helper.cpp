@@ -642,7 +642,7 @@ void Helper::blinkOnBoard(String howLong, int times) {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// returns num of JSON objects of specified key
+// loads JSON object from file using its key
 JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
   // load the stored file and get all keys
   DynamicJsonDocument doc(CONF_FILE_SIZE);
@@ -672,7 +672,7 @@ JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 DynamicJsonDocument Helper::getJSONData(const char* server, int serverPort, const char* serverPath) {
-  // Send the HTTP GET request to the Raspberry Pi server
+  // HTTP GET request to the Raspberry Pi server
   DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
   HTTPClient http;
   http.begin(String("http://") + server + ":" + serverPort + serverPath);
