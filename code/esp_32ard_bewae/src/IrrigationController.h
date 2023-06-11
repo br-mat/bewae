@@ -133,19 +133,9 @@ class IrrigationController {
     // Resets all member variables to their default values
     void reset();
     // Member function to update the data
-    bool updateController();
+    //bool updateController();
     // Define a static member function to combine the timetables of an array of IrrigationController objects using a loop
     static long combineTimetables();
-
-    // Getter & Setters
-    bool getMainSwitch() const;
-    void setMainSwitch(bool value);
-    bool getSwitch3() const;
-    void setSwitch3(bool value);
-    bool getDataloggingSwitch() const;
-    void setDataloggingSwitch(bool value);
-    bool getIrrigationSystemSwitch() const;
-    void setIrrigationSystemSwitch(bool value);
 };
 
 #endif

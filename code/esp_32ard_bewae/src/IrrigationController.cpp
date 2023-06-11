@@ -383,40 +383,6 @@ int IrrigationController::waterOn(int hour) {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool IrrigationController::updateController(){
-  // call this function once per hour it uses timetable to determine if it should set water_time variable with content either
-  // watering_default or watering_mqtt depending on a modus variable past with the function (this can be an integer about 0-5)
-  // water time variable holds information about the water cycle for the active hour if its 0 theres nothing to do
-  // if its higher then it should be recognized by the readyToWater function, this value
-
-  if (WiFi.status() == WL_CONNECTED) {
-    DynamicJsonDocument newdoc = getJSONData(SERVER, SERVER_PORT, SERVER_PATH);
-    if(newdoc.isNull()){
-      #ifdef DEBUG
-      Serial.println(F("Error reading server file"));
-      #endif
-      return false;
-    }
-    DynamicJsonDocument jsonDoc = Helper::readConfigFile(CONFIG_FILE_PATH); // read the config file
-    if(jsonDoc.isNull()){
-      #ifdef DEBUG
-      Serial.println(F("Error reading local file"));
-      #endif
-      return false;
-    }
-    jsonDoc = newdoc;
-
-    return Helper::writeConfigFile(jsonDoc, CONFIG_FILE_PATH); // write the updated JSON data to the config file
-  }
-  else{
-    #ifdef DEBUG
-    Serial.println(F("Error no Wifi connection established"));
-    #endif
-    return false;
-  }
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 // Define the implementation of the combineTimetables() static member function
 long IrrigationController::combineTimetables()
 {
@@ -445,47 +411,3 @@ long IrrigationController::combineTimetables()
   return combinedTimetable;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-DynamicJsonDocument IrrigationController::getJSONData(const char* server, int serverPort, const char* serverPath) {
-  // Send the HTTP GET request to the Raspberry Pi server
-  DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
-  HTTPClient http;
-  http.begin(String("http://") + server + ":" + serverPort + serverPath);
-  int httpCode = http.GET();
-
-  // Check the status code
-  if (httpCode == HTTP_CODE_OK) {
-    // Parse the JSON data
-    DeserializationError error = deserializeJson(JSONdata, http.getString());
-
-    if (error) {
-      #ifdef DEBUG
-      Serial.println(F("Error parsing JSON data"));
-      #endif
-      return JSONdata;
-    } else {
-      return JSONdata;
-    }
-  } else {
-    #ifdef DEBUG
-    Serial.println(F("Error sending request to server"));
-    #endif
-    return JSONdata;
-  }
-
-  http.end();
-  return JSONdata;
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*
-// Getter & Setters
-bool IrrigationController::getMainSwitch() const { return main_switch; }
-void IrrigationController::setMainSwitch(bool value) { main_switch = value; }
-bool IrrigationController::getSwitch3() const { return placeholder3; }
-void IrrigationController::setSwitch3(bool value) { placeholder3 = value; }
-bool IrrigationController::getDataloggingSwitch() const { return dataloging_switch; }
-void IrrigationController::setDataloggingSwitch(bool value) { dataloging_switch = value; }
-bool IrrigationController::getIrrigationSystemSwitch() const { return irrigation_system_switch; }
-void IrrigationController::setIrrigationSystemSwitch(bool value) { irrigation_system_switch = value; }
-*/
