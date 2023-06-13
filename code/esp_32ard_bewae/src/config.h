@@ -17,7 +17,11 @@
 #define RasPi 1
 
 #ifndef CONFIG_FILE_PATH
-#define CONFIG_FILE_PATH "/controller-config.JSON" //specifies name of config file stored within spiffs
+#define CONFIG_FILE_PATH "/zconfig.JSON" //specifies name of config file stored within spiffs
+#endif
+
+#ifndef IRRIGA_FILE_PATH
+#define IRRIGA_FILE_PATH "/controller-config.JSON" //specifies name of config file stored within spiffs
 #endif
 
 #ifndef SENSOR_FILE_PATH
@@ -33,11 +37,11 @@
 #endif
 
 #ifndef CONF_FILE_SIZE
-#define CONF_FILE_SIZE 2048 // estimate at https://arduinojson.org/v6/assistant/#/step1
+#define CONF_FILE_SIZE 4096 // estimate at https://arduinojson.org/v6/assistant/#/step1
 #endif
 
 #ifndef SENSOR_FILE_SIZE
-#define SENSOR_FILE_SIZE 3072 // estimate at https://arduinojson.org/v6/assistant/#/step1
+#define SENSOR_FILE_SIZE 4096 // estimate at https://arduinojson.org/v6/assistant/#/step1
 #endif
 
 #ifndef DS3231_I2C_ADDRESS

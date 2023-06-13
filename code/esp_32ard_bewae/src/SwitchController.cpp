@@ -2,7 +2,7 @@
 
 // Constructor
 SwitchController::SwitchController() {
-  JsonObject switches = Helper::getJsonObjects("switches", SENSOR_FILE_PATH);
+  JsonObject switches = Helper::getJsonObjects("switches", CONFIG_FILE_PATH);
   int reading_errors = 0;
   if (!switches.isNull()) {
     if (switches.containsKey("main_switch")) {
@@ -49,20 +49,20 @@ SwitchController::SwitchController() {
 bool SwitchController::saveSwitches() {
 
   // Load the config file
-  DynamicJsonDocument jsonDoc = Helper::readConfigFile(SWITCH_FILE_PATH);
+  DynamicJsonDocument jsonDoc = Helper::readConfigFile(CONFIG_FILE_PATH);
   if (jsonDoc.isNull()) {
     return false;
   }
   
   // Update the switch values in the config file
-  JsonObject switches = jsonDoc["switches"].as<JsonObject>();
+  JsonObject switches = jsonDoc["switch"].as<JsonObject>();
   switches["main_switch"] = this->main_switch;
   switches["dataloging_switch"] = this->dataloging_switch;
   switches["irrigation_system_switch"] = this->irrigation_system_switch;
   switches["placeholder3"] = this->placeholder3;
   
   // Save the updated config file
-  bool success = Helper::writeConfigFile(jsonDoc, SWITCH_FILE_PATH);
+  bool success = Helper::writeConfigFile(jsonDoc, CONFIG_FILE_PATH);
   if (!success) {
     #ifdef DEBUG
     Serial.println("Error: could not save switches to config file.");
@@ -77,7 +77,7 @@ bool SwitchController::saveSwitches() {
 bool SwitchController::updateSwitches(){
   // Update config variables from local file
   // get newest locally stored config
-  JsonObject switches = Helper::getJsonObjects("switches", SWITCH_FILE_PATH);
+  JsonObject switches = Helper::getJsonObjects("switch", CONFIG_FILE_PATH);
 
   // check json object
   if (switches.size() == 0) {

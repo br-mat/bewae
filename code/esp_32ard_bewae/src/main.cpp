@@ -236,6 +236,11 @@ void setup() {
     Serial.write(file.read());
   }
   file.close();
+
+  getJsonObjects("group", CONFIG_FILE_PATH);
+  getJsonObjects("sensor", CONFIG_FILE_PATH);
+  getJsonObjects("switch", CONFIG_FILE_PATH);
+
   #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -279,7 +284,7 @@ void setup() {
   ledcAttachPin(vent_pwm, pwm_ch0);
   //Configure this PWM Channel with the selected frequency & resolution using this function:
   // ledcSetup(PWM_Ch, PWM_Freq, PWM_Res);
-  ledcSetup(pwm_ch0, 30000, pwm_ch0_res);
+  ledcSetup(pwm_ch0, 21000, pwm_ch0_res);
   // PWM changing the duty cycle:
   // ledcWrite(pwm_ch0, pow(2, pwm_ch0_res) * fac);
 
@@ -321,8 +326,6 @@ void setup() {
   // update the config file stored in spiffs
   // in order to work a RasPi with node-red and configured flow is needed
   updateConfig(CONFIG_FILE_PATH);
-  updateConfig(SENSOR_FILE_PATH);
-  updateConfig(SWITCH_FILE_PATH);
   #endif
   //hour_ = 0;
   //disableWiFi();
@@ -415,8 +418,6 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
   // update whole config
   // in order to work a RasPi with node-red and configured flow is needed
   updateConfig(CONFIG_FILE_PATH);
-  updateConfig(SENSOR_FILE_PATH);
-  updateConfig(SWITCH_FILE_PATH);
   #endif
 
   // combine timetables
@@ -477,9 +478,9 @@ if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_inter
   delay(500);
   
   // Update sensor config
-  updateConfig(SENSOR_FILE_PATH);
+  //updateConfig(CONFIG_FILE_PATH);
 
-  JsonObject sens = getJsonObjects("sensors", SENSOR_FILE_PATH);
+  JsonObject sens = getJsonObjects("sensor", CONFIG_FILE_PATH);
   // check for valid object
   if (sens.isNull()) {
     #ifdef DEBUG
@@ -507,7 +508,7 @@ if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_inter
 
       #ifdef DEBUG
       if (!cond) {
-        Serial.print(F("Problem occured when publishing data to InfluxDB!"));
+        Serial.print(F("Problem occured while publishing data to InfluxDB!"));
       }
       Serial.print(F("Publishing data from: ")); Serial.println(name);
       Serial.print(F("Value: ")); Serial.println(result);
@@ -574,11 +575,14 @@ if(thirsty){
     // process will trigger multiple loop iterations until thirsty is set false
     // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
 
+    // TODO: Change config file and "watering" value. There is an issue,
+    //        when the file gets updated it's internal "watering" values will get set back to 0
+
     // Update config of controller
-    updateConfig(CONFIG_FILE_PATH);
+    //updateConfig(CONFIG_FILE_PATH);
     delay(15);
 
-    JsonObject groups = getJsonObjects("groups", CONFIG_FILE_PATH);
+    JsonObject groups = getJsonObjects("group", CONFIG_FILE_PATH);
     // check for valid object
     if (groups.isNull()) {
       #ifdef DEBUG

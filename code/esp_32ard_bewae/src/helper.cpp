@@ -656,8 +656,17 @@ JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
     return jsonobj;
   }
   
-  // Access the "groups" object
+  // Access the key object and close file
   jsonobj = doc[key];
+  delay(1);
+  doc.clear();
+
+  #ifdef DEBUG
+  String jsonString;
+  serializeJson(jsonobj, jsonString);
+  Serial.println(F("JsonObj:"));
+  Serial.println(jsonString); Serial.println();
+  #endif
   
   // Check if key exists in the JSON object
   if (jsonobj.isNull()) {
@@ -665,8 +674,6 @@ JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
     return jsonobj;
   }
   
-  doc.clear();
-  int numgroups = jsonobj.size();
   return jsonobj;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -713,7 +720,7 @@ bool Helper::updateConfig(const char* path){
     DynamicJsonDocument newdoc = Helper::getJSONData(SERVER, SERVER_PORT, path);
     if(newdoc.isNull()){
       #ifdef DEBUG
-      Serial.println(F("Error reading server file"));
+      Serial.println(F("Warning: Wifi is disabled. Not able to get file from server!"));
       #endif
       return false;
     }
