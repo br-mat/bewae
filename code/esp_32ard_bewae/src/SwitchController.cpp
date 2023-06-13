@@ -2,29 +2,30 @@
 
 // Constructor
 SwitchController::SwitchController() {
-  JsonObject switches = Helper::getJsonObjects("switches", CONFIG_FILE_PATH);
+  Serial.println("Switchcontroller class called!");
+  JsonObject switches = Helper::getJsonObjects("switch", CONFIG_FILE_PATH);
   int reading_errors = 0;
   if (!switches.isNull()) {
-    if (switches.containsKey("main_switch")) {
-      main_switch = switches["main_switch"];
+    if (switches.containsKey("sw0")) {
+      main_switch = switches["sw0"]; // sw0 - main system ON/OFF
     } else {
       main_switch = false; // set default in case of false reading
       reading_errors++;
     }
-    if (switches.containsKey("dataloging_switch")) {
-      dataloging_switch = switches["dataloging_switch"];
+    if (switches.containsKey("sw6")) {
+      dataloging_switch = switches["sw6"]; // sw6 - datalog ON/OFF
     } else {
       dataloging_switch = false;
       reading_errors++;
     }
-    if (switches.containsKey("irrigation_system_switch")) {
-      irrigation_system_switch = switches["irrigation_system_switch"];
+    if (switches.containsKey("sw1")) {
+      irrigation_system_switch = switches["sw1"]; // sw1 - irrigation_system ON/OFF
     } else {
       irrigation_system_switch = false;
       reading_errors++;
     }
-    if (switches.containsKey("placeholder3")) {
-      placeholder3 = switches["placeholder3"];
+    if (switches.containsKey("sw2")) {
+      placeholder3 = switches["sw2"]; // sw2 - placeholder ON/OFF
     } else {
       placeholder3 = false;
       reading_errors++;

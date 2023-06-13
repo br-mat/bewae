@@ -394,7 +394,7 @@ long IrrigationController::combineTimetables()
   doc = Helper::readConfigFile(CONFIG_FILE_PATH);
 
   // Access the "groups" object
-  JsonObject groups = doc["groups"];
+  JsonObject groups = doc["group"];
   doc.clear();
 
   for (JsonObject::iterator it = groups.begin(); it != groups.end(); ++it) {
