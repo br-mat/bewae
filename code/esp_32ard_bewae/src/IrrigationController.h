@@ -69,6 +69,25 @@ struct Pump {
   void setup(int pin);
 };
 
+class LoadDriverPin {
+private:
+  int pin;
+  long lastActivation;
+
+public:
+  // Constructor
+  LoadDriverPin(int pin);
+
+  // Getter for pin
+  int getPin() const;
+
+  // Getter for lastActivation
+  long getLastActivation() const;
+
+  // Setter for lastActivation
+  void setLastActivation();
+};
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CLASS IrrigationController
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,16 +95,14 @@ struct Pump {
 class IrrigationController {
   private:
     // PRIVATE VARIABLES
-    Solenoid* solenoid; //attatched solenoid
-    Pump* pump; //attatched pump
+    // New
+    int* driver_pins; // array of driver pins, keeping memory demand small
 
     bool is_set; //activate deactivate group, value will get saved to config
-    String name; //name of the group, value will get saved to config
+    char name[MAX_GROUP_LENGTH]; //name of the group, value will get saved to config
     unsigned long timetable; //timetable special formated, value will get saved to config
     int watering; //defualt value of watering amount set for group, value will get saved to config
     int water_time; //holds value of how long it should water, value will get saved to config
-    int solenoid_pin; //storing registered struct solenoid pin, value will get saved to config
-    int pump_pin; //storing registered struct pump pin, value will get saved to config
 
     // PRIVATE METHODS:
     // Loads the config file and sets the values of the member variables
@@ -93,38 +110,30 @@ class IrrigationController {
     // Saves the values of the member variables to the config file
     //bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
     // sends GET request to RaspberryPi and store response in json doc
-    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath);
+    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath); // OUTDATED
     // Member function to activate watering using PWM
     void activatePWM(int time_s);
     // Member function to activate watering
     void activate(int time_s);
 
   public:
-    // Default constructor
-    IrrigationController() : solenoid(nullptr), pump(nullptr) {}
-
-    // Constructor that takes a file path, a solenoid object, and a pump object as input
+    // NEW Constructor:
     IrrigationController(
                           const char path[PATH_LENGTH],
-                          Solenoid* solenoid, //attatched solenoid
-                          Pump* pump //attatched pump
-                          );
+                          const char keyName[MAX_GROUP_LENGTH]
+    );
+
+    // DEFAULT Constructor seting an empty class
+    IrrigationController();
+
+    // DEFAULT Destructor free up dynamic allocated memory
+    ~IrrigationController();
 
     // PUBLIC METHODS:
-    // Member function will create a new member and take all attributes manually
-    void createNewController(
-                          bool is_set, //activate deactivate group
-                          String name, //name of the group
-                          unsigned long timetable,
-                          int watering, //defualt value of watering amount set for group (should not be changed)
-                          Solenoid* solenoid, //attatched solenoid
-                          Pump* pump, //attatched pump
-                          int water_time=0 //holds value of how long it should water
-                          );
     // Member function loads schedule config from file
-    bool loadScheduleConfig(const char path[PATH_LENGTH], int pin);
+    bool loadScheduleConfig(const char path[PATH_LENGTH], const char name[MAX_GROUP_LENGTH]);
     // Member function saves schedule config to file
-    bool saveScheduleConfig(const char path[PATH_LENGTH], int pin);
+    bool saveScheduleConfig(const char path[PATH_LENGTH], const char name[MAX_GROUP_LENGTH]);
     // Member function checks if a group is ready,
     // returns part of the watering time the group is allowed to be active
     int readyToWater(int currentHour);
