@@ -6,28 +6,28 @@ SwitchController::SwitchController() {
   JsonObject switches = Helper::getJsonObjects("switch", CONFIG_FILE_PATH);
   int reading_errors = 0;
   if (!switches.isNull()) {
-    if (switches.containsKey("sw0")) {
-      main_switch = switches["sw0"]; // sw0 - main system ON/OFF
+    if (switches.containsKey("main")) {
+      main_switch = switches["main"]; // main - main system ON/OFF
     } else {
       main_switch = false; // set default in case of false reading
       reading_errors++;
     }
-    if (switches.containsKey("sw6")) {
-      dataloging_switch = switches["sw6"]; // sw6 - datalog ON/OFF
+    if (switches.containsKey("dmmy")) {
+      placeholder3 = switches["dmmy"]; // placeholder - placeholder ON/OFF
     } else {
-      dataloging_switch = false;
+      placeholder3 = false;
       reading_errors++;
     }
-    if (switches.containsKey("sw1")) {
-      irrigation_system_switch = switches["sw1"]; // sw1 - irrigation_system ON/OFF
+    if (switches.containsKey("irig")) {
+      irrigation_system_switch = switches["irig"]; // irig - irrigation_system ON/OFF
     } else {
       irrigation_system_switch = false;
       reading_errors++;
     }
-    if (switches.containsKey("sw2")) {
-      placeholder3 = switches["sw2"]; // sw2 - placeholder ON/OFF
+    if (switches.containsKey("mssr")) {
+      dataloging_switch = switches["mssr"]; // mssr - measurement ON/OFF
     } else {
-      placeholder3 = false;
+      dataloging_switch = false;
       reading_errors++;
     }
     if (reading_errors > 0) // if some errors occure output a warning to serial for debuging
@@ -57,10 +57,10 @@ bool SwitchController::saveSwitches() {
   
   // Update the switch values in the config file
   JsonObject switches = jsonDoc["switch"].as<JsonObject>();
-  switches["main_switch"] = this->main_switch;
-  switches["dataloging_switch"] = this->dataloging_switch;
-  switches["irrigation_system_switch"] = this->irrigation_system_switch;
-  switches["placeholder3"] = this->placeholder3;
+  switches["main"] = this->main_switch;
+  switches["mssr"] = this->dataloging_switch;
+  switches["irig"] = this->irrigation_system_switch;
+  switches["dmmy"] = this->placeholder3;
   
   // Save the updated config file
   bool success = Helper::writeConfigFile(jsonDoc, CONFIG_FILE_PATH);
@@ -86,10 +86,10 @@ bool SwitchController::updateSwitches(){
   }
 
   // updating class variables
-  this->main_switch = switches["main_switch"];
-  this->dataloging_switch = switches["dataloging_switch"];
-  this->irrigation_system_switch = switches["irrigation_system_switch"];
-  this->placeholder3 = switches["placeholder3"];
+  this->main_switch = switches["main"];
+  this->dataloging_switch = switches["irig"];
+  this->irrigation_system_switch = switches["mssr"];
+  this->placeholder3 = switches["dmmy"];
 
   return true;
 }
