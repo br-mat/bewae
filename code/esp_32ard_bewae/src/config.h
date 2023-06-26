@@ -53,7 +53,11 @@
 #endif
 
 #ifndef MAX_MSG_LEN
-#define MAX_MSG_LEN 128
+#define MAX_MSG_LEN 128 //MQTT msg length
+#endif
+
+#ifndef MAX_GROUP_LENGTH
+#define MAX_GROUP_LENGTH 5 //Max Group length
 #endif
 
 #ifndef uS_TO_S_FACTOR
@@ -202,6 +206,10 @@
     #ifndef SOLENOID_COOLDOWN
     #define SOLENOID_COOLDOWN 30000UL //min cooldown time of each solenoid ==> MILLISECOND
     #endif
+
+    #ifndef DRIVER_COOLDOWN
+    #define DRIVER_COOLDOWN 450000UL // min cooldown of drivers and hardware (somewhat depending on max_active_time_sec)
+    #endif
     
     //pump & transistor max on time
     #ifndef max_active_time_sec
@@ -225,11 +233,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // virtual pins (shift register)
     #ifndef pump1
-    #define pump1 (uint8_t)5
+    #define pump1 (uint8_t)0
     #endif
 
     #ifndef pump2
-    #define pump2 (uint8_t)5
+    #define pump2 (uint8_t)1
     #endif
 
     // moisture sensors
@@ -245,5 +253,4 @@
     #ifndef stat_request
     #define stat_request 2
     #endif
-
 #endif
