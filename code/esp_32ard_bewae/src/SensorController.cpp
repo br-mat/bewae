@@ -87,16 +87,16 @@ VpinController::VpinController(const String& name, int vpin, int low_limit, int 
 VpinController::VpinController(const String& name, int vpin) : VpinController(name, vpin, 0, 0, 1) {}
 
 // Override virtual measure function from base class
-float VpinController::measureRaw() {
+float VpinController::measure() {
   int result = 0;
   Helper::controll_mux(this->virtualPin, sig_mux_1, en_mux_1, "read", &result); // use virtualPin on MUX and read its value
 
   // return result
-  return result;
+  return this->factor * (float)result;
 }
 
 // returns relative measurement in %
-float VpinController::measure() {
+float VpinController::measureRel() {
   int value = 0;
   Helper::controll_mux(this->virtualPin, sig_mux_1, en_mux_1, "read", &value); // use virtualPin on MUX and read its value
   float temp = (float)value * measurement_LSB5V * 1000;
@@ -110,6 +110,6 @@ float VpinController::measure() {
   value = map(value, this->low_limit, this->high_limit, 1000, 0) / 10;
   
   // return result
-  return factor * (float)value;
+  return this->factor * (float)value;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

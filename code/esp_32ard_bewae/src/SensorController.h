@@ -107,7 +107,7 @@ public:
 
   // Override virtual measure function from base class to read and return the value from the specified virtual pin.
   float measure() override;
-  float measureRaw();
+  float measureRel();
 
 private:
   int virtualPin; // Virtual pin number associated with this controller.
