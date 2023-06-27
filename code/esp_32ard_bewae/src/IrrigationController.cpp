@@ -19,14 +19,15 @@
 
 // Constructor takes pin as input
 LoadDriverPin::LoadDriverPin(int pin) {
-  this->pin = pin;
-  this->lastActivation = 0;
-  pinMode(pin, OUTPUT);
+    Serial.print("Creating LoadDriverPin object with pin: ");
+  Serial.println(pin);
+  vpin = pin;
+  lastActivation = 0;
 }
 
 // Getter for pin
 int LoadDriverPin::getPin() const {
-  return pin;
+  return vpin;
 }
 
 // Getter for lastActivation
@@ -65,38 +66,37 @@ LoadDriverPin controller_pins[max_groups] =
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // NEW Constructor:
-IrrigationController::IrrigationController(
-                      const char path[PATH_LENGTH],
-                      const char keyName[MAX_GROUP_LENGTH]
-): is_set(false), timetable(0), watering(0), water_time(0), driver_pins(nullptr), name("NV"){
+IrrigationController::IrrigationController(const char path[PATH_LENGTH], const char keyName[MAX_GROUP_LENGTH])
+    : is_set(false), timetable(0), watering(0), water_time(0), name("NV") {
   // Set the name of the group
   strncpy(name, keyName, MAX_GROUP_LENGTH - 1);
   name[MAX_GROUP_LENGTH - 1] = '\0';  // Ensure null-termination
 
   // try set rest of the class
   bool cond = this->loadScheduleConfig(path, name);
-  if(cond){
+  if (cond) {
     return;
   }
 
   // else set empty
   this->is_set = false;
-  this->driver_pins = nullptr;
   this->timetable = 0;
-  //this->watering = 0;
+  this->driver_pins.clear();
   this->water_time = 0;
+  this->watering = 0;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // DEFAULT Constructor seting an empty class
-IrrigationController::IrrigationController(): is_set(false), timetable(0), watering(0), water_time(0), driver_pins(nullptr), name("NV"){
+IrrigationController::IrrigationController()
+    : is_set(false), timetable(0), watering(0), water_time(0), name("NV") {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // DEFAULT Destructor free up dynamic allocated memory
 // In case of problems just use jsonArray instead of dynamic arrays via pointers
 IrrigationController::~IrrigationController() {
-  delete[] driver_pins;  // Free the memory for driver_pins array
+  // No need to delete[] driver_pins as it is handled automatically by std::vector
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -110,7 +110,7 @@ int IrrigationController::readyToWater(int currentHour) {
   // It returns 0 if the system is not ready to water.
 
   // to prevent unexpected behaviour its important to pass only valid hours
-  if(!is_set){ //return 0 if the group is not set
+  if(!this->is_set){ //return 0 if the group is not set
     #ifdef DEBUG
     Serial.println("not set");
     #endif
@@ -141,32 +141,15 @@ int IrrigationController::readyToWater(int currentHour) {
       return 0; // pin not configured
     }
 
-    // check if configured pin is ready
-    if(millis() - controller_pins[vPin].getLastActivation() > DRIVER_COOLDOWN){ //TODO: BUILD VPIN STRUCT INTO CLASS FILE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      #ifdef DEBUG
-      Serial.print(F("Selected pin needs cooldown, ... skipping. Last activation (in sec): "));
-      Serial.println((int)(millis() - controller_pins[vPin].getLastActivation())/1000);
-      #endif
-      return 0; // pin need cooldown
-    }
+//    // check if configured pin is ready
+//    if(millis() - controller_pins[vPin].getLastActivation() > DRIVER_COOLDOWN){ //TODO: BUILD VPIN STRUCT INTO CLASS FILE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//      #ifdef DEBUG
+//      Serial.print(F("Selected pin needs cooldown, ... skipping. Last activation (in sec): "));
+//      Serial.println((int)(millis() - controller_pins[vPin].getLastActivation())/1000);
+//      #endif
+//      return 0; // pin need cooldown
+//    }
   }
-
-  // check if the solenoid has been active for too long, max_axtive_time_sec have to be multiplied as lastActivation is ms
-  /*
-  if (currentMillis - solenoid->lastActivation < SOLENOID_COOLDOWN) {
-    #ifdef DEBUG
-    Serial.println("solenoid not cooled down");
-    #endif
-    return 0; // not ready to water
-  }
-
-  // check if the pump has been active for too long
-  if (currentMillis - pump->lastActivation < pump_cooldown_sec) {
-    #ifdef DEBUG
-    Serial.println("pump not cooled down");
-    #endif
-    return 0; // not ready to water
-  }*/
 
   // check if there is enough water time left
   if (this->water_time <= 0) {
@@ -207,26 +190,34 @@ int IrrigationController::readyToWater(int currentHour) {
 bool IrrigationController::loadScheduleConfig(const char path[PATH_LENGTH], const char grp_name[MAX_GROUP_LENGTH]) {
   DynamicJsonDocument jsonDoc = Helper::readConfigFile(path); // read the config file
   if (jsonDoc.isNull()) {
+    #ifdef DEBUG
+    Serial.println(F("Json not found when creating class Instance"));
+    #endif
     return false;
   }
 
   // Set the values of the member variables using the values from the JSON document
-  this->is_set = jsonDoc["group"][grp_name]["is_set"].as<bool>();
-  this->timetable = jsonDoc["group"][grp_name]["timetable"].as<uint32_t>();
-  this->watering = jsonDoc["group"][grp_name]["watering"].as<int16_t>();
-  this->water_time = jsonDoc["group"][grp_name]["water_time"].as<int16_t>();
+  is_set = jsonDoc["group"][grp_name]["is_set"].as<bool>();
+  timetable = jsonDoc["group"][grp_name]["timetable"].as<uint32_t>();
+  watering = jsonDoc["group"][grp_name]["watering"].as<int16_t>();
+  water_time = jsonDoc["group"][grp_name]["water_time"].as<int16_t>();
 
-  // dynamically allocate memory and fill up array
+  // pupulate driver_pin vector
   JsonArray pinsArray = jsonDoc["group"][grp_name]["vpins"].as<JsonArray>();
   int numPins = pinsArray.size();
-  this->driver_pins = new int[numPins];  // Allocate memory for the driver_pins array
+  driver_pins.clear();  // Clear any existing elements in the vector
 
-  // Copy the pin values from the JSON array to the driver_pins array
+  // Copy the pin values from the JSON array to the driver_pins vector
   for (int i = 0; i < numPins; i++) {
-    this->driver_pins[i] = pinsArray[i].as<int>();
+    driver_pins.push_back(pinsArray[i].as<int>());
   }
 
-  //TODO REWORK PIN ARRAY
+  /*
+  // Accessing the elements of driver_pins
+  for (int i = 0; i < this->driver_pins.size(); i++) {
+    int pinValue = this->driver_pins[i];
+    // Do something with the pinValue
+  }*/
 
   return true;
 }
@@ -246,10 +237,19 @@ bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], cons
   jsonDoc["group"][grp_name]["watering"] = this->watering;
   jsonDoc["group"][grp_name]["water_time"] = this->water_time;
 
-  //jsonDoc["group"][grp_name]["vpins"] = this->vpins;
+  // save Vpins Create a new JSON array
+  JsonArray newPinsArray = jsonDoc["group"][grp_name].createNestedArray("vpins");
+
+  // Populate the new JSON array with the values from the driver_pins vector
+  for (int i = 0; i < driver_pins.size(); i++) {
+    newPinsArray.add(driver_pins[i]);
+  }
+
+  // Replace the old vpins entry with the new JSON array
+  jsonDoc["group"][grp_name]["vpins"] = newPinsArray;
 
   return Helper::writeConfigFile(jsonDoc, path); // write the updated JSON data to the config file
-}
+  }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Resets all member variables to their default values
@@ -258,8 +258,7 @@ void IrrigationController::reset() {
   timetable = 0;
   watering = 0;
   water_time = 0;
-  driver_pins = nullptr;
-  delete[] driver_pins;  // Free the memory for driver_pins array
+  driver_pins.clear(); // Clear the elements of driver_pins vector
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -400,14 +399,19 @@ void IrrigationController::activate(int time_s) {
 
 // Member function to start watering process
 int IrrigationController::waterOn(int hour) {
-  Serial.print("asd");
   // Function description: Starts the irrigation procedure after checking if the hardware is ready
   // FUNCTION PARAMETER:
   // currentHour - the active hour to check the with the timetable
 
+  #ifdef DEBUG
+  Serial.print(F("Watering group: ")); Serial.println(name);
+  Serial.print(F("is_set: ")); Serial.println(is_set);
+  Serial.print(F("timetable: ")); Serial.println(timetable, BIN);
+  Serial.print(F("current hour: ")); Serial.println(hour);
+  #endif
+
   // Check if hardware is ready to water
   int active_time = readyToWater(hour);
-  Serial.print("asd");
   if (active_time > 0) {
     // Activate watering process
     activatePWM(active_time);

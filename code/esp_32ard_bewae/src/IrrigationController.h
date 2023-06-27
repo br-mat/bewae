@@ -29,6 +29,8 @@
 #include <connection.h>
 #include <Helper.h>
 
+#include <vector>
+
 #ifndef PATH_LENGTH
 #define PATH_LENGTH 25
 #endif
@@ -37,41 +39,10 @@
 // HARDWARE STRUCTS
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Define a struct to store the information for a solenoid
-// this should be constructed as an array the index of the array should be assigned
-// to the pin lastActivation should be millis() this will prevent watering on reset in the programm
-// Define a struct to store the information for a solenoid
-struct Solenoid {
-  int pin;
-  long lastActivation;
-  static int activeInstances;
-
-  // Default constructor
-  Solenoid();
-
-  // Constructor that takes a pin number as input
-  Solenoid(int pin);
-
-  // Destructor
-  ~Solenoid();
-
-  // Member function to initialize the solenoid
-  void setup(int pin);
-};
-
-// Define a struct to store the information for a pump
-// It's basically the same
-struct Pump {
-  int pin;
-  long lastActivation;
-
-  // Member function to initialize the pump
-  void setup(int pin);
-};
-
+// Define a class to store the information for a solenoid and pumps
 class LoadDriverPin {
 private:
-  int pin;
+  int vpin;
   long lastActivation;
 
 public:
@@ -96,7 +67,7 @@ class IrrigationController {
   private:
     // PRIVATE VARIABLES
     // New
-    int* driver_pins; // array of driver pins, keeping memory demand small
+    std::vector<int> driver_pins; // vector of driver pins
 
     bool is_set; //activate deactivate group, value will get saved to config
     char name[MAX_GROUP_LENGTH]; //name of the group, value will get saved to config

@@ -95,38 +95,6 @@ Adafruit_BME280 bme; // use I2C interface
 // The switch conditions and timetables get reduced too as there is no need for handling outages of
 // wifi controll as the controller will then use what is stored locally in the config file.
 
-// TODO REMOVE OLD
-// Create solenoid struct and initialize their corresponding virtual pins
-/*
-Solenoid controller_sollenoids[max_groups] =
-{
-  {0},
-  {1},
-  {2}, //group 0
-  {3}, //group 1
-  {4},
-  {5},
-  {6},
-  {7},
-  {8}, //group 2
-  {9}, //group 3
-  {10}, //group 4
-  {11}, //group 5
-  {12},
-  {13},
-  {14},
-  {15}
-};*/
-
-
-
-// Create Pump struct and initialize their corresponding virtual pins
-Pump pump_main[2] = 
-{
-  pump1,
-  pump2,
-};
-
 //IrrigationController
 // No need for initialization as it will be loaded from config file
 
@@ -210,19 +178,17 @@ void setup() {
     return;
   }
   #ifdef DEBUG
-  /*
-  Serial.println("File Content:");
-  while(file.available()){
-    Serial.write(file.read());
-  }*/
-  file.close();
-
+  //Serial.println("File Content:");
+  //while(file.available()){
+  //  Serial.write(file.read());
+  //}
+  
   // DEBUG ONLY
   //getJsonObjects("group", CONFIG_FILE_PATH);
   //getJsonObjects("sensor", CONFIG_FILE_PATH);
   //getJsonObjects("switch", CONFIG_FILE_PATH);
-
   #endif
+  file.close();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize bme280 sensor
@@ -311,6 +277,7 @@ void setup() {
   //disableWiFi();
 
   system_sleep(); //turn off all external transistors
+
 }
 
 //######################################################################################################################
@@ -604,29 +571,28 @@ if(thirsty){
     // Iterate through all keys in the "groups" object and initialize the class instance (kv = key value pair)
     for (JsonPair kv : groups) {
       // check if group is present and get its index
-
       String key = kv.key().c_str();
-      if (key.toInt()) {
-        JsonVariant groupValue = kv.value(); // Get the value of the JSON pair
 
-        if (groupValue.is<JsonObject>()) {
+      JsonVariant groupValue = kv.value(); // Get the value of the JSON pair
 
-          // Retrieve the "solenoid_pin" value from the nested JSON object
-          int solenoid_index = groupValue["solenoid_pin"].as<int>();
-          
-          // load watering schedule of corresponding solenoid and/or pump (vpin)
-          bool result = Group[j].loadScheduleConfig(CONFIG_FILE_PATH, groupValue["name"].as<String>().c_str());
-          // check if group was valid and reset false ones
-          if (!result) {
-            #ifdef DEBUG
-            Serial.println(F("Group reset, JSON not found."));
-            #endif
-            Group[j].reset();
-          }
+      if (groupValue.is<JsonObject>()) {
+Serial.println("groupValue.is<JsonObject>()");
+        // load watering schedule of corresponding solenoid and/or pump (vpin)
+        bool result = Group[j].loadScheduleConfig(CONFIG_FILE_PATH, key.c_str());
+        #ifdef DEBUG
+        Serial.print(F("Group name: ")); Serial.println(key.c_str());
+        #endif
+        // check if group was valid and reset false ones
+        if (!result) {
+          #ifdef DEBUG
+          Serial.println(F("Group reset, JSON not found."));
+          #endif
+          Group[j].reset();
         }
       }
       else {
         // reset the group to take it out of the process
+Serial.println("group resetet");
         Group[j].reset();
       }
       j++;
