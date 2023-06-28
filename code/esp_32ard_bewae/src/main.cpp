@@ -579,9 +579,11 @@ if(thirsty){
 Serial.println("groupValue.is<JsonObject>()");
         // load watering schedule of corresponding solenoid and/or pump (vpin)
         bool result = Group[j].loadScheduleConfig(CONFIG_FILE_PATH, key.c_str());
+        delay(1); // give short delay to prevent issues with loading
         #ifdef DEBUG
         Serial.print(F("Group name: ")); Serial.println(key.c_str());
         #endif
+Serial.print("if result json: "); Serial.println(!result);
         // check if group was valid and reset false ones
         if (!result) {
           #ifdef DEBUG
@@ -609,6 +611,7 @@ Serial.println("group resetet");
       // if not it will return early, else it will use delay to wait untill the process has finished
       hour1=19;
       status += Group[i].waterOn(hour1);
+      // TODO: FIX ISSUE HERE:
     }
     // check if all groups are finished and reset status
     if(!status){

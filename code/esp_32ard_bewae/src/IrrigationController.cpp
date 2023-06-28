@@ -127,28 +127,29 @@ int IrrigationController::readyToWater(int currentHour) {
 
   // get the current time in milliseconds
   unsigned long currentMillis = millis();
-  int len = sizeof(driver_pins)/sizeof(int);
+  //int len = sizeof(driver_pins)/sizeof(int);
+Serial.println("start looping over driver pin vector");
 
-  // check each
-  for(int i=0; i<len; i++){
-    int vPin = driver_pins[i];
+  // Accessing the elements of driver_pins
+  for (int i = 0; i < this->driver_pins.size(); i++) {
+    int pinValue = this->driver_pins[i];
 
-    // check if vpin is configured
-    if(vPin<(int)max_groups){
+    // check each pin
+    if(pinValue<(int)max_groups){
       #ifdef DEBUG
-      Serial.print(F("Selected pin not configured: ")); Serial.println(vPin);
+      Serial.print(F("Selected pin not configured: ")); Serial.println(pinValue);
       #endif
       return 0; // pin not configured
     }
 
-//    // check if configured pin is ready
-//    if(millis() - controller_pins[vPin].getLastActivation() > DRIVER_COOLDOWN){ //TODO: BUILD VPIN STRUCT INTO CLASS FILE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//      #ifdef DEBUG
-//      Serial.print(F("Selected pin needs cooldown, ... skipping. Last activation (in sec): "));
-//      Serial.println((int)(millis() - controller_pins[vPin].getLastActivation())/1000);
-//      #endif
-//      return 0; // pin need cooldown
-//    }
+    // check for cooldown of the pin
+    if(millis() - controller_pins[pinValue].getLastActivation() > DRIVER_COOLDOWN){ //TODO: BUILD VPIN STRUCT INTO CLASS FILE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      #ifdef DEBUG
+      Serial.print(F("Selected pin needs cooldown, ... skipping. Last activation (in sec): "));
+      Serial.println((int)(millis() - controller_pins[pinValue].getLastActivation())/1000);
+      #endif
+      return 0; // pin need cooldown
+    }
   }
 
   // check if there is enough water time left
@@ -168,7 +169,10 @@ int IrrigationController::readyToWater(int currentHour) {
   this->water_time -= remainingTime; // update the water time
 
   // save water time variable
-  if (!saveScheduleConfig(CONFIG_FILE_PATH, this->name)){
+  if (!saveScheduleConfig(CONFIG_FILE_PATH, name)){
+    #ifdef DEBUG
+    Serial.println(F("Failed to save status!"));
+    #endif
     return 0; // saving variable error
   }
 
@@ -196,16 +200,19 @@ bool IrrigationController::loadScheduleConfig(const char path[PATH_LENGTH], cons
     return false;
   }
 
+Serial.print("loading name: "); Serial.println(grp_name);
+
   // Set the values of the member variables using the values from the JSON document
-  is_set = jsonDoc["group"][grp_name]["is_set"].as<bool>();
-  timetable = jsonDoc["group"][grp_name]["timetable"].as<uint32_t>();
-  watering = jsonDoc["group"][grp_name]["watering"].as<int16_t>();
-  water_time = jsonDoc["group"][grp_name]["water_time"].as<int16_t>();
+  strcpy(this->name, grp_name);
+  this->is_set = jsonDoc["group"][grp_name]["is_set"].as<bool>();
+  this->timetable = jsonDoc["group"][grp_name]["timetable"].as<uint32_t>();
+  this->watering = jsonDoc["group"][grp_name]["watering"].as<int16_t>();
+  this->water_time = jsonDoc["group"][grp_name]["water_time"].as<int16_t>();
 
   // pupulate driver_pin vector
   JsonArray pinsArray = jsonDoc["group"][grp_name]["vpins"].as<JsonArray>();
   int numPins = pinsArray.size();
-  driver_pins.clear();  // Clear any existing elements in the vector
+  this->driver_pins.clear();  // Clear any existing elements in the vector
 
   // Copy the pin values from the JSON array to the driver_pins vector
   for (int i = 0; i < numPins; i++) {
@@ -263,14 +270,15 @@ void IrrigationController::reset() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // TODO CHANGE TO WORK WITH PIN ARRAY
-void IrrigationController::activatePWM(int time_s) {
+void IrrigationController::activatePWM(int time) {
   // Function description: Controlls the watering procedure on valves and pump
   // Careful with interupts! To avoid unwanted flooding.
   // FUNCTION PARAMETER:
   // time        -- time in seconds, max 60 seconds                                    int
   //------------------------------------------------------------------------------------------------
   // check if time is within range
-  time_s = max(0, time_s);
+  int time_s = 0;
+  time_s = max(0, time);
   time_s = min(time_s, max_active_time_sec);
 
   //initialize state
