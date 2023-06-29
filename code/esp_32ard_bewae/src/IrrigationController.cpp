@@ -64,27 +64,41 @@ LoadDriverPin controller_pins[max_groups] =
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CLASS IrrigationController
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// NEW Constructor:
+/*
+// Alternative Constructor
 IrrigationController::IrrigationController(const char path[PATH_LENGTH], const char keyName[MAX_GROUP_LENGTH])
-    : is_set(false), timetable(0), watering(0), water_time(0), name("NV") {
+    : is_set(false), timetable(0), watering(0), water_time(0) {
   // Set the name of the group
   strncpy(name, keyName, MAX_GROUP_LENGTH - 1);
   name[MAX_GROUP_LENGTH - 1] = '\0';  // Ensure null-termination
 
-  // try set rest of the class
-  bool cond = this->loadScheduleConfig(path, name);
-  if (cond) {
+  // Load the schedule configuration for the specified group
+  DynamicJsonDocument jsonDoc = Helper::readConfigFile(path); // read the config file
+  JsonObject groups = jsonDoc["group"];
+
+  // Check if the group data is valid
+  if (groups.isNull()) {
+    #ifdef DEBUG
+    Serial.println(F("Error: No 'Group' found in file!"));
+    #endif
     return;
   }
 
-  // else set empty
-  this->is_set = false;
-  this->timetable = 0;
-  this->driver_pins.clear();
-  this->water_time = 0;
-  this->watering = 0;
-}
+  // Get the group data for the specified keyName
+  JsonObject groupData = groups[keyName];
+
+  // Check if the group data is valid and load the configuration
+  if (!groupData.isNull() && loadScheduleConfig(groupData)) {
+    return;
+  }
+
+  // If the configuration couldn't be loaded or the group data is invalid, set default values
+  is_set = false;
+  timetable = 0;
+  driver_pins.clear();
+  water_time = 0;
+  watering = 0;
+}*/
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // DEFAULT Constructor seting an empty class
@@ -191,40 +205,52 @@ Serial.println("start looping over driver pin vector");
 // Reads the JSON file at the specified file path and parses it to retrieve values for a number of member variables in the IrrigationController class.
 // The member variables include is_set, name, timetable, watering, water_time, solenoid_pin, and pump_pin.
 // Returns true if the file was read and parsed successfully, false if the file path is invalid or if there is an error reading or parsing the file.
-bool IrrigationController::loadScheduleConfig(const char path[PATH_LENGTH], const char grp_name[MAX_GROUP_LENGTH]) {
-  DynamicJsonDocument jsonDoc = Helper::readConfigFile(path); // read the config file
-  if (jsonDoc.isNull()) {
+bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
+  JsonObject groupData = groupPair.value();
+
+  // Check if the group data is valid
+  if (groupData.isNull()) {
     #ifdef DEBUG
-    Serial.println(F("Json not found when creating class Instance"));
+    Serial.print("Invalid group data provided when loading schedule configuration for group: ");
+    Serial.println(groupPair.key().c_str());
     #endif
     return false;
   }
 
-Serial.print("loading name: "); Serial.println(grp_name);
+  // Extract the group name from the iterator
+  String groupName = groupPair.key().c_str();
 
-  // Set the values of the member variables using the values from the JSON document
-  strcpy(this->name, grp_name);
-  this->is_set = jsonDoc["group"][grp_name]["is_set"].as<bool>();
-  this->timetable = jsonDoc["group"][grp_name]["timetable"].as<uint32_t>();
-  this->watering = jsonDoc["group"][grp_name]["watering"].as<int16_t>();
-  this->water_time = jsonDoc["group"][grp_name]["water_time"].as<int16_t>();
+  // Set the group name in the IrrigationController instance
+  strncpy(this->name, groupName.c_str(), MAX_GROUP_LENGTH - 1);
+  this->name[MAX_GROUP_LENGTH - 1] = '\0';  // Ensure null-termination
 
-  // pupulate driver_pin vector
-  JsonArray pinsArray = jsonDoc["group"][grp_name]["vpins"].as<JsonArray>();
+  // Extract the values from the groupData object
+  this->is_set = groupData["is_set"].as<bool>();
+  this->timetable = groupData["timetable"].as<uint32_t>();
+  this->watering = groupData["watering"].as<int16_t>();
+  this->water_time = groupData["water-time"].as<int16_t>();
+
+  // Print the key (name) and the four important statistics
+  Serial.print("Group Name: ");
+  Serial.println(groupName);
+  Serial.print("is_set: ");
+  Serial.println(this->is_set);
+  Serial.print("timetable: ");
+  Serial.println(this->timetable, BIN);
+  Serial.print("watering: ");
+  Serial.println(this->watering);
+  Serial.print("water_time: ");
+  Serial.println(this->water_time);
+
+  // Populate driver_pin vector
+  JsonArray pinsArray = groupData["vpins"].as<JsonArray>();
   int numPins = pinsArray.size();
   this->driver_pins.clear();  // Clear any existing elements in the vector
 
   // Copy the pin values from the JSON array to the driver_pins vector
   for (int i = 0; i < numPins; i++) {
-    driver_pins.push_back(pinsArray[i].as<int>());
+    this->driver_pins.push_back(pinsArray[i].as<int>());
   }
-
-  /*
-  // Accessing the elements of driver_pins
-  for (int i = 0; i < this->driver_pins.size(); i++) {
-    int pinValue = this->driver_pins[i];
-    // Do something with the pinValue
-  }*/
 
   return true;
 }
@@ -242,7 +268,7 @@ bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], cons
   jsonDoc["group"][grp_name]["is_set"] = this->is_set;
   jsonDoc["group"][grp_name]["timetable"] = this->timetable;
   jsonDoc["group"][grp_name]["watering"] = this->watering;
-  jsonDoc["group"][grp_name]["water_time"] = this->water_time;
+  jsonDoc["group"][grp_name]["water-time"] = this->water_time;
 
   // save Vpins Create a new JSON array
   JsonArray newPinsArray = jsonDoc["group"][grp_name].createNestedArray("vpins");

@@ -102,7 +102,7 @@ class IrrigationController {
 
     // PUBLIC METHODS:
     // Member function loads schedule config from file
-    bool loadScheduleConfig(const char path[PATH_LENGTH], const char name[MAX_GROUP_LENGTH]);
+    bool loadScheduleConfig(const JsonPair& groupPair);
     // Member function saves schedule config to file
     bool saveScheduleConfig(const char path[PATH_LENGTH], const char name[MAX_GROUP_LENGTH]);
     // Member function checks if a group is ready,

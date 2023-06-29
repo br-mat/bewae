@@ -552,12 +552,12 @@ if(thirsty){
       #endif
       break; // break loop and continue programm
     }
-    
+
     // get number of kv pairs within JSON object
     int numgroups = groups.size();
 
     // sanity check
-    if (numgroups > max_groups){
+    if (numgroups > max_groups) {
       #ifdef DEBUG
       Serial.println(F("Warning: too many groups! Exiting procedure"));
       #endif
@@ -565,23 +565,56 @@ if(thirsty){
       break;
     }
 
+    // load empty irrigationcontroller instances
+    IrrigationController Group[numgroups];
+    int j = 0;
+
+    // Iterate over each group
+    for (JsonObject::iterator groupIterator = groups.begin(); groupIterator != groups.end(); ++groupIterator) {
+      // Check if j exceeds the maximum number of groups
+      if (j >= numgroups) {
+        #ifdef DEBUG
+        Serial.println(F("Warning: Too many groups! Exiting procedure"));
+        #endif
+        thirsty = false;
+        break;
+      }
+
+      // Load schedule configuration for the current group
+      bool success = Group[j].loadScheduleConfig(*groupIterator);
+      if (!success) {
+        #ifdef DEBUG
+        Serial.println(F("Error: Failed to load schedule configuration for group"));
+        #endif
+
+        // Reset the class to an empty state
+        Group[j].reset();
+
+        break;
+      }
+
+      // Increment j for the next group
+      j++;
+    }
+
+/*
     IrrigationController Group[numgroups];
     int j = 0;
     // Init schedule of each group
     // Iterate through all keys in the "groups" object and initialize the class instance (kv = key value pair)
     for (JsonPair kv : groups) {
       // check if group is present and get its index
-      String key = kv.key().c_str();
+      const char* key = kv.key().c_str();
 
       JsonVariant groupValue = kv.value(); // Get the value of the JSON pair
 
       if (groupValue.is<JsonObject>()) {
 Serial.println("groupValue.is<JsonObject>()");
         // load watering schedule of corresponding solenoid and/or pump (vpin)
-        bool result = Group[j].loadScheduleConfig(CONFIG_FILE_PATH, key.c_str());
-        delay(1); // give short delay to prevent issues with loading
+        bool result = Group[j].loadScheduleConfig(CONFIG_FILE_PATH, key);
+        delay(100); // give short delay to prevent issues with loading
         #ifdef DEBUG
-        Serial.print(F("Group name: ")); Serial.println(key.c_str());
+        Serial.print(F("Group name: ")); Serial.println(key);
         #endif
 Serial.print("if result json: "); Serial.println(!result);
         // check if group was valid and reset false ones
@@ -598,7 +631,7 @@ Serial.println("group resetet");
         Group[j].reset();
       }
       j++;
-    }
+    }*/
 
     // Iterate over all irrigation controller objects in the Group array
     // This process will trigger multiple loop iterations until thirsty is set false

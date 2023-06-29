@@ -57,7 +57,7 @@
 #endif
 
 #ifndef MAX_GROUP_LENGTH
-#define MAX_GROUP_LENGTH 5 //Max Group length
+#define MAX_GROUP_LENGTH 4 //Max Group length
 #endif
 
 #ifndef uS_TO_S_FACTOR
