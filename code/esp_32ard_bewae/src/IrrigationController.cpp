@@ -122,8 +122,9 @@ int IrrigationController::readyToWater(int currentHour) {
   // If the system is ready,
   // it calculates the remaining watering time and updates the waterTime variable and returns the active time.
   // It returns 0 if the system is not ready to water.
-
   // to prevent unexpected behaviour its important to pass only valid hours
+
+  // check if group is set
   if(!this->is_set){ //return 0 if the group is not set
     #ifdef DEBUG
     Serial.println("not set");
@@ -144,26 +145,25 @@ int IrrigationController::readyToWater(int currentHour) {
   //int len = sizeof(driver_pins)/sizeof(int);
 Serial.println("start looping over driver pin vector");
 
-  // Accessing the elements of driver_pins
-  for (int i = 0; i < this->driver_pins.size(); i++) {
-    int pinValue = this->driver_pins[i];
+  // Accessing the elements of driver_pins using a range-based for loop
+  for (const auto& pinValue : this->driver_pins) { // TODO: UNSIGNED INT FOR PINS FIX THIS ISSUE LATER
+      // Check each pin
+      if (pinValue > static_cast<int>(max_groups)) {
+          #ifdef DEBUG
+          Serial.print(F("Selected pin not configured: "));
+          Serial.println(pinValue);
+          #endif
+          return 0; // Pin not configured
+      }
 
-    // check each pin
-    if(pinValue<(int)max_groups){
-      #ifdef DEBUG
-      Serial.print(F("Selected pin not configured: ")); Serial.println(pinValue);
-      #endif
-      return 0; // pin not configured
-    }
-
-    // check for cooldown of the pin
-    if(millis() - controller_pins[pinValue].getLastActivation() > DRIVER_COOLDOWN){ //TODO: BUILD VPIN STRUCT INTO CLASS FILE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      #ifdef DEBUG
-      Serial.print(F("Selected pin needs cooldown, ... skipping. Last activation (in sec): "));
-      Serial.println((int)(millis() - controller_pins[pinValue].getLastActivation())/1000);
-      #endif
-      return 0; // pin need cooldown
-    }
+      // Check for cooldown of the pin
+      if (millis() - controller_pins[pinValue].getLastActivation() > DRIVER_COOLDOWN) {
+          #ifdef DEBUG
+          Serial.print(F("Selected pin needs cooldown, skipping. Last activation (in sec): "));
+          Serial.println(static_cast<int>((millis() - controller_pins[pinValue].getLastActivation()) / 1000));
+          #endif
+          return 0; // Pin needs cooldown
+      }
   }
 
   // check if there is enough water time left
@@ -174,10 +174,7 @@ Serial.println("start looping over driver pin vector");
     return 0; // not ready to water
   }
 
-  // both the solenoid and pump are ready, so calculate the remaining watering time,
-  // return seconds using min function
-  // to minimize stress to hardware part,
-  // ignore how long the part was active previously and let it cd always the full time!
+  // calculate the remaining watering time, return seconds using min function
   int remainingTime = min(water_time, max_active_time_sec);
   remainingTime = max(remainingTime, (int)0); //avoid values beyond 0
   this->water_time -= remainingTime; // update the water time
@@ -190,11 +187,12 @@ Serial.println("start looping over driver pin vector");
     return 0; // saving variable error
   }
 
-  // update the last activation time of the solenoid and pump
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  //solenoid->lastActivation = currentMillis;
-  //pump->lastActivation = currentMillis;
+  // update the last activation time of the pins when everything is fine
+  for (const auto& pinValue : this->driver_pins) {
+      controller_pins[pinValue].setLastActivation();
+  }
 
+  // return the remaining time which the pins should be active
   #ifdef DEBUG
   Serial.print("remaining time: "); Serial.println(remainingTime);
   #endif
@@ -231,26 +229,34 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
   this->water_time = groupData["water-time"].as<int16_t>();
 
   // Print the key (name) and the four important statistics
-  Serial.print("Group Name: ");
-  Serial.println(groupName);
-  Serial.print("is_set: ");
-  Serial.println(this->is_set);
-  Serial.print("timetable: ");
-  Serial.println(this->timetable, BIN);
-  Serial.print("watering: ");
-  Serial.println(this->watering);
-  Serial.print("water_time: ");
-  Serial.println(this->water_time);
+  //Serial.print("Group Name: ");
+  //Serial.println(groupName);
+  //Serial.print("is_set: ");
+  //Serial.println(this->is_set);
+  //Serial.print("timetable: ");
+  //Serial.println(this->timetable, BIN);
+  //Serial.print("watering: ");
+  //Serial.println(this->watering);
+  //Serial.print("water_time: ");
+  //Serial.println(this->water_time);
 
   // Populate driver_pin vector
   JsonArray pinsArray = groupData["vpins"].as<JsonArray>();
-  int numPins = pinsArray.size();
-  this->driver_pins.clear();  // Clear any existing elements in the vector
+  // Clear the vector before populating it
+  driver_pins.clear();
 
-  // Copy the pin values from the JSON array to the driver_pins vector
-  for (int i = 0; i < numPins; i++) {
-    this->driver_pins.push_back(pinsArray[i].as<int>());
+  // Access the "vpins" array and populate the vector
+  for (JsonVariant value : pinsArray) {
+    driver_pins.push_back(value.as<int>());
   }
+
+  #ifdef DEBUG
+  // Debug print the values in the vector
+  Serial.println("driver_pins values:");
+  for (int pin : driver_pins) {
+    Serial.println(pin);
+  }
+  #endif
 
   return true;
 }
@@ -259,6 +265,7 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
 // Updates the values of a number of member variables in the IrrigationController class in the JSON file at the specified file path.
 // Returns true if the file was updated successfully, false if the file path is invalid or if there is an error reading or writing the file.
 bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], const char grp_name[MAX_GROUP_LENGTH]) {
+Serial.print("Saving: "); Serial.println(grp_name);
   DynamicJsonDocument jsonDoc =  Helper::readConfigFile(path); // read the config file
   if (jsonDoc.isNull()) {
     return false;
@@ -327,22 +334,27 @@ void IrrigationController::activatePWM(int time) {
   }
 
   // seting shiftregister to 0
-  Helper::shiftvalue8b(0);
+  Helper::shiftvalue(0, max_groups);
   #ifdef DEBUG
   Serial.print(F("Watering group: "));
   Serial.println(this->name); Serial.print(F("time: ")); Serial.println(time_ms);
   #endif
+
   // perform actual function
-  // byte value = (1 << vent_pin) + (1 << pump_pin);
-
-  //byte value = solenoid == nullptr ? 0 : ((1 << solenoid->pin) | (pump == nullptr ? 0 : (1 << pump->pin)));
-
-  byte value = 0; // TEMPORARY DUMMY VALUE
+  unsigned long value = 0;  // Initialize the value to 0
+  // iterate over driver_pins and set them
+Serial.println("driverpins:");
+  for (int pin : this->driver_pins) {
+Serial.print(pin);
+    value |= (1 << pin);  // Set the bit at the pin number to 1 using bitwise OR
+  }
+Serial.println();
+Serial.print("value: "); Serial.println(value);
 
   #ifdef DEBUG
   Serial.print(F("shiftout value: ")); Serial.println(value);
   #endif
-  Helper::shiftvalue8b(value);
+  Helper::shiftvalue(value, max_groups);
   delay(100); //wait balance load after pump switches on
   // control this PWM pin by changing the duty cycle:
   // ledcWrite(PWM_Ch, DutyCycle);
@@ -363,7 +375,7 @@ void IrrigationController::activatePWM(int time) {
 
   // reset
   // seting shiftregister to 0
-  Helper::shiftvalue8b(0);
+  Helper::shiftvalue(0, max_groups);
 
   digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
   digitalWrite(st_cp_shft, LOW);
@@ -403,7 +415,7 @@ void IrrigationController::activate(int time_s) {
   }
 
   // seting shiftregister to 0
-  Helper::shiftvalue8b(0);
+  Helper::shiftvalue(0, max_groups);
   #ifdef DEBUG
   Serial.print(F("Watering group: "));
   Serial.println(this->name); Serial.print(F("time: ")); Serial.println(time_ms);
@@ -418,7 +430,7 @@ void IrrigationController::activate(int time_s) {
   #ifdef DEBUG
   Serial.print(F("shiftout value: ")); Serial.println(value);
   #endif
-  Helper::shiftvalue8b(value);
+  Helper::shiftvalue(value, max_groups);
 
   delay(100); //wait balance load after pump switches on
 
@@ -427,7 +439,7 @@ void IrrigationController::activate(int time_s) {
 
   // reset
   // seting shiftregister to 0
-  Helper::shiftvalue8b(0);
+  Helper::shiftvalue(0, max_groups);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -436,14 +448,14 @@ int IrrigationController::waterOn(int hour) {
   // Function description: Starts the irrigation procedure after checking if the hardware is ready
   // FUNCTION PARAMETER:
   // currentHour - the active hour to check the with the timetable
-
+  /*
   #ifdef DEBUG
   Serial.print(F("Watering group: ")); Serial.println(name);
   Serial.print(F("is_set: ")); Serial.println(is_set);
   Serial.print(F("timetable: ")); Serial.println(timetable, BIN);
   Serial.print(F("current hour: ")); Serial.println(hour);
   #endif
-
+  */
   // Check if hardware is ready to water
   int active_time = readyToWater(hour);
   if (active_time > 0) {

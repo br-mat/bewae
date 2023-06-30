@@ -57,14 +57,14 @@
 #endif
 
 #ifndef MAX_GROUP_LENGTH
-#define MAX_GROUP_LENGTH 4 //Max Group length
+#define MAX_GROUP_LENGTH 5 //Max Group length
 #endif
 
 #ifndef uS_TO_S_FACTOR
-#define uS_TO_S_FACTOR 1000000  //Conversion factor for micro seconds to seconds
+#define uS_TO_S_FACTOR 1000000 //Conversion factor for micro seconds to seconds
 #endif
 #ifndef TIME_TO_SLEEP
-#define TIME_TO_SLEEP  8        //Time ESP32 will go to sleep (in seconds)
+#define TIME_TO_SLEEP  8 //Time ESP32 will go to sleep (in seconds)
 #endif
 
 #ifndef measurement_LSB

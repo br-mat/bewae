@@ -39,7 +39,8 @@
 
 namespace Helper{
     String timestamp();
-    void shiftvalue8b(uint8_t val); // set shift register to value
+    void shiftvalue8b(uint8_t val); // set shift register to value (8 bit)
+    void shiftvalue(uint32_t val, uint8_t numBits); // set shift register with more bits (32 bit)
     void system_sleep(); // prepare low power mode (currently without light or deepsleep; TODO!)
     void copy(int* src, int* dst, int len); // copy string from dest to src
     /*

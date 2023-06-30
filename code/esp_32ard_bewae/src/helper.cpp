@@ -58,6 +58,28 @@ void Helper::shiftvalue8b(uint8_t val){
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// set shiftregister to defined value (32 bit)
+void Helper::shiftvalue(uint32_t val, uint8_t numBits) {
+  // Function description: shift out specified number of bits from a value, MSBFIRST
+  // FUNCTION PARAMETERS:
+  // val       -- value to be shifted out                      uint32_t
+  // numBits   -- number of bits to be shifted out              uint8_t
+  // ------------------------------------------------------------------------------------------------
+
+  for (uint8_t i = 0; i < numBits; i++) {
+    bool bitValue = (val >> (numBits - 1 - i)) & 0x01;  // Get the value of each bit to be shifted out
+    digitalWrite(data_shft, bitValue);  // Set the data pin to the bit value
+    digitalWrite(sh_cp_shft, HIGH);  // Clock the bit into the shift register
+    delayMicroseconds(1);  // Adjust the delay as needed
+    digitalWrite(sh_cp_shft, LOW);
+  }
+
+  digitalWrite(st_cp_shft, HIGH);  // Update the output of the register
+  delayMicroseconds(10);  // give shftregister little time to set values
+  digitalWrite(st_cp_shft, LOW);
+}
+
+
 void Helper::system_sleep(){
   //Function: deactivate the modules, prepare for sleep & setting mux to "lowpower standby" mode:
   digitalWrite(vent_pwm, LOW);     //pulls vent pwm pin low

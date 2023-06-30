@@ -597,42 +597,6 @@ if(thirsty){
       j++;
     }
 
-/*
-    IrrigationController Group[numgroups];
-    int j = 0;
-    // Init schedule of each group
-    // Iterate through all keys in the "groups" object and initialize the class instance (kv = key value pair)
-    for (JsonPair kv : groups) {
-      // check if group is present and get its index
-      const char* key = kv.key().c_str();
-
-      JsonVariant groupValue = kv.value(); // Get the value of the JSON pair
-
-      if (groupValue.is<JsonObject>()) {
-Serial.println("groupValue.is<JsonObject>()");
-        // load watering schedule of corresponding solenoid and/or pump (vpin)
-        bool result = Group[j].loadScheduleConfig(CONFIG_FILE_PATH, key);
-        delay(100); // give short delay to prevent issues with loading
-        #ifdef DEBUG
-        Serial.print(F("Group name: ")); Serial.println(key);
-        #endif
-Serial.print("if result json: "); Serial.println(!result);
-        // check if group was valid and reset false ones
-        if (!result) {
-          #ifdef DEBUG
-          Serial.println(F("Group reset, JSON not found."));
-          #endif
-          Group[j].reset();
-        }
-      }
-      else {
-        // reset the group to take it out of the process
-Serial.println("group resetet");
-        Group[j].reset();
-      }
-      j++;
-    }*/
-
     // Iterate over all irrigation controller objects in the Group array
     // This process will trigger multiple loop iterations until thirsty is set false
     int status = 0;
@@ -643,15 +607,25 @@ Serial.println("group resetet");
       // it will check if the instance is ready for watering (cooldown)
       // if not it will return early, else it will use delay to wait untill the process has finished
       hour1=19;
+Serial.println("init waterOn");
       status += Group[i].waterOn(hour1);
       // TODO: FIX ISSUE HERE:
+      // issue - shiftout value: is 0 WHY??
+/*
+start looping over driver pin vector 
+remaining time: 10
+uint time:10
+Watering group: Gew
+time: 10000
+shiftout value: 0
+*/
     }
     // check if all groups are finished and reset status
     if(!status){
       thirsty = false;
     }
   }
-  shiftvalue8b(0);
+  shiftvalue8b(0); // TODO CHANGE TO NEW shiftvalue
   delay(10);
   digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
 }
