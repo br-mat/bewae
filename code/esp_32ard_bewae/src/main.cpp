@@ -517,7 +517,7 @@ if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_inter
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // watering
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-thirsty = true;
+//thirsty = true; //uncoment for testing only
 if(thirsty){
   digitalWrite(sw_3_3v, HIGH); delay(10); //switch on shift register! and logic?
   shiftvalue8b(0);
@@ -536,14 +536,9 @@ if(thirsty){
   while((loop_t + measure_intervall > millis()) & (thirsty)){
     // process will trigger multiple loop iterations until thirsty is set false
     // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
-
-    // TODO: Change config file and "watering" value. There is an issue,
-    //        when the file gets updated it's internal "watering" values will get set back to 0
-
-    // Update config of controller
-    //updateConfig(CONFIG_FILE_PATH);
     delay(15);
 
+    // load config file
     JsonObject groups = getJsonObjects("group", CONFIG_FILE_PATH);
     // check for valid object
     if (groups.isNull()) {
@@ -565,11 +560,11 @@ if(thirsty){
       break;
     }
 
-    // load empty irrigationcontroller instances
+    // load empty irrigationcontroller instances 
     IrrigationController Group[numgroups];
     int j = 0;
 
-    // Iterate over each group
+    // Iterate over each group and load the config
     for (JsonObject::iterator groupIterator = groups.begin(); groupIterator != groups.end(); ++groupIterator) {
       // Check if j exceeds the maximum number of groups
       if (j >= numgroups) {
@@ -582,14 +577,12 @@ if(thirsty){
 
       // Load schedule configuration for the current group
       bool success = Group[j].loadScheduleConfig(*groupIterator);
-      if (!success) {
+      if (!success) { // if it fails reset class instance
         #ifdef DEBUG
         Serial.println(F("Error: Failed to load schedule configuration for group"));
         #endif
-
         // Reset the class to an empty state
         Group[j].reset();
-
         break;
       }
 
@@ -601,25 +594,16 @@ if(thirsty){
     // This process will trigger multiple loop iterations until thirsty is set false
     int status = 0;
     for(int i = 0; i < numgroups; i++){
+      // ACTIVATE SELECTED GROUP
+      // it will check if the instance is ready for watering (or on cooldown)
 
-      // ACTIVATE SOLENOID AND/OR PUMP
-      // this will return some int numer as long as it needs to be watered
-      // it will check if the instance is ready for watering (cooldown)
-      // if not it will return early, else it will use delay to wait untill the process has finished
-      hour1=19;
-Serial.println("init waterOn");
+      //hour1 = 19 // uncomment for testing
+
+      // start watering selected group
       status += Group[i].waterOn(hour1);
-      // TODO: FIX ISSUE HERE:
-      // issue - shiftout value: is 0 WHY??
-/*
-start looping over driver pin vector 
-remaining time: 10
-uint time:10
-Watering group: Gew
-time: 10000
-shiftout value: 0
-*/
+      delay(500); // give little delay
     }
+
     // check if all groups are finished and reset status
     if(!status){
       thirsty = false;
@@ -629,7 +613,6 @@ shiftout value: 0
   delay(10);
   digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
 }
-Serial.print("before sleep");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // sleep
