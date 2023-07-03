@@ -51,6 +51,7 @@ void Helper::shiftvalue8b(uint8_t val){
   //FUNCTION PARAMETER:
   //val         -- 8bit value writte out to shift register                             uint8_t
   //------------------------------------------------------------------------------------------------
+  digitalWrite(st_cp_shft, LOW);
   shiftOut(data_shft, sh_cp_shft, MSBFIRST, val); //take byte type as value
   digitalWrite(st_cp_shft, HIGH); //update output of the register
   delayMicroseconds(100);
@@ -66,16 +67,19 @@ void Helper::shiftvalue(uint32_t val, uint8_t numBits) {
   // numBits   -- number of bits to be shifted out              uint8_t
   // ------------------------------------------------------------------------------------------------
 
-  for (uint8_t i = 0; i < numBits; i++) {
-    bool bitValue = (val >> (numBits - 1 - i)) & 0x01;  // Get the value of each bit to be shifted out
-    digitalWrite(data_shft, bitValue);  // Set the data pin to the bit value
-    digitalWrite(sh_cp_shft, HIGH);  // Clock the bit into the shift register
-    delayMicroseconds(1);  // Adjust the delay as needed
-    digitalWrite(sh_cp_shft, LOW);
-  }
+  // Split the long value into two bytes
+  byte highByte = (val >> 8) & 0xFF;
+  byte lowByte = val & 0xFF;
 
-  digitalWrite(st_cp_shft, HIGH);  // Update the output of the register
-  delayMicroseconds(10);  // give shftregister little time to set values
+  // Shift out the high byte first
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, highByte);
+
+  // Then shift out the low byte
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, lowByte);
+
+  // Pulse the latch pin to activate the outputs
+  digitalWrite(st_cp_shft, LOW);
+  digitalWrite(st_cp_shft, HIGH);
   digitalWrite(st_cp_shft, LOW);
 }
 
@@ -96,7 +100,9 @@ void Helper::system_sleep(){
 
   disableWiFi();
   //esp_light_sleep_start();
+  #ifdef DEBUG
   Serial.println(F("Output on standby"));
+  #endif
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -109,88 +115,6 @@ void Helper::copy(int* src, int* dst, int len) {
   //------------------------------------------------------------------------------------------------
   memcpy(dst, src, sizeof(src[0])*len);
 }
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*
-// OLD FUNCTION NOW HANDLED IN IRRIGATIONCONTROLLER CLASS
-void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _time, uint8_t vent_pin, uint8_t pump_pin, uint8_t en, uint8_t pwm){
-  //Function description: Controlls the watering procedure on valves and pump
-  // Careful with interupts! To avoid unwanted flooding.
-  //FUNCTION PARAMETER:
-  //datapin     -- serial data pin seting bit of shift register                       uint8_t
-  //clock       -- shiftout clock pin                                                 uint8_t
-  //latch       -- shift register set output pin                                      uint8_t
-  //time        -- time in seconds, max 60 seconds                                    uint8_t
-  //vent_pin    -- virtual pin number with shift register                             uint8_t
-  //pump_pin    -- virtual pin number with shift register                             uint8_t 
-  //pwm         -- pwm pin for fast pwm                                               uint8_t
-  //------------------------------------------------------------------------------------------------
-  //initialize state
-  digitalWrite(en, LOW);
-  digitalWrite(clock, LOW); //make sure clock is low so rising-edge triggers
-  digitalWrite(latch, LOW);
-  digitalWrite(datapin, LOW);
-  #ifdef DEBUG
-  Serial.print(F("uint time:")); Serial.println(_time);
-  #endif
-  digitalWrite(en, HIGH);
-  unsigned long time_s = (unsigned long)_time * 1000UL;
-  if (time_s > (unsigned long)max_active_time_sec * 1000UL){
-    time_s = (unsigned long)max_active_time_sec * 1000UL;
-    #ifdef DEBUG
-    Serial.println(F("time warning: time exceeds sec"));
-    #endif
-  }
-
-  // seting shiftregister to 0
-  shiftOut(datapin, clock, MSBFIRST, 0); //take byte type as value
-  digitalWrite(latch, HIGH); //enables the output of the register
-  delay(1);
-  digitalWrite(latch, LOW);
-  #ifdef DEBUG
-  Serial.print(F("Watering group: "));
-  Serial.println(vent_pin); Serial.print(F("time: ")); Serial.println(time_s);
-  #endif
-  // perform actual function
-  byte value = (1 << vent_pin) + (1 << pump_pin);
-  #ifdef DEBUG
-  Serial.print(F("shiftout value: ")); Serial.println(value);
-  #endif
-  shiftOut(datapin, clock, MSBFIRST, value);
-  digitalWrite(latch, HIGH); //enables the output of the register
-  delay(1);
-  digitalWrite(latch, LOW);
-  delay(100); //wait balance load after pump switches on
-  //control this PWM pin by changing the duty cycle:
-  // ledcWrite(PWM_Ch, DutyCycle);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 1);
-  delay(2);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.96);
-  delay(2);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.92);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.9);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.88);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.87);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.86);
-  delay(time_s);
-
-  // reset
-  // seting shiftregister to 0
-  shiftOut(datapin, clock, MSBFIRST, 0); //take byte type as value
-  digitalWrite(latch, HIGH); //enables the output of the register
-  delay(1);
-  digitalWrite(latch, LOW);
-
-  digitalWrite(clock, LOW); //make sure clock is low so rising-edge triggers
-  digitalWrite(latch, LOW);
-  digitalWrite(datapin, LOW);
-  digitalWrite(en, LOW);
-}
-*/
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
@@ -272,71 +196,15 @@ void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, Strin
     digitalWrite(enable, HIGH);
   }
 }
-
-/*
-bool Helper::save_datalog(String data, uint8_t cs, const char * file){
-  //Function: saves data given as string to a sd card via spi
-  //FUNCTION PARAMETER
-  //data       --      a string to save on SD card;    String
-  //cs         --      Chip Select of SPI;             int
-  //file       --      filename as string;             String
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  Serial.begin(9600);
-  pinMode(cs, OUTPUT);
-  // see if the card is present and can be initialized: NEEDED ALTOUGH NOTHING IS DONE!!! DONT DELETE
-  bool sd_check;
-  byte iteration = 0;
-  spiSD.begin(SD_SCK, SD_MISO, SD_MOSI);
-  if (!SD.begin(cs, spiSD, 1000000U)) {
-    // don't do anything more: 
-    //return;
-    #ifdef DEBUG
-    Serial.println(F("some problem occured: SD card not there"));
-    #endif
-    sd_check=false;
-  }
-  else{
-    sd_check=true;
-  }
-  while(!sd_check){
-    delay(5000);
-    if(!SD.begin(cs, spiSD)){
-      //do again nothing
-      #ifdef DEBUG
-      Serial.print(F(" - again not found"));
-      #endif
-    }
-    else{
-      sd_check=true;
-    }
-    iteration = iteration + 1;
-    if(iteration > 5){
-      #ifdef DEBUG
-      Serial.println(F(" - not trying again"));
-      #endif
-      return false;
-    }
-  }
-  // open the file. note that only one file can be open at a time,
-  // so you have to close this one before opening another.
-  File dataFile = SD.open(file, FILE_WRITE);
-  // if the file is available, write to it:
-  if (dataFile){
-    dataFile.println(data);
-    dataFile.close();
-    // print to the serial port too:
-    Serial.println(data);
-  }   //ln 
-  delay(1000);  //need time to save for some reason to work without mistakes
-  return true;
-}
-*/
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Convert normal decimal numbers to binary coded decimal
 byte  Helper::dec_bcd(byte val)
 {
   return( (val/10*16) + (val%10) );
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Convert binary coded decimal to normal decimal numbers
 byte  Helper::bcd_dec(byte val)
 {
@@ -495,23 +363,6 @@ bool Helper::disableWiFi(){
   Serial.print(F("Wifi status: ")); Serial.println(WiFi.status());
   #endif
   return true;
-  
-  /*
-  // Check the WiFi status to make sure that it was successfully disabled.
-  if (WiFi.status() == WL_DISCONNECTED) {
-    Serial.println("");
-    Serial.println("WiFi disconnected!");
-    // Set the CPU frequency to 80 MHz.
-    if (!setCpuFrequencyMhz(80)){
-      Serial.println("Error: Not valid frequency!");
-      return false;
-    }
-    return true;
-  } else {
-    Serial.println("Error: WiFi could not be disabled!");
-    return false;
-  }
-  */
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

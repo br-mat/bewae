@@ -208,7 +208,7 @@
     #endif
 
     #ifndef DRIVER_COOLDOWN
-    #define DRIVER_COOLDOWN 450000UL // min cooldown of drivers and hardware (somewhat depending on max_active_time_sec)
+    #define DRIVER_COOLDOWN 45000UL // min cooldown of drivers and hardware (somewhat depending on max_active_time_sec)
     #endif
     
     //pump & transistor max on time

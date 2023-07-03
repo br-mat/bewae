@@ -19,8 +19,6 @@
 
 // Constructor takes pin as input
 LoadDriverPin::LoadDriverPin(int pin) {
-    Serial.print("Creating LoadDriverPin object with pin: ");
-  Serial.println(pin);
   vpin = pin;
   lastActivation = 0;
 }
@@ -43,8 +41,8 @@ void LoadDriverPin::setLastActivation() {
 // initialize Hardware pins
 LoadDriverPin controller_pins[max_groups] =
 {
-  {0},
-  {1},
+  {0}, //reserve pump
+  {1}, //pump
   {2}, //group 0
   {3}, //group 1
   {4},
@@ -106,7 +104,6 @@ int IrrigationController::readyToWater(int currentHour) {
   // get the current time in milliseconds
   unsigned long currentMillis = millis();
   //int len = sizeof(driver_pins)/sizeof(int);
-Serial.println("start looping over driver pin vector");
 
   // Accessing the elements of driver_pins using a range-based for loop
   for (const auto& pinValue : this->driver_pins) { // TODO: UNSIGNED INT FOR PINS FIX THIS ISSUE LATER
@@ -120,13 +117,15 @@ Serial.println("start looping over driver pin vector");
       }
 
       // Check for cooldown of the pin
-      if (millis() - controller_pins[pinValue].getLastActivation() > DRIVER_COOLDOWN) {
+      if (millis() - controller_pins[pinValue].getLastActivation()) {
           #ifdef DEBUG
+          Serial.println(millis() - controller_pins[pinValue].getLastActivation() > DRIVER_COOLDOWN);
           Serial.print(F("Selected pin needs cooldown, skipping. Last activation (in sec): "));
           Serial.println(static_cast<int>((millis() - controller_pins[pinValue].getLastActivation()) / 1000));
           #endif
           return 0; // Pin needs cooldown
       }
+Serial.print(controller_pins[pinValue].getPin()); Serial.println("pin ok");
   }
 
   // check if there is enough water time left
@@ -312,7 +311,7 @@ void IrrigationController::activatePWM(int time) {
   unsigned long start_decay = millis();
   int decay_time = 1000; // decay time in milliseconds
   float dutyCycle = 1.0;
-  float targetDutyCycle = 0.75;
+  float targetDutyCycle = 0.85;
   float decrement = 0.05;
   int numSteps = (float)(dutyCycle - targetDutyCycle) / decrement;
   int delayTime = decay_time / numSteps;
@@ -449,7 +448,7 @@ int IrrigationController::waterOn(int hour) {
     #endif
 
     // Activate watering process
-    activatePWM(active_time);
+    activate(active_time);
   }
 
   // check if group is NOT done
