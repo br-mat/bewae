@@ -41,8 +41,8 @@ void LoadDriverPin::setLastActivation() {
 // initialize Hardware pins
 LoadDriverPin controller_pins[max_groups] =
 {
-  {0},
-  {1},
+  {0}, //reserve pump
+  {1}, //pump
   {2}, //group 0
   {3}, //group 1
   {4},
@@ -65,7 +65,7 @@ LoadDriverPin controller_pins[max_groups] =
 
 // DEFAULT Constructor seting an empty class
 IrrigationController::IrrigationController()
-    : is_set(false), timetable(0), watering(0), water_time(0), name("NV") {
+    : is_set(false), timetable(0), lastupdate(0), watering(0), water_time(0), name("NV") {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -75,15 +75,25 @@ IrrigationController::~IrrigationController() {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Function:
+// Handling watering procedure:
+// It checks if the irrigation system is ready to water. If so:
+// calculates the remaining watering time and updates the waterTime variable and returns the active time.
+// It returns -1 if the system is not ready to water.
+// 0 if group is not configured at that time or in error case
+int IrrigationController::readyToWater(int currentHour, int currentDay) {
+// INPUT: currentHour int of full hour
+//        currentDay int of day of month
 
-int IrrigationController::readyToWater(int currentHour) {
-  // INPUT: currentHour is the int digits of the full hour
-  // Function:
-  // It checks if the irrigation system is ready to water.
-  // If the system is ready,
-  // it calculates the remaining watering time and updates the waterTime variable and returns the active time.
-  // It returns 0 if the system is not ready to water.
-  // to prevent unexpected behaviour its important to pass only valid hours
+  // check for hour change and shift water_time base value into watering value to be processed
+  if((this->lastDay != lastDay) || (this->lastHour != currentHour)){
+    // set new update timestamp
+    this->lastDay = currentDay;
+    this->lastHour = currentHour;
+
+    // writte water_time to watering to start watering process
+    this->watering = water_time; // multiply with factor to adjust wheater conditons when raspi not reachable?
+  }
 
   // check if group is set
   if(!this->is_set){ //return 0 if the group is not set
@@ -119,30 +129,26 @@ int IrrigationController::readyToWater(int currentHour) {
       // Check for cooldown of the pin
       if (millis() - controller_pins[pinValue].getLastActivation() < DRIVER_COOLDOWN) {
           #ifdef DEBUG
-Serial.print(controller_pins[pinValue].getPin()); Serial.println(" pin");
-Serial.print("pin value"); Serial.println(pinValue);
-Serial.print("time since"); Serial.println(millis() - controller_pins[pinValue].getLastActivation());
-Serial.print("last act: "); Serial.println(controller_pins[pinValue].getLastActivation());
           Serial.print(F("Selected pin needs cooldown, skipping. Last activation (in sec): "));
           Serial.println(static_cast<int>((millis() - controller_pins[pinValue].getLastActivation()) / 1000));
           #endif
-          return 0; // Pin needs cooldown
+          return -1; // Pin needs cooldown
       }
-
+  //Serial.print(controller_pins[pinValue].getPin()); Serial.println(" pin ok");
   }
 
   // check if there is enough water time left
-  if (this->water_time <= 0) {
+  if (this->watering <= 0) {
     #ifdef DEBUG
     Serial.println("group done!");
     #endif
-    return 0; // not ready to water
+    return 0; // group done
   }
 
   // calculate the remaining watering time, return seconds using min function
-  int remainingTime = min(water_time, max_active_time_sec);
+  int remainingTime = min(this->watering, max_active_time_sec);
   remainingTime = max(remainingTime, (int)0); //avoid values beyond 0
-  this->water_time -= remainingTime; // update the water time
+  this->watering -= remainingTime; // update the water time
 
   // save water time variable
   if (!saveScheduleConfig(CONFIG_FILE_PATH, name)){
@@ -192,6 +198,7 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
   this->timetable = groupData["timetable"].as<uint32_t>();
   this->watering = groupData["watering"].as<int16_t>();
   this->water_time = groupData["water-time"].as<int16_t>();
+  this->lastupdate = groupData["lastup"].as<int16_t>();
 
   // Populate driver_pin vector
   JsonArray pinsArray = groupData["vpins"].as<JsonArray>();
@@ -202,6 +209,11 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
   for (JsonVariant value : pinsArray) {
     driver_pins.push_back(value.as<int>());
   }
+
+  // populate time stamp
+  JsonArray timestampArr = groupData["lastup"].as<JsonArray>();
+  this->lastHour = timestampArr[0];
+  this->lastDay = timestampArr[1];
 
   // return true if everything was ok
   return true;
@@ -242,6 +254,15 @@ bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], cons
     jsonDoc["group"][grp_name]["vpins"].add(pin);
   }
 
+  // save lastupdate array
+  jsonDoc["group"][grp_name]["lastup"][0] = this->lastHour;
+  jsonDoc["group"][grp_name]["lastup"][1] = this->lastDay;
+
+// TEMPORATAY DEBUG STATEMENT TO CHECK FILE AFTER SAVING array
+String jsonStr;
+serializeJson(jsonDoc, jsonStr);
+Serial.println("Saved file: "); Serial.println(jsonStr);
+
   // return bool to indicate if status failed
   return Helper::writeConfigFile(jsonDoc, path); // write the updated JSON data to the config file
   }
@@ -251,6 +272,7 @@ bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], cons
 void IrrigationController::reset() {
   is_set = false;
   timetable = 0;
+  lastupdate = 0;
   watering = 0;
   water_time = 0;
   driver_pins.clear(); // Clear the elements of driver_pins vector
@@ -427,15 +449,18 @@ void IrrigationController::activate(int time_s) {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Member function to start watering process
-int IrrigationController::waterOn(int hour) {
+// Public function: Handling watering process calling related functionality
+// call this function every now and then to keep track of time variables
+int IrrigationController::waterOn(int hour, int day) {
   // Function description: Starts the irrigation procedure after checking if the hardware is ready
   // FUNCTION PARAMETER:
   // currentHour - the active hour to check the with the timetable
   // returns - int 1 if not finished and 0 if finished
 
   // Check if hardware is ready to water
-  int active_time = readyToWater(hour);
+  int active_time = readyToWater(hour, day);
+
+  // handle intended case when system is ready to water
   if (active_time > 0) {
     // Print info to serial if wanted
     #ifdef DEBUG
@@ -455,11 +480,11 @@ int IrrigationController::waterOn(int hour) {
   }
 
   // check if group is NOT done
-  if((water_time!=0) && (is_set)){
+  if((watering!=0) && (is_set)){
     return 1;
   }
   // check if group is done
-  if(water_time == 0){
+  if(watering == 0){
     #ifdef DEBUG
     Serial.print(F("Group '"));
     Serial.print(name);
@@ -504,3 +529,6 @@ long IrrigationController::combineTimetables()
   return combinedTimetable;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// prepare watering value
+//

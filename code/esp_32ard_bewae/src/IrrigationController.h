@@ -72,6 +72,9 @@ class IrrigationController {
     bool is_set; //activate deactivate group, value will get saved to config
     char name[MAX_GROUP_LENGTH]; //name of the group, value will get saved to config
     unsigned long timetable; //timetable special formated, value will get saved to config
+    byte lastupdate;
+    byte lastDay;
+    byte lastHour;
     int watering; //defualt value of watering amount set for group, value will get saved to config
     int water_time; //holds value of how long it should water, value will get saved to config
 
@@ -89,6 +92,8 @@ class IrrigationController {
 
   public:
     // NEW Constructor:
+
+    // Alternative constructor
     IrrigationController(
                           const char path[PATH_LENGTH],
                           const char keyName[MAX_GROUP_LENGTH]
@@ -101,17 +106,25 @@ class IrrigationController {
     ~IrrigationController();
 
     // PUBLIC METHODS:
+
     // Member function loads schedule config from file
+    // can be used to fill empty class
     bool loadScheduleConfig(const JsonPair& groupPair);
-    // Member function saves schedule config to file
+
+    // Member function saves state to config file
     bool saveScheduleConfig(const char path[PATH_LENGTH], const char name[MAX_GROUP_LENGTH]);
-    // Member function checks if a group is ready,
-    // returns part of the watering time the group is allowed to be active
-    int readyToWater(int currentHour);
-    // Method to start watering process
-    int waterOn(int hour);
+
+    // Member function checks if a group is ready:
+    // returns watering time in (seconds) as int when ready, -1 when waiting, and 0 (finished, not configured, error)
+    int readyToWater(int currentHour, int currentDay);
+
+    // Public function: Handling watering process calling related functionality
+    // call this function every now and then to keep track of time variables
+    int waterOn(int hour, int day);
+
     // Resets all member variables to their default values
     void reset();
+
     // Member function to update the data
     //bool updateController();
     // Define a static member function to combine the timetables of an array of IrrigationController objects using a loop

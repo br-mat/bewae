@@ -82,10 +82,10 @@ void Helper::shiftvalue(uint32_t val, uint8_t numBits) {
   digitalWrite(st_cp_shft, HIGH);
   digitalWrite(st_cp_shft, LOW);
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+//Function: deactivate the modules, prepare for sleep & setting mux to "lowpower standby" mode:
 void Helper::system_sleep(){
-  //Function: deactivate the modules, prepare for sleep & setting mux to "lowpower standby" mode:
   digitalWrite(vent_pwm, LOW);     //pulls vent pwm pin low
   digitalWrite(sw_sens, LOW);  //deactivates sensors
   digitalWrite(sw_sens2, LOW);      //deactivates energy hungry devices
@@ -106,28 +106,28 @@ void Helper::system_sleep(){
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//Function description: copy strings
+//FUNCTION PARAMETER:
+//src         -- source array                                                       int
+//dst         -- destiny array                                                      int
+//len         -- length of array                                                    int
+//------------------------------------------------------------------------------------------------
 void Helper::copy(int* src, int* dst, int len) {
-  //Function description: copy strings
-  //FUNCTION PARAMETER:
-  //src         -- source array                                                       int
-  //dst         -- destiny array                                                      int
-  //len         -- length of array                                                    int
-  //------------------------------------------------------------------------------------------------
   memcpy(dst, src, sizeof(src[0])*len);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
+//FUNCTION PARAMETER:
+//control_pins  -- pins to set the mux binaries [4 pins]; mux as example;            uint8_t array [4]
+//NOT IN USE channel_setup -- array to define the 16 different channels; mux_channel as example; uint8_t array [16][4]
+//channel       -- selected channel; 0-15 as example;                                 uint8_t
+//sipsop        -- signal input signal output; free pin on arduino;                   uint8_t
+//enable        -- enable a selected mux; free pin on arduino;                        uint8_t
+//mode          -- mode wanted to use; set_low, set_high, read;                       String
+//val           -- pointer to reading value; &value in function call;                 int (&pointer)   
+//------------------------------------------------------------------------------------------------
 void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
-  //Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
-  //FUNCTION PARAMETER:
-  //control_pins  -- pins to set the mux binaries [4 pins]; mux as example;            uint8_t array [4]
-  //NOT IN USE channel_setup -- array to define the 16 different channels; mux_channel as example; uint8_t array [16][4]
-  //channel       -- selected channel; 0-15 as example;                                 uint8_t
-  //sipsop        -- signal input signal output; free pin on arduino;                   uint8_t
-  //enable        -- enable a selected mux; free pin on arduino;                        uint8_t
-  //mode          -- mode wanted to use; set_low, set_high, read;                       String
-  //val           -- pointer to reading value; &value in function call;                 int (&pointer)   
-  //------------------------------------------------------------------------------------------------
   int control_pins[4] = {s0_mux_1,s1_mux_1,s2_mux_1,s3_mux_1};
   uint8_t channel_setup[16][4]={
     {0,0,0,0}, //channel 0
@@ -212,7 +212,6 @@ byte  Helper::bcd_dec(byte val)
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
 //Function: sets the time on the rtc module (iic)
 //FUNCTION PARAMETERS:
 //second     --                   seconds -- byte
@@ -220,7 +219,7 @@ void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte 
 //hour       --                   hours   -- byte
 //dayofweek  --         weekday as number -- byte
 //dayofmonrh --    day of month as number -- byte
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
 {
   // sets time and date data to DS3231
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
@@ -236,8 +235,6 @@ void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte 
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
-{
 //Function: read the time on the rtc module (iic)
 //FUNCTION PARAMETERS:
 //second     --                   seconds -- byte
@@ -247,8 +244,8 @@ void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte
 //dayofmonrh --    day of month as number -- byte
 //month      --                     month -- byte
 //year       --   year as number 2 digits -- byte
-//comment: took basically out of the librarys example as the rest of the time functions, slightly modded
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
+{
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
   Wire.write(0); // set DS3231 register pointer to 00h
   Wire.endTransmission();
@@ -264,11 +261,10 @@ void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-String Helper::timestamp(){
 //Function: give back a timestamp as string (iic)
 //FUNCTION PARAMETERS:
 // NONE
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+String Helper::timestamp(){
   String time_data="";
   byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
   // retrieve data from DS3231
@@ -342,6 +338,7 @@ bool Helper::connectWifi(){
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// force modem sleep
 void Helper::setModemSleep() {
   WiFi.setSleep(true);
   if (!setCpuFrequencyMhz(80)){
@@ -366,6 +363,7 @@ bool Helper::disableWiFi(){
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// unused
 void Helper::disableBluetooth(){
   // Quite unusefully, no relevable power consumption
   btStop();
@@ -376,6 +374,7 @@ void Helper::disableBluetooth(){
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// waking up system
 void Helper::wakeModemSleep() {
   #ifdef DEBUG
   Serial.println(F("Waking up modem!"));
@@ -385,6 +384,7 @@ void Helper::wakeModemSleep() {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// search item in an array returning bool
 bool Helper::find_element(int *array, int item){
   int len = sizeof(array);
   for(int i = 0; i < len; i++){
@@ -399,6 +399,7 @@ bool Helper::find_element(int *array, int item){
 // Reads the JSON file at the specified file path and returns the data as a DynamicJsonDocument.
 // If the file path is invalid or if there is an error reading or parsing the file, an empty DynamicJsonDocument is returned.
 DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
+  // create buffer file
   DynamicJsonDocument jsonDoc(CONF_FILE_SIZE); // create JSON doc, if an error occurs it will return an empty jsonDoc
                                      // which can be checked using jsonDoc.isNull()
 
@@ -436,7 +437,6 @@ DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
 // Writes the specified DynamicJsonDocument to the file at the specified file path as a JSON file.
 // Returns true if the file was written successfully, false if the file path is invalid or if there is an error writing the file.
 bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
-  // TODO improve error handling on file path!
   if (path == nullptr) { // check for valid path, a function could possibly use this and set a nullptr as path
     #ifdef DEBUG
     Serial.println("Invalid file path");
@@ -544,15 +544,15 @@ JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
   // Check if key exists in the JSON object
   if (jsonobj.isNull()) {
     Serial.println(F("Warning: Key not found in JSON object."));
-    return jsonobj;
   }
   
   return jsonobj;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-DynamicJsonDocument Helper::getJSONData(const char* server, int serverPort, const char* serverPath) {
   // HTTP GET request to the Raspberry Pi server
+DynamicJsonDocument Helper::getJSONData(const char* server, int serverPort, const char* serverPath) {
+  // create buffer file
   DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
   HTTPClient http;
   http.begin(String("http://") + server + ":" + serverPort + serverPath);
@@ -583,22 +583,53 @@ DynamicJsonDocument Helper::getJSONData(const char* server, int serverPort, cons
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// The updateConfig function retrieves new JSON data from a server and updates the config file,
+// while preserving the "watering" values of the old JSON data.
+// This value is only relevant for the controller itself.
+// The function takes in a const char* type argument named path which specifies the path to retrieve new JSON data from the server.
+// Returns a bool value indicating the success of updating the config file with new JSON data from the server.
 bool Helper::updateConfig(const char* path){
-  // call this function once per hour it uses timetable to determine if it should set water_time variable with content either
-  // watering_default or watering_mqtt depending on a modus variable past with the function (this can be an integer about 0-5)
-  // water time variable holds information about the water cycle for the active hour if its 0 theres nothing to do
-  // if its higher then it should be recognized by the readyToWater function, this value
 
+  // Check if the device is connected to WiFi
   if (WiFi.status() == WL_CONNECTED) {
+    // Retrieve new JSON data from the server
     DynamicJsonDocument newdoc = Helper::getJSONData(SERVER, SERVER_PORT, path);
+    // Check if the retrieved data is not null
     if(newdoc.isNull()){
       #ifdef DEBUG
-      Serial.println(F("Warning: Wifi is disabled. Not able to get file from server!"));
+      Serial.println(F("Warning: Problem recieving config file from server!"));
       #endif
       return false;
     }
 
-    return Helper::writeConfigFile(newdoc, CONFIG_FILE_PATH); // write the updated JSON data to the config file
+  // preserve some old values only relevant for the controller
+  // Access the "group" object of the new JSON data
+  JsonObject group = newdoc["group"];
+  // Retrieve the old group object from the config file
+  JsonObject oldGroup = Helper::getJsonObjects("group", CONFIG_FILE_PATH);
+  // Iterate over all the keys in the new group object
+  for (JsonObject::iterator it = group.begin(); it != group.end(); ++it) {
+    const char* key = it->key().c_str();
+    // Check if the key is within the keys of oldGroup
+  if (oldGroup.containsKey(key)) {
+      // If the key is within the keys of oldGroup, set old_val to its value
+      it->value()["watering"] = oldGroup[key]["watering"].as<int16_t>();
+      it->value()["lastup"] = oldGroup[key]["lastup"].as<JsonArray>();
+    }
+    else {
+      // Set old_val to 0 if the key is not within the keys of oldGroup
+      it->value()["watering"] = 0;
+      it->value()["lastup"] = JsonArray();
+      #ifdef DEBUG
+      Serial.println(F("Warning: Failed to retrieve watering value of old group object"));
+      #endif
+    }
+  Serial.print("Preserved watering: "); Serial.println(it->value()["watering"].as<int16_t>());
+  Serial.print("Preserved watering: "); Serial.println(it->value()["lastup"].as<int16_t>());
+  }
+
+    // Write the updated JSON data to the config file
+    return Helper::writeConfigFile(newdoc, CONFIG_FILE_PATH);
   }
   else{
     #ifdef DEBUG
