@@ -177,24 +177,14 @@ void setup() {
     Serial.println("Failed to open file for reading");
     return;
   }
-  #ifdef DEBUG
-  //Serial.println("File Content:");
-  //while(file.available()){
-  //  Serial.write(file.read());
-  //}
-  
-  // DEBUG ONLY
-  //getJsonObjects("group", CONFIG_FILE_PATH);
-  //getJsonObjects("sensor", CONFIG_FILE_PATH);
-  //getJsonObjects("switch", CONFIG_FILE_PATH);
-  #endif
+
   file.close();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize bme280 sensor
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   digitalWrite(sw_3_3v, HIGH); delay(5);
-  shiftvalue8b(0);
+  shiftvalue(0, max_groups);
   digitalWrite(sw_sens, HIGH);
   digitalWrite(sw_sens2, HIGH);
 
@@ -292,7 +282,7 @@ void loop(){
 // start loop
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 digitalWrite(sw_3_3v, HIGH); delay(10);
-shiftvalue8b(0);
+shiftvalue(0, max_groups);
 delay(10);
 #ifdef DEBUG
 Serial.println(F("start loop setup"));
@@ -313,14 +303,14 @@ if(rtc_status != 0){
   while(rtc_status != 0){
     //loop as long as the rtc module is unavailable!
     #ifdef DEBUG
-    Serial.print(F(" . "));
+    Serial.print(F(". "));
     #endif
     Wire.beginTransmission(DS3231_I2C_ADDRESS);
     rtc_status = Wire.endTransmission();
 
     //reactivate 3.3v supply
     digitalWrite(sw_3_3v, HIGH); delay(10);
-    shiftvalue8b(0);
+    shiftvalue(0, max_groups);
     delay(1000);
     if(i > (int)10){
       break;
@@ -338,9 +328,6 @@ else{
 if (!(bool)rtc_status)
 {
   read_time(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
-}
-else{ // TODO: REMOVE THIS LATER AS IT CAN CAUSE SOME PROBLEMS!!!!!!!!!!!!!!!!!!!
-  hour1 = 19;
 }
 
 #ifdef DEBUG
@@ -376,8 +363,11 @@ if(true){
   // combine timetables
   timetable = controller.combineTimetables();
 
+  #ifdef DEBUG
   Serial.print(F("Combined timetable:"));
   Serial.println(timetable, BIN);
+  #endif
+
   // check if current hour is in timetable
   //if(true){
   if(bitRead(timetable, hour1)){
@@ -518,9 +508,10 @@ if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_inter
 // watering
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 thirsty = true; //uncoment for testing only
-if(thirsty){
+//if(thirsty){
+if(true){
   digitalWrite(sw_3_3v, HIGH); delay(10); //switch on shift register! and logic?
-  shiftvalue8b(0);
+  shiftvalue(0, max_groups);
   #ifdef DEBUG
   Serial.println(F("start watering phase"));
   #endif
@@ -600,7 +591,7 @@ if(thirsty){
       //hour1 = 19 // uncomment for testing
 
       // start watering selected group
-      status += Group[i].waterOn(hour1);
+      status += Group[i].waterOn(hour1, day_m1);
       delay(500); // give little delay
     }
 
@@ -609,7 +600,7 @@ if(thirsty){
       thirsty = false;
     }
   }
-  shiftvalue8b(0); // TODO CHANGE TO NEW shiftvalue
+  shiftvalue(0, max_groups); // TODO CHANGE TO NEW shiftvalue
   delay(10);
   digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
 }
@@ -618,19 +609,19 @@ if(thirsty){
 // sleep
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // start low power mode if not thirsty and not exceeding measure intervall
-if ((loop_t + measure_intervall > millis()) && (!thirsty)){
+if (((loop_t + measure_intervall) > millis()) && (!thirsty)){
 
   //sleep till next measure point
-  int sleep_ = (long)(loop_t + measure_intervall - millis())/(TIME_TO_SLEEP * 1000UL);
+  int sleepCycles  = (unsigned long)(loop_t + measure_intervall - millis())/(1000UL * TIME_TO_SLEEP);
 
   #ifdef DEBUG
-  if(sleep_ < (int)measure_intervall / (TIME_TO_SLEEP * 1000)){
+  if(sleepCycles >  (int)measure_intervall / (TIME_TO_SLEEP * 1000)){
   Serial.println(F("Warning: sleep time calculation went wrong value too high!"));
   }
-  Serial.print(F("sleep in s: ")); Serial.println((float)sleep_ * TIME_TO_SLEEP);
+  Serial.print(F("sleep in s: ")); Serial.println((float)sleepCycles  * TIME_TO_SLEEP);
   #endif
 
-  for(int i = 0; i < sleep_; i++){
+  for(int i = 0; i < sleepCycles ; i++){
     system_sleep(); //turn off all external transistors
     esp_light_sleep_start();
     if(loop_t + measure_intervall < millis()){

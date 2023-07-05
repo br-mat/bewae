@@ -26,13 +26,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TODO: vpin: - functionality to multiply ba a factor to compensate or bring measurment in correct relation
-//             - probably add groups, would be usefull if more than one sensor belongs two the same group
-//             - add getter and setters for the bool variable
-//             - add functionality to read config file
-
-// SensorController.h
-
 #ifndef SENSOR_CONTROLLER_H
 #define SENSOR_CONTROLLER_H
 

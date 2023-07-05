@@ -2,7 +2,9 @@
 
 // Constructor
 SwitchController::SwitchController() {
+  #ifdef DEBUG
   Serial.println("Switchcontroller class called!");
+  #endif
   JsonObject switches = Helper::getJsonObjects("switch", CONFIG_FILE_PATH);
   int reading_errors = 0;
   if (!switches.isNull()) {
