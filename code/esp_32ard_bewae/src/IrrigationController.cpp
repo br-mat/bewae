@@ -41,8 +41,8 @@ void LoadDriverPin::setLastActivation() {
 // initialize Hardware pins
 LoadDriverPin controller_pins[max_groups] =
 {
-  {0}, //reserve pump
-  {1}, //pump
+  {0},
+  {1},
   {2}, //group 0
   {3}, //group 1
   {4},
@@ -117,15 +117,18 @@ int IrrigationController::readyToWater(int currentHour) {
       }
 
       // Check for cooldown of the pin
-      if (millis() - controller_pins[pinValue].getLastActivation()) {
+      if (millis() - controller_pins[pinValue].getLastActivation() < DRIVER_COOLDOWN) {
           #ifdef DEBUG
-          Serial.println(millis() - controller_pins[pinValue].getLastActivation() > DRIVER_COOLDOWN);
+Serial.print(controller_pins[pinValue].getPin()); Serial.println(" pin");
+Serial.print("pin value"); Serial.println(pinValue);
+Serial.print("time since"); Serial.println(millis() - controller_pins[pinValue].getLastActivation());
+Serial.print("last act: "); Serial.println(controller_pins[pinValue].getLastActivation());
           Serial.print(F("Selected pin needs cooldown, skipping. Last activation (in sec): "));
           Serial.println(static_cast<int>((millis() - controller_pins[pinValue].getLastActivation()) / 1000));
           #endif
           return 0; // Pin needs cooldown
       }
-Serial.print(controller_pins[pinValue].getPin()); Serial.println("pin ok");
+
   }
 
   // check if there is enough water time left
