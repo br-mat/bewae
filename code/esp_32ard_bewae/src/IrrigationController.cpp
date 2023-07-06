@@ -85,30 +85,33 @@ int IrrigationController::readyToWater(int currentHour, int currentDay) {
 // INPUT: currentHour int of full hour
 //        currentDay int of day of month
 
+  //lastDay = 0; lastHour = 0; // TESTING/DEBUGING
   // check for hour change and shift water_time base value into watering value to be processed
-  if((this->lastDay != lastDay) || (this->lastHour != currentHour)){
+  if((this->lastDay != currentDay) || (this->lastHour != currentHour)){
+    #ifdef DEBUG
+    Serial.println(F("Hour change detected"));
+    #endif
     // set new update timestamp
     this->lastDay = currentDay;
     this->lastHour = currentHour;
-
     // writte water_time to watering to start watering process
-    this->watering = water_time; // multiply with factor to adjust wheater conditons when raspi not reachable?
+    this->watering = this->water_time; // multiply with factor to adjust wheater conditons when raspi not reachable?
   }
 
   // check if group is set
   if(!this->is_set){ //return 0 if the group is not set
     #ifdef DEBUG
-    Serial.println("not set");
+    Serial.println("Not set");
     #endif
     return 0;
   }
 
-    // check if the corresponding bit is set in the timetable value
-  if ((timetable & (1UL << currentHour)) == 0) {
+    // check if there is something to do
+  if (this->watering == 0) {
     #ifdef DEBUG
-    Serial.println("not correct time");
+    Serial.println("Nothing to do");
     #endif
-    return 0; // not ready to water
+    return 0; // done or nothing for this time
   }
 
   // get the current time in milliseconds
@@ -139,10 +142,7 @@ int IrrigationController::readyToWater(int currentHour, int currentDay) {
 
   // check if there is enough water time left
   if (this->watering <= 0) {
-    #ifdef DEBUG
-    Serial.println("group done!");
-    #endif
-    return 0; // group done
+    return 0; // group done, info handled in waterOn
   }
 
   // calculate the remaining watering time, return seconds using min function
@@ -165,7 +165,7 @@ int IrrigationController::readyToWater(int currentHour, int currentDay) {
 
   // return the remaining time which the pins should be active
   #ifdef DEBUG
-  Serial.print("remaining time: "); Serial.println(remainingTime);
+  Serial.print("watering time: "); Serial.println(remainingTime);
   #endif
   return remainingTime; //return active time
 }
@@ -257,11 +257,6 @@ bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], cons
   // save lastupdate array
   jsonDoc["group"][grp_name]["lastup"][0] = this->lastHour;
   jsonDoc["group"][grp_name]["lastup"][1] = this->lastDay;
-
-// TEMPORATAY DEBUG STATEMENT TO CHECK FILE AFTER SAVING array
-String jsonStr;
-serializeJson(jsonDoc, jsonStr);
-Serial.println("Saved file: "); Serial.println(jsonStr);
 
   // return bool to indicate if status failed
   return Helper::writeConfigFile(jsonDoc, path); // write the updated JSON data to the config file
@@ -457,8 +452,32 @@ int IrrigationController::waterOn(int hour, int day) {
   // currentHour - the active hour to check the with the timetable
   // returns - int 1 if not finished and 0 if finished
 
-  // Check if hardware is ready to water
+  // if not set return early
+  if(!this->is_set){
+    #ifdef DEBUG
+    Serial.println(F("Group not set!"));
+    #endif
+    return 0;
+  }
+
+  // get info if system is allowed to water
   int active_time = readyToWater(hour, day);
+
+  // check if fnished
+  if (active_time == 0) {
+    #ifdef DEBUG
+    Serial.println(F("Group done!"));
+    #endif
+    return 0;
+  }
+
+  // check if it should wait
+  if (active_time < 0) {
+    #ifdef DEBUG
+    Serial.println(F("Group need cooldown!"));
+    #endif
+    return 1;
+  }
 
   // handle intended case when system is ready to water
   if (active_time > 0) {
@@ -480,7 +499,7 @@ int IrrigationController::waterOn(int hour, int day) {
   }
 
   // check if group is NOT done
-  if((watering!=0) && (is_set)){
+  if(watering!=0){
     return 1;
   }
   // check if group is done
@@ -488,7 +507,7 @@ int IrrigationController::waterOn(int hour, int day) {
     #ifdef DEBUG
     Serial.print(F("Group '"));
     Serial.print(name);
-    Serial.println(F("' finished!"));
+    Serial.println(F("' finished! OLD STATEMENT"));
     #endif
     return 0;
   }
@@ -529,6 +548,3 @@ long IrrigationController::combineTimetables()
   return combinedTimetable;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// prepare watering value
-//

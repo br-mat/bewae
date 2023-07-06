@@ -258,6 +258,11 @@ void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte
   *dayOfMonth = bcd_dec(Wire.read());
   *month = bcd_dec(Wire.read());
   *year = bcd_dec(Wire.read());
+  #ifdef DEBUG
+  char timestamp[20];
+  sprintf(timestamp, "%02d.%02d.%02d %02d:%02d:%02d", *dayOfMonth, *month, *year, *hour, *minute, *second);
+  Serial.println(timestamp);
+  #endif
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -611,21 +616,21 @@ bool Helper::updateConfig(const char* path){
   for (JsonObject::iterator it = group.begin(); it != group.end(); ++it) {
     const char* key = it->key().c_str();
     // Check if the key is within the keys of oldGroup
+  String jsonstr2;
+  serializeJson(it->value()["lastup"].as<JsonArray>(), jsonstr2);
+  Serial.print("Preserved lastup: "); Serial.println(jsonstr2);
+  // check if key exists
   if (oldGroup.containsKey(key)) {
-      // If the key is within the keys of oldGroup, set old_val to its value
+      // preserve values
       it->value()["watering"] = oldGroup[key]["watering"].as<int16_t>();
       it->value()["lastup"] = oldGroup[key]["lastup"].as<JsonArray>();
     }
     else {
-      // Set old_val to 0 if the key is not within the keys of oldGroup
-      it->value()["watering"] = 0;
-      it->value()["lastup"] = JsonArray();
+      // new group should be created and saved, or some error occured
       #ifdef DEBUG
       Serial.println(F("Warning: Failed to retrieve watering value of old group object"));
       #endif
     }
-  Serial.print("Preserved watering: "); Serial.println(it->value()["watering"].as<int16_t>());
-  Serial.print("Preserved watering: "); Serial.println(it->value()["lastup"].as<int16_t>());
   }
 
     // Write the updated JSON data to the config file

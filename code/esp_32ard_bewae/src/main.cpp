@@ -229,7 +229,7 @@ void setup() {
 // init time and date
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //uncomment if want to set the time (NOTE: only need to do this once not every time!)
-  //set_time(30,15,15,04,14,06,23);
+  //set_time(00,38,15,03,6,7,23);
 
   //seting time (second,minute,hour,weekday,date_day,date_month,year)
   //set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
@@ -237,13 +237,9 @@ void setup() {
 
   //initialize global time
   Helper::read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
-  #ifdef DEBUG
-  Serial.print("Time: "); Serial.print(hour_);
-  Serial.println(F("debug 0"));
-  #endif
 
   delay(500);  //make TX pin Blink 2 times
-  Serial.print(measure_intervall);
+  Serial.print(F("Measure intervall: "));
   delay(500);
   Serial.println(measure_intervall);
   
@@ -291,7 +287,6 @@ Serial.println(F("start loop setup"));
 // check real time clock module
 Wire.beginTransmission(DS3231_I2C_ADDRESS);
 byte rtc_status = Wire.endTransmission();
-//delay(200);
 byte sec1, min1, hour1, day_w1, day_m1, mon1 , y1;
 
 // check return status
@@ -311,7 +306,7 @@ if(rtc_status != 0){
     //reactivate 3.3v supply
     digitalWrite(sw_3_3v, HIGH); delay(10);
     shiftvalue(0, max_groups);
-    delay(1000);
+    delay(10);
     if(i > (int)10){
       break;
     }
@@ -325,16 +320,11 @@ else{
   #endif
 }
 
+// get time
 if (!(bool)rtc_status)
 {
   read_time(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
 }
-
-#ifdef DEBUG
-delay(1);
-Serial.print(F("Time hour: ")); Serial.print(hour1); Serial.print(F(" last ")); Serial.println(hour_);
-Serial.print("rtc status: "); Serial.println(rtc_status); Serial.println(!(bool) rtc_status);
-#endif
 
 // update configuration
 SwitchController status_switches;
