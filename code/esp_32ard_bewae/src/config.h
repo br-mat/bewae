@@ -17,7 +17,7 @@
 #define RasPi 1
 
 #ifndef CONFIG_FILE_PATH
-#define CONFIG_FILE_PATH "/zconfig.JSON" //specifies name of config file stored within spiffs
+#define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
 #endif
 
 #ifndef IRRIGA_FILE_PATH
@@ -208,7 +208,7 @@
     #endif
 
     #ifndef DRIVER_COOLDOWN
-    #define DRIVER_COOLDOWN 5000UL // min cooldown of drivers and hardware (somewhat depending on max_active_time_sec)
+    #define DRIVER_COOLDOWN 50000UL // min cooldown of drivers and hardware (somewhat depending on max_active_time_sec)
     #endif
     
     //pump & transistor max on time

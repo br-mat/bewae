@@ -1,52 +1,59 @@
 {"group": {
     "mastr": {
     "is_set":0,
-    "vpins":[0,1],
+    "vpins":[0],
+    "lastup":[0,0],
     "watering":0,
     "water-time":0,
     "timetable":0
     },
     "Tom1":{
     "is_set":1,
-    "vpins":[0,1],
+    "vpins":[1,10],
+    "lastup":[0,0],
     "watering":0,
-    "water-time":10,
-    "timetable":33554431
+    "water-time":40,
+    "timetable":263424
     },
     "Tom2":{
     "is_set":1,
-    "vpins":[0,1],
+    "vpins":[1,9],
+    "lastup":[0,0],
     "watering":0,
-    "water-time":10,
-    "timetable":33554431
+    "water-time":45,
+    "timetable":263424
     },
     "Gewa":{
     "is_set":1,
-    "vpins":[0,1],
+    "vpins":[1,2],
+    "lastup":[0,0],
     "watering":0,
-    "water-time":10,
-    "timetable":33554431
+    "water-time":15,
+    "timetable":524416
     },
     "Krtr":{
     "is_set":1,
-    "vpins":[0,1],
+    "vpins":[1,11],
+    "lastup":[0,0],
     "watering":0,
-    "water-time":10,
-    "timetable":33554431
+    "water-time":12,
+    "timetable":512
     },
     "Basi":{
     "is_set":1,
-    "vpins":[0,1],
+    "vpins":[1,3],
+    "lastup":[0,0],
     "watering":0,
-    "water-time":10,
-    "timetable":33554431
+    "water-time":15,
+    "timetable":524416
     },
     "Erdb":{
-    "is_set":0,
-    "vpins":[0,1],
+    "is_set":1,
+    "vpins":[1,8],
+    "lastup":[0,0],
     "watering":0,
-    "water-time":10,
-    "timetable":33554431
+    "water-time":18,
+    "timetable":524416
     }},
     "sensor":{
     "0":{
