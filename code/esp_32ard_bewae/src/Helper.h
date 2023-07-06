@@ -39,7 +39,8 @@
 
 namespace Helper{
     String timestamp();
-    void shiftvalue8b(uint8_t val); // set shift register to value
+    void shiftvalue8b(uint8_t val); // set shift register to value (8 bit)
+    void shiftvalue(uint32_t val, uint8_t numBits); // set shift register with more bits (32 bit)
     void system_sleep(); // prepare low power mode (currently without light or deepsleep; TODO!)
     void copy(int* src, int* dst, int len); // copy string from dest to src
     /*
@@ -66,7 +67,9 @@ namespace Helper{
     bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
     bool pubInfluxData(String sensor_name, String field_name, float value); // send data to influxdb, return true when everything is ok
     void blinkOnBoard(String howLong, int times); // blink onboard led to signal something
-    JsonObject getJsonObjects(const char* key, const char* filepath); // returns num of JSON objects of specified key
+    JsonObject getJsonObjects(const char* key, const char* filepath); // returns requestet JSON object (key) of specified file
+    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath); 
+    bool updateConfig(const char* path); // check for config file updates from raspberrypi
     struct solenoid{
                     bool is_set; //activate deactivate group
                     uint8_t pin; //pin of the solenoid (virtual pin!)

@@ -2,31 +2,34 @@
 
 // Constructor
 SwitchController::SwitchController() {
-  JsonObject switches = Helper::getJsonObjects("switches", SENSOR_FILE_PATH);
+  #ifdef DEBUG
+  Serial.println("Switchcontroller class called!");
+  #endif
+  JsonObject switches = Helper::getJsonObjects("switch", CONFIG_FILE_PATH);
   int reading_errors = 0;
   if (!switches.isNull()) {
-    if (switches.containsKey("main_switch")) {
-      main_switch = switches["main_switch"];
+    if (switches.containsKey("main")) {
+      main_switch = switches["main"]; // main - main system ON/OFF
     } else {
       main_switch = false; // set default in case of false reading
       reading_errors++;
     }
-    if (switches.containsKey("dataloging_switch")) {
-      dataloging_switch = switches["dataloging_switch"];
+    if (switches.containsKey("dmmy")) {
+      placeholder3 = switches["dmmy"]; // placeholder - placeholder ON/OFF
     } else {
-      dataloging_switch = false;
+      placeholder3 = false;
       reading_errors++;
     }
-    if (switches.containsKey("irrigation_system_switch")) {
-      irrigation_system_switch = switches["irrigation_system_switch"];
+    if (switches.containsKey("irig")) {
+      irrigation_system_switch = switches["irig"]; // irig - irrigation_system ON/OFF
     } else {
       irrigation_system_switch = false;
       reading_errors++;
     }
-    if (switches.containsKey("placeholder3")) {
-      placeholder3 = switches["placeholder3"];
+    if (switches.containsKey("mssr")) {
+      dataloging_switch = switches["mssr"]; // mssr - measurement ON/OFF
     } else {
-      placeholder3 = false;
+      dataloging_switch = false;
       reading_errors++;
     }
     if (reading_errors > 0) // if some errors occure output a warning to serial for debuging
@@ -44,6 +47,7 @@ SwitchController::SwitchController() {
     #endif
   }
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool SwitchController::saveSwitches() {
 
@@ -54,11 +58,11 @@ bool SwitchController::saveSwitches() {
   }
   
   // Update the switch values in the config file
-  JsonObject switches = jsonDoc["switches"].as<JsonObject>();
-  switches["main_switch"] = this->main_switch;
-  switches["dataloging_switch"] = this->dataloging_switch;
-  switches["irrigation_system_switch"] = this->irrigation_system_switch;
-  switches["placeholder3"] = this->placeholder3;
+  JsonObject switches = jsonDoc["switch"].as<JsonObject>();
+  switches["main"] = this->main_switch;
+  switches["mssr"] = this->dataloging_switch;
+  switches["irig"] = this->irrigation_system_switch;
+  switches["dmmy"] = this->placeholder3;
   
   // Save the updated config file
   bool success = Helper::writeConfigFile(jsonDoc, CONFIG_FILE_PATH);
@@ -71,89 +75,66 @@ bool SwitchController::saveSwitches() {
 
   return true;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-DynamicJsonDocument SwitchController::getJSONData(const char* server, int serverPort, const char* serverPath) {
-  // Send the HTTP GET request to the Raspberry Pi server
-  DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
-  HTTPClient http;
-  http.begin(String("http://") + server + ":" + serverPort + serverPath);
-  int httpCode = http.GET();
+bool SwitchController::updateSwitches(){
+  // Update config variables from local file
+  // get newest locally stored config
+  JsonObject switches = Helper::getJsonObjects("switch", CONFIG_FILE_PATH);
 
-  // Check the status code
-  if (httpCode == HTTP_CODE_OK) {
-    // Parse the JSON data
-    DeserializationError error = deserializeJson(JSONdata, http.getString());
-
-    if (error) {
-      #ifdef DEBUG
-      Serial.println(F("Error parsing JSON data"));
-      #endif
-      return JSONdata;
-    } else {
-      return JSONdata;
-    }
-  } else {
-    #ifdef DEBUG
-    Serial.println(F("Error sending request to server"));
-    #endif
-    return JSONdata;
-  }
-
-  http.end();
-  return JSONdata;
-}
-
-bool SwitchController::updateSwitches() {
-  // SwitchController update
-  SwitchController status_switches;
-
-  DynamicJsonDocument jsonDoc = SwitchController::getJSONData(SERVER, SERVER_PORT, SERVER_PATH);
-
-  // check if file could be found
-  if (jsonDoc.isNull()) {
+  // check json object
+  if (switches.size() == 0) {
     return false;
   }
 
-  // Update the switch values in the config file
-  JsonObject switches = jsonDoc["switches"].as<JsonObject>();
-  this->main_switch = switches["main_switch"];
-  this->dataloging_switch = switches["dataloging_switch"];
-  this->irrigation_system_switch = switches["irrigation_system_switch"];
-  this->placeholder3 = switches["placeholder3"];
+  // updating class variables
+  this->main_switch = switches["main"];
+  this->dataloging_switch = switches["irig"];
+  this->irrigation_system_switch = switches["mssr"];
+  this->placeholder3 = switches["dmmy"];
 
-  return SwitchController::saveSwitches();
+  return true;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Getters
 bool SwitchController::getMainSwitch() {
   return main_switch;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool SwitchController::getDatalogingSwitch() {
   return dataloging_switch;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool SwitchController::getIrrigationSystemSwitch() {
   return irrigation_system_switch;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool SwitchController::getPlaceholder3() {
   return placeholder3;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Setters
 void SwitchController::setMainSwitch(bool value) {
   main_switch = value;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void SwitchController::setDatalogingSwitch(bool value) {
   dataloging_switch = value;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void SwitchController::setIrrigationSystemSwitch(bool value) {
   irrigation_system_switch = value;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void SwitchController::setPlaceholder3(bool value) {
   placeholder3 = value;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////

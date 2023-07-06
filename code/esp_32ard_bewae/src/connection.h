@@ -7,11 +7,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
 #ifndef __CONNECTION_H__
 #define __CONNECTION_H__
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Wifi Constants
+// Connection & Server Details
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // WiFi
     #ifndef ssid
@@ -48,4 +50,21 @@
     #define SERVER_PORT 1234
     #endif
 
+    // Define the URL and database name of the InfluxDB server
+    #ifndef INFLUXDB_URL
+    #define INFLUXDB_URL "http://**.**.**.**:****"
+    #endif
+
+    #ifndef INFLUXDB_DB_NAME
+    #define INFLUXDB_DB_NAME "******"
+    #endif
+
+    #ifndef INFLUXDB_TOKEN
+    #define INFLUXDB_TOKEN "******"
+    #endif
+
+    #ifndef INFLUXDB_ORG
+    #define INFLUXDB_ORG "******"
+    #endif
+    
 #endif

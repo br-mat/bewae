@@ -20,6 +20,8 @@
 // - connection.h
 // - Helper.h
 // - IrrigationController.h
+// - SensorController.h
+// - SwitchController.h
 // - config.h
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -93,24 +95,6 @@ Adafruit_BME280 bme; // use I2C interface
 // The switch conditions and timetables get reduced too as there is no need for handling outages of
 // wifi controll as the controller will then use what is stored locally in the config file.
 
-// Create new solenoid struct and initialize their corresponding virtual pins
-Solenoid controller_sollenoids[6] =
-{
-  {0}, //solenoid 0
-  {1}, //solenoid 1
-  {2}, //solenoid 2
-  {3}, //solenoid 3
-  {6}, //solenoid 4
-  {7}, //solenoid 5
-};
-
-// Create a new Pump struct and initialize their corresponding virtual pins
-Pump pump_main[2] = 
-{
-  pump1,
-  pump2,
-};
-
 //IrrigationController
 // No need for initialization as it will be loaded from config file
 
@@ -132,41 +116,6 @@ unsigned long int timetable = 0; //initialize on default
 
 // Initialise the WiFi and MQTT Client objects
 WiFiClient wificlient;
-// measurement function
-bool measure_sensors(){
-  JsonObject muxPins = getJsonObjects("test", CONFIG_FILE_PATH);
-  // check for valid object
-  if (muxPins.isNull()) {
-    return false;
-  }
-  int num = muxPins.size();
-
-
-  //VpinController configured_sensors[num];
-  /*
-  // setup virtual measurementpins (additional pins at the MUX)
-  VpinController vPin_mux[16] =
-  {
-    {"v00", 0},
-    {"v01", 1},
-    {"v02", 2},
-    {"v03", 3},
-    {"v04", 4},
-    {"v05", 5},
-    {"v06", 6},
-    {"v07", 7},
-    {"v08", 8},
-    {"v09", 9},
-    {"v10", 10},
-    {"v11", 11},
-    {"v12", 12},
-    {"v13", 13},
-    {"v14", 14}, //battery voltage - needs calculation
-    {"v15", 15}, //photo resistor - needs calculation
-  };
-  */
-return true;
-}
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -228,19 +177,14 @@ void setup() {
     Serial.println("Failed to open file for reading");
     return;
   }
-  #ifdef DEBUG
-  Serial.println("File Content:");
-  while(file.available()){
-    Serial.write(file.read());
-  }
+
   file.close();
-  #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize bme280 sensor
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   digitalWrite(sw_3_3v, HIGH); delay(5);
-  shiftvalue8b(0);
+  shiftvalue(0, max_groups);
   digitalWrite(sw_sens, HIGH);
   digitalWrite(sw_sens2, HIGH);
 
@@ -277,56 +221,50 @@ void setup() {
   ledcAttachPin(vent_pwm, pwm_ch0);
   //Configure this PWM Channel with the selected frequency & resolution using this function:
   // ledcSetup(PWM_Ch, PWM_Freq, PWM_Res);
-  ledcSetup(pwm_ch0, 30000, pwm_ch0_res);
+  ledcSetup(pwm_ch0, 21000, pwm_ch0_res);
   // PWM changing the duty cycle:
   // ledcWrite(pwm_ch0, pow(2, pwm_ch0_res) * fac);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//init time and date
+// init time and date
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //uncomment if want to set the time
-  //set_time(01,59,16,02,30,06,22);
+  //uncomment if want to set the time (NOTE: only need to do this once not every time!)
+  //set_time(00,38,15,03,6,7,23);
 
   //seting time (second,minute,hour,weekday,date_day,date_month,year)
   //set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
   //  sec,min,h,day_w,day_m,month,ear
-  #ifdef DEBUG
-  Serial.println(F("debug statement"));
-  #endif
+
   //initialize global time
   Helper::read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
-  #ifdef DEBUG
-  Serial.print("Time: "); Serial.print(hour_);
-  Serial.println(F("debug 0"));
-  #endif
 
   delay(500);  //make TX pin Blink 2 times
-  Serial.print(measure_intervall);
+  Serial.print(F("Measure intervall: "));
   delay(500);
   Serial.println(measure_intervall);
   
   system_sleep(); //turn off all external transistors
   delay(500);
   
+  // configure low power timer
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  
-  wakeModemSleep();
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//init Irrigation Controller instance and update config
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef RasPi
-// setup empty class instance
-IrrigationController controller;
-// update the config file stored in spiffs
-// in order to work a RasPi with node-red and configured flow is needed
-controller.updateController();
-#endif
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //init Irrigation Controller instance and update config
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  #ifdef RasPi
+  wakeModemSleep();
+  delay(1);
+  // update the config file stored in spiffs
+  // in order to work a RasPi with node-red and configured flow is needed
+  updateConfig(CONFIG_FILE_PATH);
+  #endif
   //hour_ = 0;
   //disableWiFi();
 
-    system_sleep(); //turn off all external transistors
-  }
+  system_sleep(); //turn off all external transistors
+
+}
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -340,19 +278,18 @@ void loop(){
 // start loop
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 digitalWrite(sw_3_3v, HIGH); delay(10);
-shiftvalue8b(0);
+shiftvalue(0, max_groups);
 delay(10);
 #ifdef DEBUG
 Serial.println(F("start loop setup"));
 #endif
 
+// check real time clock module
 Wire.beginTransmission(DS3231_I2C_ADDRESS);
 byte rtc_status = Wire.endTransmission();
-//delay(200);
 byte sec1, min1, hour1, day_w1, day_m1, mon1 , y1;
 
-// check real time clock module
-// check for hour change and update config
+// check return status
 if(rtc_status != 0){
   #ifdef DEBUG
   Serial.println(F("Error: rtc device not available!"));
@@ -361,15 +298,15 @@ if(rtc_status != 0){
   while(rtc_status != 0){
     //loop as long as the rtc module is unavailable!
     #ifdef DEBUG
-    Serial.print(F(" . "));
+    Serial.print(F(". "));
     #endif
     Wire.beginTransmission(DS3231_I2C_ADDRESS);
     rtc_status = Wire.endTransmission();
 
     //reactivate 3.3v supply
     digitalWrite(sw_3_3v, HIGH); delay(10);
-    shiftvalue8b(0);
-    delay(1000);
+    shiftvalue(0, max_groups);
+    delay(10);
     if(i > (int)10){
       break;
     }
@@ -378,44 +315,48 @@ if(rtc_status != 0){
   //store into variable available for all following functions
 }
 else{
+  #ifdef DEBUG
   Serial.println(F("rtc found"));
+  #endif
 }
 
+// get time
 if (!(bool)rtc_status)
 {
   read_time(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
 }
 
-#ifdef DEBUG
-delay(1);
-Serial.print(F("Time hour: ")); Serial.print(hour1); Serial.print(F(" last ")); Serial.println(hour_);
-Serial.print("rtc status: "); Serial.println(rtc_status); Serial.println(!(bool) rtc_status);
-#endif
-
-// get status viariables
+// update configuration
 SwitchController status_switches;
 status_switches.updateSwitches();
 
-if((hour_ != hour1) & (!(bool)rtc_status)){
-//if(true){
+// check for hour change and update config
+//if((hour_ != hour1) & (!(bool)rtc_status)){
+if(true){
   // check for hour change
   up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); // refresh the up_time every hour, no need for extra function or lib to calculate the up time
   read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_); // update long time timestamp
 
-  // setup empty class instance & update it
+  // setup empty class instance & check timetables
   IrrigationController controller;
 
   #ifdef RasPi
   // look for config updates
   wakeModemSleep();
   delay(1);
-  // update the config file stored in spiffs with a file from the local network
+
+  // update whole config
   // in order to work a RasPi with node-red and configured flow is needed
-  controller.updateController();
+  updateConfig(CONFIG_FILE_PATH);
   #endif
 
   // combine timetables
   timetable = controller.combineTimetables();
+
+  #ifdef DEBUG
+  Serial.print(F("Combined timetable:"));
+  Serial.println(timetable, BIN);
+  #endif
 
   // check if current hour is in timetable
   //if(true){
@@ -439,7 +380,7 @@ if((hour_ != hour1) & (!(bool)rtc_status)){
 Serial.println(F("Config: ")); Serial.print(F("Bewae switch: ")); Serial.println(sw0);
 Serial.print(F("Value override: ")); Serial.println(sw1);
 Serial.print(F("Timetable override: ")); Serial.println(sw2);
-Serial.print(F("Timetable: ")); Serial.print(timetable, BIN);
+Serial.print(F("Timetable: ")); Serial.println(timetable, BIN);
 #endif
 
 //update global time related variables
@@ -448,36 +389,28 @@ unsigned long actual_time = (unsigned long)up_time+(unsigned long)sec1*1000+(uns
                                                                                                 //give acurate values despite temperature changes
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// collect & save or send data
+// collect & send data
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef DEBUG
 Serial.print(F("Datalogphase: ")); Serial.println(actual_time-last_activation > measure_intervall);
 Serial.println(actual_time); Serial.println(last_activation); Serial.println(measure_intervall-500000UL);
 Serial.println((float)((float)actual_time-(float)last_activation)); Serial.println(up_time);
 #endif
-//if((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall-500000UL)) //replace for debuging
 if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall)) && (status_switches.getDatalogingSwitch()))
-//if(true)
-//if(false)
 {
   last_activation = actual_time; //first action refresh the time
   #ifdef DEBUG
   Serial.println(F("enter datalog phase"));
   #endif
 
-  //turn on sensors
+  // turn on sensors
   delay(1);
   digitalWrite(sw_sens, HIGH);   //activate mux & SD
   digitalWrite(sw_sens2, HIGH);  //activate sensor rail
   delay(500);
-  
-  // Update config
-  IrrigationController controller;
-  // update the config file stored in spiffs
-  // in order to work a RasPi with node-red and configured flow is needed
-  controller.updateController();
 
-  JsonObject sens = getJsonObjects("sensors", SENSOR_FILE_PATH);
+  // Perform measurement of every configured vpin sensor (mux)
+  JsonObject sens = getJsonObjects("sensor", CONFIG_FILE_PATH);
   // check for valid object
   if (sens.isNull()) {
     #ifdef DEBUG
@@ -499,13 +432,25 @@ if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_inter
       int high = kv.value()["hlim"].as<int>();
       float factor = kv.value()["fac"].as<float>();
 
+      // create measurement instance
       VpinController sensor(name, pin, low, high, factor);
-      float result = sensor.measure();
+      float result;
+
+      // check if relative or standard value is wanted
+      if ((low != 0) && (high != 0)){
+        result = sensor.measureRel();
+      }
+      else{
+        result = sensor.measure();
+      }
+
+      // pub gathered datapoint
       bool cond = pubInfluxData(name, String(INFLUXDB_FIELD), result);
 
       #ifdef DEBUG
+      // info pub data
       if (!cond) {
-        Serial.print(F("Problem occured when publishing data to InfluxDB!"));
+        Serial.print(F("Problem occured while publishing data to InfluxDB!"));
       }
       Serial.print(F("Publishing data from: ")); Serial.println(name);
       Serial.print(F("Value: ")); Serial.println(result);
@@ -541,21 +486,22 @@ if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_inter
     }
     #endif
   }
-
-  #endif
+  #endif //bme280
 
   // DHT11 sensor (alternative)
   #ifdef DHT
   //possible dht solution --- CURRENTLY NOT IMPLEMENTED!
-  #endif
+  #endif //dht
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // watering
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-if(thirsty){
+thirsty = true; //uncoment for testing only
+//if(thirsty){
+if(true){
   digitalWrite(sw_3_3v, HIGH); delay(10); //switch on shift register! and logic?
-  shiftvalue8b(0);
+  shiftvalue(0, max_groups);
   #ifdef DEBUG
   Serial.println(F("start watering phase"));
   #endif
@@ -571,14 +517,10 @@ if(thirsty){
   while((loop_t + measure_intervall > millis()) & (thirsty)){
     // process will trigger multiple loop iterations until thirsty is set false
     // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
+    delay(15);
 
-    // Update config
-    IrrigationController controller;
-    // update the config file stored in spiffs
-    // in order to work a RasPi with node-red and configured flow is needed
-    controller.updateController();
-
-    JsonObject groups = getJsonObjects("groups", CONFIG_FILE_PATH);
+    // load config file
+    JsonObject groups = getJsonObjects("group", CONFIG_FILE_PATH);
     // check for valid object
     if (groups.isNull()) {
       #ifdef DEBUG
@@ -586,28 +528,46 @@ if(thirsty){
       #endif
       break; // break loop and continue programm
     }
+
+    // get number of kv pairs within JSON object
     int numgroups = groups.size();
-    
+
+    // sanity check
+    if (numgroups > max_groups) {
+      #ifdef DEBUG
+      Serial.println(F("Warning: too many groups! Exiting procedure"));
+      #endif
+      thirsty = false;
+      break;
+    }
+
+    // load empty irrigationcontroller instances 
     IrrigationController Group[numgroups];
     int j = 0;
-    // Init schedule of each group
-    // Iterate through all keys in the "groups" object and initialize the class instance (kv = key value pair)
-    for(JsonPair kv : groups){
-      // check if group is present and get its index
-      String key = kv.key().c_str();
-      if (key.toInt() != 0 || key == "0"){
-        int solenoid_index = key.toInt();
-        // load watering schedule of corresponding solenoid and/or pump (vpin)
-        bool result = Group[j].loadScheduleConfig(CONFIG_FILE_PATH, solenoid_index);
-        // check if group was valid and reset false ones
-        if (!result) {
-          Group[j].reset();
-        }
+
+    // Iterate over each group and load the config
+    for (JsonObject::iterator groupIterator = groups.begin(); groupIterator != groups.end(); ++groupIterator) {
+      // Check if j exceeds the maximum number of groups
+      if (j >= numgroups) {
+        #ifdef DEBUG
+        Serial.println(F("Warning: Too many groups! Exiting procedure"));
+        #endif
+        thirsty = false;
+        break;
       }
-      else{
-        // reset the group to take it out of process
+
+      // Load schedule configuration for the current group
+      bool success = Group[j].loadScheduleConfig(*groupIterator);
+      if (!success) { // if it fails reset class instance
+        #ifdef DEBUG
+        Serial.println(F("Error: Failed to load schedule configuration for group"));
+        #endif
+        // Reset the class to an empty state
         Group[j].reset();
+        break;
       }
+
+      // Increment j for the next group
       j++;
     }
 
@@ -615,43 +575,47 @@ if(thirsty){
     // This process will trigger multiple loop iterations until thirsty is set false
     int status = 0;
     for(int i = 0; i < numgroups; i++){
-      // ACTIVATE SOLENOID AND/OR PUMP
-      // this will return some int numer as long as it needs to be watered
-      // it will check if the instance is ready for watering (cooldown)
-      // if not it will return early, else it will use delay to wait untill the process has finished
-      status += Group[i].waterOn(hour1);
+      // ACTIVATE SELECTED GROUP
+      // it will check if the instance is ready for watering (or on cooldown)
+
+      //hour1 = 19 // uncomment for testing
+
+      // start watering selected group
+      status += Group[i].waterOn(hour1, day_m1);
+      delay(500); // give little delay
     }
+
     // check if all groups are finished and reset status
     if(!status){
       thirsty = false;
     }
   }
-  shiftvalue8b(0);
+  shiftvalue(0, max_groups); // TODO CHANGE TO NEW shiftvalue
   delay(10);
   digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // sleep
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-if (loop_t + measure_intervall > millis()){
+// start low power mode if not thirsty and not exceeding measure intervall
+if (((loop_t + measure_intervall) > millis()) && (!thirsty)){
 
   //sleep till next measure point
-  int sleep_ = (long)(loop_t + measure_intervall - millis())/(TIME_TO_SLEEP * 1000UL);
+  int sleepCycles  = (unsigned long)(loop_t + measure_intervall - millis())/(1000UL * TIME_TO_SLEEP);
 
   #ifdef DEBUG
-  if(sleep_ < (int)measure_intervall / (TIME_TO_SLEEP * 1000)){
+  if(sleepCycles >  (int)measure_intervall / (TIME_TO_SLEEP * 1000)){
   Serial.println(F("Warning: sleep time calculation went wrong value too high!"));
   }
-  Serial.print(F("sleep in s: ")); Serial.println((float)sleep_ * TIME_TO_SLEEP);
+  Serial.print(F("sleep in s: ")); Serial.println((float)sleepCycles  * TIME_TO_SLEEP);
   #endif
 
-  for(int i = 0; i < sleep_; i++){
+  for(int i = 0; i < sleepCycles ; i++){
     system_sleep(); //turn off all external transistors
     esp_light_sleep_start();
     if(loop_t + measure_intervall < millis()){
-      break; //stop loop to start measuring
+      break; //break loop to start measuring
     }
   }
 }

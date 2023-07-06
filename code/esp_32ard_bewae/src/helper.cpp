@@ -51,14 +51,41 @@ void Helper::shiftvalue8b(uint8_t val){
   //FUNCTION PARAMETER:
   //val         -- 8bit value writte out to shift register                             uint8_t
   //------------------------------------------------------------------------------------------------
+  digitalWrite(st_cp_shft, LOW);
   shiftOut(data_shft, sh_cp_shft, MSBFIRST, val); //take byte type as value
   digitalWrite(st_cp_shft, HIGH); //update output of the register
   delayMicroseconds(100);
   digitalWrite(st_cp_shft, LOW);
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// set shiftregister to defined value (32 bit)
+void Helper::shiftvalue(uint32_t val, uint8_t numBits) {
+  // Function description: shift out specified number of bits from a value, MSBFIRST
+  // FUNCTION PARAMETERS:
+  // val       -- value to be shifted out                      uint32_t
+  // numBits   -- number of bits to be shifted out              uint8_t
+  // ------------------------------------------------------------------------------------------------
+
+  // Split the long value into two bytes
+  byte highByte = (val >> 8) & 0xFF;
+  byte lowByte = val & 0xFF;
+
+  // Shift out the high byte first
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, highByte);
+
+  // Then shift out the low byte
+  shiftOut(data_shft, sh_cp_shft, MSBFIRST, lowByte);
+
+  // Pulse the latch pin to activate the outputs
+  digitalWrite(st_cp_shft, LOW);
+  digitalWrite(st_cp_shft, HIGH);
+  digitalWrite(st_cp_shft, LOW);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Function: deactivate the modules, prepare for sleep & setting mux to "lowpower standby" mode:
 void Helper::system_sleep(){
-  //Function: deactivate the modules, prepare for sleep & setting mux to "lowpower standby" mode:
   digitalWrite(vent_pwm, LOW);     //pulls vent pwm pin low
   digitalWrite(sw_sens, LOW);  //deactivates sensors
   digitalWrite(sw_sens2, LOW);      //deactivates energy hungry devices
@@ -73,111 +100,34 @@ void Helper::system_sleep(){
 
   disableWiFi();
   //esp_light_sleep_start();
+  #ifdef DEBUG
   Serial.println(F("Output on standby"));
+  #endif
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//Function description: copy strings
+//FUNCTION PARAMETER:
+//src         -- source array                                                       int
+//dst         -- destiny array                                                      int
+//len         -- length of array                                                    int
+//------------------------------------------------------------------------------------------------
 void Helper::copy(int* src, int* dst, int len) {
-  //Function description: copy strings
-  //FUNCTION PARAMETER:
-  //src         -- source array                                                       int
-  //dst         -- destiny array                                                      int
-  //len         -- length of array                                                    int
-  //------------------------------------------------------------------------------------------------
   memcpy(dst, src, sizeof(src[0])*len);
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-// OLD FUNCTION NOW HANDLED IN IRRIGATIONCONTROLLER CLASS
-void Helper::watering(uint8_t datapin, uint8_t clock, uint8_t latch, uint8_t _time, uint8_t vent_pin, uint8_t pump_pin, uint8_t en, uint8_t pwm){
-  //Function description: Controlls the watering procedure on valves and pump
-  // Careful with interupts! To avoid unwanted flooding.
-  //FUNCTION PARAMETER:
-  //datapin     -- serial data pin seting bit of shift register                       uint8_t
-  //clock       -- shiftout clock pin                                                 uint8_t
-  //latch       -- shift register set output pin                                      uint8_t
-  //time        -- time in seconds, max 60 seconds                                    uint8_t
-  //vent_pin    -- virtual pin number with shift register                             uint8_t
-  //pump_pin    -- virtual pin number with shift register                             uint8_t 
-  //pwm         -- pwm pin for fast pwm                                               uint8_t
-  //------------------------------------------------------------------------------------------------
-  //initialize state
-  digitalWrite(en, LOW);
-  digitalWrite(clock, LOW); //make sure clock is low so rising-edge triggers
-  digitalWrite(latch, LOW);
-  digitalWrite(datapin, LOW);
-  #ifdef DEBUG
-  Serial.print(F("uint time:")); Serial.println(_time);
-  #endif
-  digitalWrite(en, HIGH);
-  unsigned long time_s = (unsigned long)_time * 1000UL;
-  if (time_s > (unsigned long)max_active_time_sec * 1000UL){
-    time_s = (unsigned long)max_active_time_sec * 1000UL;
-    #ifdef DEBUG
-    Serial.println(F("time warning: time exceeds sec"));
-    #endif
-  }
-
-  // seting shiftregister to 0
-  shiftOut(datapin, clock, MSBFIRST, 0); //take byte type as value
-  digitalWrite(latch, HIGH); //enables the output of the register
-  delay(1);
-  digitalWrite(latch, LOW);
-  #ifdef DEBUG
-  Serial.print(F("Watering group: "));
-  Serial.println(vent_pin); Serial.print(F("time: ")); Serial.println(time_s);
-  #endif
-  // perform actual function
-  byte value = (1 << vent_pin) + (1 << pump_pin);
-  #ifdef DEBUG
-  Serial.print(F("shiftout value: ")); Serial.println(value);
-  #endif
-  shiftOut(datapin, clock, MSBFIRST, value);
-  digitalWrite(latch, HIGH); //enables the output of the register
-  delay(1);
-  digitalWrite(latch, LOW);
-  delay(100); //wait balance load after pump switches on
-  //control this PWM pin by changing the duty cycle:
-  // ledcWrite(PWM_Ch, DutyCycle);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 1);
-  delay(2);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.96);
-  delay(2);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.92);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.9);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.88);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.87);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.86);
-  delay(time_s);
-
-  // reset
-  // seting shiftregister to 0
-  shiftOut(datapin, clock, MSBFIRST, 0); //take byte type as value
-  digitalWrite(latch, HIGH); //enables the output of the register
-  delay(1);
-  digitalWrite(latch, LOW);
-
-  digitalWrite(clock, LOW); //make sure clock is low so rising-edge triggers
-  digitalWrite(latch, LOW);
-  digitalWrite(datapin, LOW);
-  digitalWrite(en, LOW);
-}
-*/
-
+//Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
+//FUNCTION PARAMETER:
+//control_pins  -- pins to set the mux binaries [4 pins]; mux as example;            uint8_t array [4]
+//NOT IN USE channel_setup -- array to define the 16 different channels; mux_channel as example; uint8_t array [16][4]
+//channel       -- selected channel; 0-15 as example;                                 uint8_t
+//sipsop        -- signal input signal output; free pin on arduino;                   uint8_t
+//enable        -- enable a selected mux; free pin on arduino;                        uint8_t
+//mode          -- mode wanted to use; set_low, set_high, read;                       String
+//val           -- pointer to reading value; &value in function call;                 int (&pointer)   
+//------------------------------------------------------------------------------------------------
 void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
-  //Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
-  //FUNCTION PARAMETER:
-  //control_pins  -- pins to set the mux binaries [4 pins]; mux as example;            uint8_t array [4]
-  //NOT IN USE channel_setup -- array to define the 16 different channels; mux_channel as example; uint8_t array [16][4]
-  //channel       -- selected channel; 0-15 as example;                                 uint8_t
-  //sipsop        -- signal input signal output; free pin on arduino;                   uint8_t
-  //enable        -- enable a selected mux; free pin on arduino;                        uint8_t
-  //mode          -- mode wanted to use; set_low, set_high, read;                       String
-  //val           -- pointer to reading value; &value in function call;                 int (&pointer)   
-  //------------------------------------------------------------------------------------------------
   int control_pins[4] = {s0_mux_1,s1_mux_1,s2_mux_1,s3_mux_1};
   uint8_t channel_setup[16][4]={
     {0,0,0,0}, //channel 0
@@ -246,79 +196,22 @@ void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, Strin
     digitalWrite(enable, HIGH);
   }
 }
-
-/*
-bool Helper::save_datalog(String data, uint8_t cs, const char * file){
-  //Function: saves data given as string to a sd card via spi
-  //FUNCTION PARAMETER
-  //data       --      a string to save on SD card;    String
-  //cs         --      Chip Select of SPI;             int
-  //file       --      filename as string;             String
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  Serial.begin(9600);
-  pinMode(cs, OUTPUT);
-  // see if the card is present and can be initialized: NEEDED ALTOUGH NOTHING IS DONE!!! DONT DELETE
-  bool sd_check;
-  byte iteration = 0;
-  spiSD.begin(SD_SCK, SD_MISO, SD_MOSI);
-  if (!SD.begin(cs, spiSD, 1000000U)) {
-    // don't do anything more: 
-    //return;
-    #ifdef DEBUG
-    Serial.println(F("some problem occured: SD card not there"));
-    #endif
-    sd_check=false;
-  }
-  else{
-    sd_check=true;
-  }
-  while(!sd_check){
-    delay(5000);
-    if(!SD.begin(cs, spiSD)){
-      //do again nothing
-      #ifdef DEBUG
-      Serial.print(F(" - again not found"));
-      #endif
-    }
-    else{
-      sd_check=true;
-    }
-    iteration = iteration + 1;
-    if(iteration > 5){
-      #ifdef DEBUG
-      Serial.println(F(" - not trying again"));
-      #endif
-      return false;
-    }
-  }
-  // open the file. note that only one file can be open at a time,
-  // so you have to close this one before opening another.
-  File dataFile = SD.open(file, FILE_WRITE);
-  // if the file is available, write to it:
-  if (dataFile){
-    dataFile.println(data);
-    dataFile.close();
-    // print to the serial port too:
-    Serial.println(data);
-  }   //ln 
-  delay(1000);  //need time to save for some reason to work without mistakes
-  return true;
-}
-*/
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Convert normal decimal numbers to binary coded decimal
 byte  Helper::dec_bcd(byte val)
 {
   return( (val/10*16) + (val%10) );
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Convert binary coded decimal to normal decimal numbers
 byte  Helper::bcd_dec(byte val)
 {
   return( (val/16*10) + (val%16) );
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
 //Function: sets the time on the rtc module (iic)
 //FUNCTION PARAMETERS:
 //second     --                   seconds -- byte
@@ -326,7 +219,7 @@ void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte 
 //hour       --                   hours   -- byte
 //dayofweek  --         weekday as number -- byte
 //dayofmonrh --    day of month as number -- byte
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
 {
   // sets time and date data to DS3231
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
@@ -340,10 +233,8 @@ void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte 
   Wire.write(dec_bcd(year)); // set year (0 to 99)
   Wire.endTransmission();
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
-{
 //Function: read the time on the rtc module (iic)
 //FUNCTION PARAMETERS:
 //second     --                   seconds -- byte
@@ -353,8 +244,8 @@ void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte
 //dayofmonrh --    day of month as number -- byte
 //month      --                     month -- byte
 //year       --   year as number 2 digits -- byte
-//comment: took basically out of the librarys example as the rest of the time functions, slightly modded
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
+{
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
   Wire.write(0); // set DS3231 register pointer to 00h
   Wire.endTransmission();
@@ -367,14 +258,18 @@ void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte
   *dayOfMonth = bcd_dec(Wire.read());
   *month = bcd_dec(Wire.read());
   *year = bcd_dec(Wire.read());
+  #ifdef DEBUG
+  char timestamp[20];
+  sprintf(timestamp, "%02d.%02d.%02d %02d:%02d:%02d", *dayOfMonth, *month, *year, *hour, *minute, *second);
+  Serial.println(timestamp);
+  #endif
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-String Helper::timestamp(){
 //Function: give back a timestamp as string (iic)
 //FUNCTION PARAMETERS:
 // NONE
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+String Helper::timestamp(){
   String time_data="";
   byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
   // retrieve data from DS3231
@@ -391,7 +286,7 @@ String Helper::timestamp(){
   time_data += String(month, DEC);
   return time_data;
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Attempts to enable the WiFi and connect to a specified network.
 // Returns true if the connection was successful, false if not.
@@ -403,6 +298,10 @@ bool Helper::connectWifi(){
     WiFi.mode(WIFI_STA);    
 
     // Begin the process of connecting to the specified WiFi network.
+    #ifdef DEBUG
+    Serial.println(F("Connecting:"));
+    #endif
+    
     WiFi.begin(ssid, wifi_password);
   }
 
@@ -412,9 +311,12 @@ bool Helper::connectWifi(){
   // Loop until the WiFi connection is established or the maximum number of attempts is reached.
   while (WiFi.status() != WL_CONNECTED) {
     // Wait 1 second before trying again.
-    delay(750);
-    WiFi.begin(ssid, wifi_password);
-    delay(250);
+    delay(1000);
+    //WiFi.begin(ssid, wifi_password);
+    #ifdef DEBUG
+    Serial.print(F(" ."));
+    #endif
+    
 
     // Increment the counter.
     tries++;
@@ -432,14 +334,16 @@ bool Helper::connectWifi(){
 
   // If the loop exits normally, the WiFi connection was successful. Print the IP address of the device and return true.
   #ifdef DEBUG
+  Serial.println("");
   Serial.println("WiFi connected");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
   #endif
   return true;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+// force modem sleep
 void Helper::setModemSleep() {
   WiFi.setSleep(true);
   if (!setCpuFrequencyMhz(80)){
@@ -448,7 +352,7 @@ void Helper::setModemSleep() {
   // Use this if 40Mhz is not supported
   // setCpuFrequencyMhz(80); //(40) also possible
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Disables the WiFi on the device.
 // Returns true if the WiFi was successfully disabled, false if an error occurred.
@@ -457,24 +361,14 @@ bool Helper::disableWiFi(){
   WiFi.disconnect(true);  
   // Set the WiFi mode to off.
   WiFi.mode(WIFI_OFF);    
-
-  // Check the WiFi status to make sure that it was successfully disabled.
-  if (WiFi.status() == WL_DISCONNECTED) {
-    Serial.println("");
-    Serial.println("WiFi disconnected!");
-    // Set the CPU frequency to 80 MHz.
-    if (!setCpuFrequencyMhz(80)){
-      Serial.println("Error: Not valid frequency!");
-      return false;
-    }
-    return true;
-  } else {
-    Serial.println("Error: WiFi could not be disabled!");
-    return false;
-  }
+  #ifdef DEBUG
+  Serial.print(F("Wifi status: ")); Serial.println(WiFi.status());
+  #endif
+  return true;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+// unused
 void Helper::disableBluetooth(){
   // Quite unusefully, no relevable power consumption
   btStop();
@@ -483,7 +377,9 @@ void Helper::disableBluetooth(){
   Serial.println("Bluetooth stop!");
   #endif
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// waking up system
 void Helper::wakeModemSleep() {
   #ifdef DEBUG
   Serial.println(F("Waking up modem!"));
@@ -491,8 +387,9 @@ void Helper::wakeModemSleep() {
   setCpuFrequencyMhz(240);
   Helper::connectWifi();
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+// search item in an array returning bool
 bool Helper::find_element(int *array, int item){
   int len = sizeof(array);
   for(int i = 0; i < len; i++){
@@ -502,11 +399,12 @@ bool Helper::find_element(int *array, int item){
   }
   return false;
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Reads the JSON file at the specified file path and returns the data as a DynamicJsonDocument.
 // If the file path is invalid or if there is an error reading or parsing the file, an empty DynamicJsonDocument is returned.
 DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
+  // create buffer file
   DynamicJsonDocument jsonDoc(CONF_FILE_SIZE); // create JSON doc, if an error occurs it will return an empty jsonDoc
                                      // which can be checked using jsonDoc.isNull()
 
@@ -544,7 +442,6 @@ DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
 // Writes the specified DynamicJsonDocument to the file at the specified file path as a JSON file.
 // Returns true if the file was written successfully, false if the file path is invalid or if there is an error writing the file.
 bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
-  // TODO improve error handling on file path!
   if (path == nullptr) { // check for valid path, a function could possibly use this and set a nullptr as path
     #ifdef DEBUG
     Serial.println("Invalid file path");
@@ -600,7 +497,7 @@ bool Helper::pubInfluxData(String sensor_name, String field_name, float value) {
   }
 
 }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // blink onboard LED
 void Helper::blinkOnBoard(String howLong, int times) {
@@ -621,8 +518,9 @@ void Helper::blinkOnBoard(String howLong, int times) {
      delay(1500-duration); //1.5 seconds between blinks
    }
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// returns num of JSON objects of specified key
+// loads JSON object from file using its key
 JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
   // load the stored file and get all keys
   DynamicJsonDocument doc(CONF_FILE_SIZE);
@@ -636,16 +534,113 @@ JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
     return jsonobj;
   }
   
-  // Access the "groups" object
+  // Access the key object and close file
   jsonobj = doc[key];
+  delay(1);
+  doc.clear();
+
+  #ifdef DEBUG
+  String jsonString;
+  serializeJson(jsonobj, jsonString);
+  Serial.println(F("JsonObj:"));
+  Serial.println(jsonString); Serial.println();
+  #endif
   
   // Check if key exists in the JSON object
   if (jsonobj.isNull()) {
     Serial.println(F("Warning: Key not found in JSON object."));
-    return jsonobj;
   }
   
-  doc.clear();
-  int numgroups = jsonobj.size();
   return jsonobj;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  // HTTP GET request to the Raspberry Pi server
+DynamicJsonDocument Helper::getJSONData(const char* server, int serverPort, const char* serverPath) {
+  // create buffer file
+  DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
+  HTTPClient http;
+  http.begin(String("http://") + server + ":" + serverPort + serverPath);
+  int httpCode = http.GET();
+
+  // Check the status code
+  if (httpCode == HTTP_CODE_OK) {
+    // Parse the JSON data
+    DeserializationError error = deserializeJson(JSONdata, http.getString());
+
+    if (error) {
+      #ifdef DEBUG
+      Serial.println(F("Error parsing JSON data"));
+      #endif
+      return JSONdata;
+    } else {
+      return JSONdata;
+    }
+  } else {
+    #ifdef DEBUG
+    Serial.println(F("Error sending request to server"));
+    #endif
+    return JSONdata;
+  }
+
+  http.end();
+  return JSONdata;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The updateConfig function retrieves new JSON data from a server and updates the config file,
+// while preserving the "watering" values of the old JSON data.
+// This value is only relevant for the controller itself.
+// The function takes in a const char* type argument named path which specifies the path to retrieve new JSON data from the server.
+// Returns a bool value indicating the success of updating the config file with new JSON data from the server.
+bool Helper::updateConfig(const char* path){
+
+  // Check if the device is connected to WiFi
+  if (WiFi.status() == WL_CONNECTED) {
+    // Retrieve new JSON data from the server
+    DynamicJsonDocument newdoc = Helper::getJSONData(SERVER, SERVER_PORT, path);
+    // Check if the retrieved data is not null
+    if(newdoc.isNull()){
+      #ifdef DEBUG
+      Serial.println(F("Warning: Problem recieving config file from server!"));
+      #endif
+      return false;
+    }
+
+  // preserve some old values only relevant for the controller
+  // Access the "group" object of the new JSON data
+  JsonObject group = newdoc["group"];
+  // Retrieve the old group object from the config file
+  JsonObject oldGroup = Helper::getJsonObjects("group", CONFIG_FILE_PATH);
+  // Iterate over all the keys in the new group object
+  for (JsonObject::iterator it = group.begin(); it != group.end(); ++it) {
+    const char* key = it->key().c_str();
+    // Check if the key is within the keys of oldGroup
+  String jsonstr2;
+  serializeJson(it->value()["lastup"].as<JsonArray>(), jsonstr2);
+  Serial.print("Preserved lastup: "); Serial.println(jsonstr2);
+  // check if key exists
+  if (oldGroup.containsKey(key)) {
+      // preserve values
+      it->value()["watering"] = oldGroup[key]["watering"].as<int16_t>();
+      it->value()["lastup"] = oldGroup[key]["lastup"].as<JsonArray>();
+    }
+    else {
+      // new group should be created and saved, or some error occured
+      #ifdef DEBUG
+      Serial.println(F("Warning: Failed to retrieve watering value of old group object"));
+      #endif
+    }
+  }
+
+    // Write the updated JSON data to the config file
+    return Helper::writeConfigFile(newdoc, CONFIG_FILE_PATH);
+  }
+  else{
+    #ifdef DEBUG
+    Serial.println(F("Error no Wifi connection established"));
+    #endif
+    return false;
+  }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////

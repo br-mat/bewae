@@ -36,4 +36,5 @@ class SwitchController {
     void setPlaceholder3(bool value);
 };
 
+
 #endif

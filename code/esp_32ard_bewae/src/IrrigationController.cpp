@@ -17,153 +17,155 @@
 // HARDWARE STRUCTS
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Initialize the static variable
-int Solenoid::activeInstances = 0;
-
-// Default constructor
-Solenoid::Solenoid() : pin(-1), lastActivation(0) {
-  activeInstances++;
+// Constructor takes pin as input
+LoadDriverPin::LoadDriverPin(int pin) {
+  vpin = pin;
+  lastActivation = 0;
 }
 
-// Constructor that takes a pin number as input
-Solenoid::Solenoid(int pin) : pin(pin), lastActivation(0) {
-  activeInstances++;
+// Getter for pin
+int LoadDriverPin::getPin() const {
+  return vpin;
 }
 
-// Destructor
-Solenoid::~Solenoid() {
-  activeInstances--;
+// Getter for lastActivation
+long LoadDriverPin::getLastActivation() const {
+  return lastActivation;
 }
 
-// Member function to initialize the solenoid
-void Solenoid::setup(int pin) {
-  this->pin = pin;
-  pinMode(pin, OUTPUT);
+// Setter for lastActivation
+void LoadDriverPin::setLastActivation() {
+  lastActivation = millis();
 }
 
-// Member function to initialize Pump object by assigning a pin
-void Pump::setup(int pin){
-  // Initialize pumps
-  this->pin = pin;
-  this->lastActivation = 0;
-}
+// initialize Hardware pins
+LoadDriverPin controller_pins[max_groups] =
+{
+  {0}, //reserve pump
+  {1}, //pump
+  {2}, //group 0
+  {3}, //group 1
+  {4},
+  {5},
+  {6},
+  {7},
+  {8}, //group 2
+  {9}, //group 3
+  {10}, //group 4
+  {11}, //group 5
+  {12},
+  {13},
+  {14},
+  {15}
+};
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CLASS IrrigationController
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-IrrigationController::IrrigationController(const char path[PATH_LENGTH], 
-                      Solenoid* solenoid, //attatched solenoid
-                      Pump* pump //attatched pump
-                      ){
-  this->solenoid = solenoid;
-  this->pump = pump;
-  bool cond = this->loadScheduleConfig(path, solenoid->pin);
-  if(cond){
-    return;
-  }
-  //else set values to 0
-  this->is_set = false;
-  this->name = "NaN";
-  this->timetable = 0;
-  this->watering = 0;
-  this->water_time = 0;
+// DEFAULT Constructor seting an empty class
+IrrigationController::IrrigationController()
+    : is_set(false), timetable(0), lastupdate(0), watering(0), water_time(0), name("NV") {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void IrrigationController::createNewController(
-                      bool is_set, //activate deactivate group
-                      String name, //name of the group
-                      unsigned long timetable,
-                      int watering, //defualt value of watering amount set for group
-                      Solenoid* solenoid, //attatched solenoid
-                      Pump* pump, //attatched pump
-                      int water_time //holds value of how long it should water
-                      ){
-  this->is_set = is_set;
-  this->name = name;
-  this->timetable = timetable;
-  this->watering = watering;
-  this->solenoid = solenoid;
-  this->pump = pump;
-  this->solenoid_pin = solenoid->pin;
-  this->pump_pin = pump->pin;
-  this->water_time = water_time;
+// DEFAULT Destructor free up dynamic allocated memory
+IrrigationController::~IrrigationController() {
+  // No need to delete[] driver_pins as it is handled automatically by std::vector
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int IrrigationController::readyToWater(int currentHour) {
-  // INPUT: currentHour is the int digits of the full hour
-  // Function:
-  // It checks if the irrigation system is ready to water.
-  // If the system is ready,
-  // it calculates the remaining watering time and updates the waterTime variable and returns the active time.
-  // It returns 0 if the system is not ready to water.
+// Function:
+// Handling watering procedure:
+// It checks if the irrigation system is ready to water. If so:
+// calculates the remaining watering time and updates the waterTime variable and returns the active time.
+// It returns -1 if the system is not ready to water.
+// 0 if group is not configured at that time or in error case
+int IrrigationController::readyToWater(int currentHour, int currentDay) {
+// INPUT: currentHour int of full hour
+//        currentDay int of day of month
 
-  // to prevent unexpected behaviour its important to pass only valid hours
-
-  if(!is_set){ //return 0 if the group is not set
+  //lastDay = 0; lastHour = 0; // TESTING/DEBUGING
+  // check for hour change and shift water_time base value into watering value to be processed
+  if((this->lastDay != currentDay) || (this->lastHour != currentHour)){
     #ifdef DEBUG
-    Serial.println("not set");
+    Serial.println(F("Hour change detected"));
+    #endif
+    // set new update timestamp
+    this->lastDay = currentDay;
+    this->lastHour = currentHour;
+    // writte water_time to watering to start watering process
+    this->watering = this->water_time; // multiply with factor to adjust wheater conditons when raspi not reachable?
+  }
+
+  // check if group is set
+  if(!this->is_set){ //return 0 if the group is not set
+    #ifdef DEBUG
+    Serial.println("Not set");
     #endif
     return 0;
   }
 
-    // check if the corresponding bit is set in the timetable value
-  if ((timetable & (1UL << currentHour)) == 0) {
+    // check if there is something to do
+  if (this->watering == 0) {
     #ifdef DEBUG
-    Serial.println("not correct time");
+    Serial.println("Nothing to do");
     #endif
-    return 0; // not ready to water
+    return 0; // done or nothing for this time
   }
 
   // get the current time in milliseconds
-  // unsigned long currentMillis = millis();
   unsigned long currentMillis = millis();
+  //int len = sizeof(driver_pins)/sizeof(int);
 
-  // check if the solenoid has been active for too long, max_axtive_time_sec have to be multiplied as lastActivation is ms
-  if (currentMillis - solenoid->lastActivation < SOLENOID_COOLDOWN) {
-    #ifdef DEBUG
-    Serial.println("solenoid not cooled down");
-    #endif
-    return 0; // not ready to water
-  }
+  // Accessing the elements of driver_pins using a range-based for loop
+  for (const auto& pinValue : this->driver_pins) { // TODO: UNSIGNED INT FOR PINS FIX THIS ISSUE LATER
+      // Check each pin
+      if (pinValue > static_cast<int>(max_groups)) {
+          #ifdef DEBUG
+          Serial.print(F("Selected pin not configured: "));
+          Serial.println(pinValue);
+          #endif
+          return 0; // Pin not configured
+      }
 
-  // check if the pump has been active for too long
-  if (currentMillis - pump->lastActivation < pump_cooldown_sec) {
-    #ifdef DEBUG
-    Serial.println("pump not cooled down");
-    #endif
-    return 0; // not ready to water
+      // Check for cooldown of the pin
+      if (millis() - controller_pins[pinValue].getLastActivation() < DRIVER_COOLDOWN) {
+          #ifdef DEBUG
+          Serial.print(F("Selected pin needs cooldown, skipping. Last activation (in sec): "));
+          Serial.println(static_cast<int>((millis() - controller_pins[pinValue].getLastActivation()) / 1000));
+          #endif
+          return -1; // Pin needs cooldown
+      }
+  //Serial.print(controller_pins[pinValue].getPin()); Serial.println(" pin ok");
   }
 
   // check if there is enough water time left
-  if (water_time <= 0) {
-    #ifdef DEBUG
-    Serial.println("no time left");
-    #endif
-    return 0; // not ready to water
+  if (this->watering <= 0) {
+    return 0; // group done, info handled in waterOn
   }
 
-  // both the solenoid and pump are ready, so calculate the remaining watering time,
-  // return seconds using min function
-  // to minimize stress to hardware part,
-  // ignore how long the part was active previously and let it cd always the full time!
-  int remainingTime = min(water_time, max_active_time_sec);
+  // calculate the remaining watering time, return seconds using min function
+  int remainingTime = min(this->watering, max_active_time_sec);
   remainingTime = max(remainingTime, (int)0); //avoid values beyond 0
-  this->water_time -= remainingTime; // update the water time
+  this->watering -= remainingTime; // update the water time
 
   // save water time variable
-  if (!saveScheduleConfig(CONFIG_FILE_PATH, this->solenoid_pin)){
+  if (!saveScheduleConfig(CONFIG_FILE_PATH, name)){
+    #ifdef DEBUG
+    Serial.println(F("Failed to save status!"));
+    #endif
     return 0; // saving variable error
   }
 
-  // update the last activation time of the solenoid and pump
-  solenoid->lastActivation = currentMillis;
-  pump->lastActivation = currentMillis;
+  // update the last activation time of the pins when everything is fine
+  for (const auto& pinValue : this->driver_pins) {
+      controller_pins[pinValue].setLastActivation();
+  }
 
+  // return the remaining time which the pins should be active
   #ifdef DEBUG
-  Serial.print("remaining time: "); Serial.println(remainingTime);
+  Serial.print("watering time: "); Serial.println(remainingTime);
   #endif
   return remainingTime; //return active time
 }
@@ -172,89 +174,125 @@ int IrrigationController::readyToWater(int currentHour) {
 // Reads the JSON file at the specified file path and parses it to retrieve values for a number of member variables in the IrrigationController class.
 // The member variables include is_set, name, timetable, watering, water_time, solenoid_pin, and pump_pin.
 // Returns true if the file was read and parsed successfully, false if the file path is invalid or if there is an error reading or parsing the file.
-bool IrrigationController::loadScheduleConfig(const char path[PATH_LENGTH], int pin) {
-  DynamicJsonDocument jsonDoc = Helper::readConfigFile(path); // read the config file
-  if (jsonDoc.isNull()) {
-    return false;
-  }
+bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
+  JsonObject groupData = groupPair.value();
 
-  // check if pin is valid
-  if (pin > max_groups+MAX_PUMPS) {
+  // Check if the group data is valid
+  if (groupData.isNull()) {
     #ifdef DEBUG
-    Serial.println(F("Invalid pin number for group"));
+    Serial.print("Invalid group data provided when loading schedule configuration for group: ");
+    Serial.println(groupPair.key().c_str());
     #endif
     return false;
   }
 
-  // Set the values of the member variables using the values from the JSON document
-  this->is_set = jsonDoc["group"][String(pin)]["is_set"].as<bool>();
-  this->name = jsonDoc["group"][String(pin)]["name"].as<String>();
-  this->timetable = jsonDoc["group"][String(pin)]["timetable"].as<uint32_t>();
-  this->watering = jsonDoc["group"][String(pin)]["watering"].as<int16_t>();
-  this->water_time = jsonDoc["group"][String(pin)]["water_time"].as<int16_t>();
+  // Extract the group name from the iterator
+  String groupName = groupPair.key().c_str();
 
-  // Store pin information as its identical with the index of the solenoids
-  this->solenoid_pin = jsonDoc["group"][String(pin)]["solenoid_pin"].as<int16_t>();
-  this->pump_pin = jsonDoc["group"][String(pin)]["pump_pin"].as<int16_t>();
+  // Set the group name in the IrrigationController instance
+  strncpy(this->name, groupName.c_str(), MAX_GROUP_LENGTH - 1);
+  this->name[MAX_GROUP_LENGTH - 1] = '\0';  // Ensure null-termination
 
+  // Extract the values from the groupData object
+  this->is_set = groupData["is_set"].as<bool>();
+  this->timetable = groupData["timetable"].as<uint32_t>();
+  this->watering = groupData["watering"].as<int16_t>();
+  this->water_time = groupData["water-time"].as<int16_t>();
+  this->lastupdate = groupData["lastup"].as<int16_t>();
+
+  // Populate driver_pin vector
+  JsonArray pinsArray = groupData["vpins"].as<JsonArray>();
+  // Clear the vector before populating it
+  driver_pins.clear();
+
+  // Access the "vpins" array and populate the vector
+  for (JsonVariant value : pinsArray) {
+    driver_pins.push_back(value.as<int>());
+  }
+
+  // populate time stamp
+  JsonArray timestampArr = groupData["lastup"].as<JsonArray>();
+  this->lastHour = timestampArr[0];
+  this->lastDay = timestampArr[1];
+
+  // return true if everything was ok
   return true;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Updates the values of a number of member variables in the IrrigationController class in the JSON file at the specified file path.
 // Returns true if the file was updated successfully, false if the file path is invalid or if there is an error reading or writing the file.
-bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], int pin) {
+bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], const char grp_name[MAX_GROUP_LENGTH]) {
   DynamicJsonDocument jsonDoc =  Helper::readConfigFile(path); // read the config file
+  // check jsonDoc
   if (jsonDoc.isNull()) {
+    #ifdef DEBUG
+    Serial.println(F("Warning: json config could not saved correctly!"));
+    #endif
     return false;
   }
 
-  // Update the values in the configuration file with the values of the member variables
-  jsonDoc["group"][String(pin)]["is_set"] = this->is_set;
-  jsonDoc["group"][String(pin)]["name"] = this->name;
-  jsonDoc["group"][String(pin)]["timetable"] = this->timetable;
-  jsonDoc["group"][String(pin)]["watering"] = this->watering;
-  jsonDoc["group"][String(pin)]["water_time"] = this->water_time;
-  jsonDoc["group"][String(pin)]["solenoid_pin"] = this->solenoid_pin;
-  jsonDoc["group"][String(pin)]["pump_pin"] = this->pump_pin;
+  // check name
+  if (!jsonDoc["group"].containsKey(grp_name)) {
+  #ifdef DEBUG
+  Serial.println(F("Warning: grp_name not found in jsonDoc!"));
+  #endif
+  return false;
+  }
 
+  // Update the values in the configuration file with the values of the member variables
+  jsonDoc["group"][grp_name]["is_set"] = this->is_set;
+  jsonDoc["group"][grp_name]["timetable"] = this->timetable;
+  jsonDoc["group"][grp_name]["watering"] = this->watering;
+  jsonDoc["group"][grp_name]["water-time"] = this->water_time;
+
+  // Saving vpins: Clear the existing vpins array
+  jsonDoc["group"][grp_name]["vpins"].clear();
+
+  // Populate the vpins array with the values from the driver_pins vector
+  for (int pin : driver_pins) {
+    jsonDoc["group"][grp_name]["vpins"].add(pin);
+  }
+
+  // save lastupdate array
+  jsonDoc["group"][grp_name]["lastup"][0] = this->lastHour;
+  jsonDoc["group"][grp_name]["lastup"][1] = this->lastDay;
+
+  // return bool to indicate if status failed
   return Helper::writeConfigFile(jsonDoc, path); // write the updated JSON data to the config file
-}
+  }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Resets all member variables to their default values
 void IrrigationController::reset() {
   is_set = false;
-  name = "";
   timetable = 0;
+  lastupdate = 0;
   watering = 0;
-  solenoid = nullptr;
-  pump = nullptr;
   water_time = 0;
-  solenoid_pin = 0;
-  pump_pin = 0;
+  driver_pins.clear(); // Clear the elements of driver_pins vector
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void IrrigationController::activatePWM(int time_s) {
+// TODO CHANGE TO WORK WITH PIN ARRAY
+void IrrigationController::activatePWM(int time) {
   // Function description: Controlls the watering procedure on valves and pump
   // Careful with interupts! To avoid unwanted flooding.
   // FUNCTION PARAMETER:
   // time        -- time in seconds, max 60 seconds                                    int
   //------------------------------------------------------------------------------------------------
   // check if time is within range
-  time_s = max(0, time_s);
+  int time_s = 0;
+  time_s = max(0, time);
   time_s = min(time_s, max_active_time_sec);
 
   //initialize state
-  uint8_t vent_pin = this->solenoid_pin;
-  uint8_t pump_pin = this->pump_pin;
   digitalWrite(sw_3_3v, LOW);
   digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
   digitalWrite(st_cp_shft, LOW);
   digitalWrite(data_shft, LOW);
   #ifdef DEBUG
-  Serial.print(F("uint time:")); Serial.println(time_s);
+  Serial.print(F("uint time controll statement:")); Serial.println(time_s);
   #endif
   digitalWrite(sw_3_3v, HIGH);
   unsigned long time_ms = (unsigned long)time_s * 1000UL;
@@ -266,41 +304,65 @@ void IrrigationController::activatePWM(int time_s) {
   }
 
   // seting shiftregister to 0
-  Helper::shiftvalue8b(0);
+  Helper::shiftvalue(0, max_groups);
+
+  // perform actual function
+  unsigned long value = 0;  // Initialize the value to 0
+  // iterate over driver_pins and set them
+  for (int pin : this->driver_pins) {
+    value |= (1 << pin);  // Set the bit at the pin number to 1 using bitwise OR
+  }
+
+  // set start point of active phase
+  unsigned long activephase = millis();
+
   #ifdef DEBUG
   Serial.print(F("Watering group: "));
-  Serial.println(vent_pin); Serial.print(F("time: ")); Serial.println(time_ms);
-  #endif
-  // perform actual function
-  // byte value = (1 << vent_pin) + (1 << pump_pin);
-
-  byte value = solenoid == nullptr ? 0 : ((1 << solenoid->pin) | (pump == nullptr ? 0 : (1 << pump->pin)));
-
-  #ifdef DEBUG
+  Serial.println(this->name); Serial.print(F("time in ms: ")); Serial.println(time_ms);
   Serial.print(F("shiftout value: ")); Serial.println(value);
   #endif
-  Helper::shiftvalue8b(value);
-  delay(100); //wait balance load after pump switches on
-  // control this PWM pin by changing the duty cycle:
-  // ledcWrite(PWM_Ch, DutyCycle);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 1);
-  delay(2);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.96);
-  delay(2);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.92);
+
+  // activate pins
+  Helper::shiftvalue(value, max_groups);
+  delay(100); //balance load after pump switches on
+
+  // control PWM pin by changing the duty cycle:
+  // perform linear decay of duty cycle to save power
+  unsigned long start_decay = millis();
+  int decay_time = 1000; // decay time in milliseconds
+  float dutyCycle = 1.0;
+  float targetDutyCycle = 0.85;
+  float decrement = 0.05;
+  int numSteps = (float)(dutyCycle - targetDutyCycle) / decrement;
+  int delayTime = decay_time / numSteps;
+  Serial.println(numSteps);
+  Serial.println(delayTime);
+
+  for (int i = 0; i <= numSteps; i++) {
+      ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * dutyCycle);
+      dutyCycle -= decrement;
+      // break if unexpected happened
+      if ((start_decay + decay_time + 500) < millis()){
+        #ifdef DEBUG
+        Serial.println(F("Warning: Somthing unexpected happend during linear decay of PWM rate."));
+        #endif
+        break;
+      }
+      delay(delayTime);
+  }
+
+  // IMPORTANT: wait until process finished, DO NOT manipulate shiftout pins,
+  // use function with long runtime or long delays and be careful with interupts.
+  // This could cause unexpected and unwanted behaviour
+  while (activephase + time_ms > millis())
+  {
+  // wait for calculated time and do something
   delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.9);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.88);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.87);
-  delay(1);
-  ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * 0.86);
-  delay(time_ms);
+  }
 
   // reset
   // seting shiftregister to 0
-  Helper::shiftvalue8b(0);
+  Helper::shiftvalue(0, max_groups);
 
   digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
   digitalWrite(st_cp_shft, LOW);
@@ -309,6 +371,8 @@ void IrrigationController::activatePWM(int time_s) {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// TODO CHANGE FUNCTION TO WORK WITH NEW PIN ARRAY
+// TODO CHANGE FUNCTION TO WORK WITH NEW PIN ARRAY
 void IrrigationController::activate(int time_s) {
   // Function description: Controlls the watering procedure on valves and pump
   // Careful with interupts! To avoid unwanted flooding.
@@ -320,8 +384,6 @@ void IrrigationController::activate(int time_s) {
   time_s = min(time_s, max_active_time_sec);
 
   //initialize state
-  uint8_t vent_pin = this->solenoid_pin;
-  uint8_t pump_pin = this->pump_pin;
   digitalWrite(sw_3_3v, LOW);
   digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
   digitalWrite(st_cp_shft, LOW);
@@ -339,88 +401,129 @@ void IrrigationController::activate(int time_s) {
   }
 
   // seting shiftregister to 0
-  Helper::shiftvalue8b(0);
+  Helper::shiftvalue(0, max_groups);
+
+  // perform actual function
+  unsigned long value = 0;  // Initialize the value to 0
+  for (int pin : this->driver_pins) {
+      value |= (1 << pin);  // Set the bit at the pin number to 1 using bitwise OR
+  }
+
   #ifdef DEBUG
   Serial.print(F("Watering group: "));
-  Serial.println(vent_pin); Serial.print(F("time: ")); Serial.println(time_ms);
-  #endif
-  // perform actual function
-  //byte value = (1 << vent_pin) + (1 << pump_pin);
-
-  byte value = solenoid == nullptr ? 0 : ((1 << solenoid->pin) | (pump == nullptr ? 0 : (1 << pump->pin)));
-
-  #ifdef DEBUG
+  Serial.println(this->name); Serial.print(F("time: ")); Serial.println(time_ms);
   Serial.print(F("shiftout value: ")); Serial.println(value);
   #endif
-  Helper::shiftvalue8b(value);
 
-  delay(100); //wait balance load after pump switches on
+  // activate pins
+  Helper::shiftvalue(value, max_groups);
 
-  // Wait for the specified time
-  delay(time_ms);
+  delay(100); //balance load after pump switches on
+
+  // set start point of active phase
+  unsigned long activephase = millis();
+  
+  // IMPORTANT: wait until process finished, DO NOT manipulate shiftout pins,
+  // use function with long runtime or long delays and be careful with interupts.
+  // This could cause unexpected and unwanted behaviour
+  while (millis() - activephase < time_ms) {
+      // perform other functions here
+      delay(1);
+  }
 
   // reset
   // seting shiftregister to 0
-  Helper::shiftvalue8b(0);
+  Helper::shiftvalue(0, max_groups);
+
+  digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
+  digitalWrite(st_cp_shft, LOW);
+  digitalWrite(data_shft, LOW);
+  digitalWrite(sw_3_3v, LOW);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Member function to start watering process
-int IrrigationController::waterOn(int hour) {
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Public function: Handling watering process calling related functionality
+// call this function every now and then to keep track of time variables
+int IrrigationController::waterOn(int hour, int day) {
   // Function description: Starts the irrigation procedure after checking if the hardware is ready
   // FUNCTION PARAMETER:
   // currentHour - the active hour to check the with the timetable
+  // returns - int 1 if not finished and 0 if finished
 
-  // Check if hardware is ready to water
-  int active_time = readyToWater(hour);
-  
-  if (active_time > 0) {
-    // Activate watering process
-    activatePWM(active_time);
+  // if not set return early
+  if(!this->is_set){
+    #ifdef DEBUG
+    Serial.println(F("Group not set!"));
+    #endif
+    return 0;
+  }
+
+  // get info if system is allowed to water
+  int active_time = readyToWater(hour, day);
+
+  // check if fnished
+  if (active_time == 0) {
+    #ifdef DEBUG
+    Serial.println(F("Group done!"));
+    #endif
+    return 0;
+  }
+
+  // check if it should wait
+  if (active_time < 0) {
+    #ifdef DEBUG
+    Serial.println(F("Group need cooldown!"));
+    #endif
     return 1;
   }
-  return 0;
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool IrrigationController::updateController(){
-  // call this function once per hour it uses timetable to determine if it should set water_time variable with content either
-  // watering_default or watering_mqtt depending on a modus variable past with the function (this can be an integer about 0-5)
-  // water time variable holds information about the water cycle for the active hour if its 0 theres nothing to do
-  // if its higher then it should be recognized by the readyToWater function, this value
-
-  if (WiFi.status() == WL_CONNECTED) {
-    DynamicJsonDocument newdoc = getJSONData(SERVER, SERVER_PORT, SERVER_PATH);
-    if(newdoc.isNull()){
-      #ifdef DEBUG
-      Serial.println(F("Error reading server file"));
-      #endif
-      return false;
-    }
-    DynamicJsonDocument jsonDoc = Helper::readConfigFile(CONFIG_FILE_PATH); // read the config file
-    if(jsonDoc.isNull()){
-      #ifdef DEBUG
-      Serial.println(F("Error reading local file"));
-      #endif
-      return false;
-    }
-    jsonDoc = newdoc;
-
-    return Helper::writeConfigFile(jsonDoc, CONFIG_FILE_PATH); // write the updated JSON data to the config file
-  }
-  else{
+  // handle intended case when system is ready to water
+  if (active_time > 0) {
+    // Print info to serial if wanted
     #ifdef DEBUG
-    Serial.println(F("Error no Wifi connection established"));
+    Serial.print(F("Watering group: "));
+    Serial.println(name);
+    Serial.print("driver_pins values: ");
+    for (int pin : driver_pins) {
+      Serial.print(pin);
+      Serial.print(", ");
+    }
+    Serial.println();
+    Serial.print(F("Time: ")); Serial.println(active_time);
     #endif
-    return false;
+
+    // Activate watering process
+    activate(active_time);
   }
+
+  // check if group is NOT done
+  if(watering!=0){
+    return 1;
+  }
+  // check if group is done
+  if(watering == 0){
+    #ifdef DEBUG
+    Serial.print(F("Group '"));
+    Serial.print(name);
+    Serial.println(F("' finished! OLD STATEMENT"));
+    #endif
+    return 0;
+  }
+
+  #ifdef DEBUG
+  Serial.println("Warning something unhandeled occured in warterOn!");
+  #endif
+
+  return 0;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Define the implementation of the combineTimetables() static member function
 long IrrigationController::combineTimetables()
 {
-  // Initialize the combined timetable to 0
+  // Initialize the combined timetable to 0.
   long combinedTimetable = 0;
 
   // load config
@@ -428,64 +531,20 @@ long IrrigationController::combineTimetables()
   doc = Helper::readConfigFile(CONFIG_FILE_PATH);
 
   // Access the "groups" object
-  JsonObject groups = doc["groups"];
+  JsonObject groups = doc["group"];
   doc.clear();
 
   for (JsonObject::iterator it = groups.begin(); it != groups.end(); ++it) {
-    String key = it->key().c_str();
     // validate if key is something that could be used
-    // TODO: ADD CHECK FOR MAX VPIN GROUPS!
-    if (key.toInt() != 0 || key == "0") {
-      JsonObject groupItem = it->value();
-      long timetable = groupItem["timetable"];
-      combinedTimetable |= timetable;
+    JsonObject groupItem = it->value();
+    bool condition = groupItem["is_set"];
+    if(condition){
+      continue; // skip if not set
     }
+    long timetable = groupItem["timetable"];
+    combinedTimetable |= timetable;
   }
   
   return combinedTimetable;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-DynamicJsonDocument IrrigationController::getJSONData(const char* server, int serverPort, const char* serverPath) {
-  // Send the HTTP GET request to the Raspberry Pi server
-  DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
-  HTTPClient http;
-  http.begin(String("http://") + server + ":" + serverPort + serverPath);
-  int httpCode = http.GET();
-
-  // Check the status code
-  if (httpCode == HTTP_CODE_OK) {
-    // Parse the JSON data
-    DeserializationError error = deserializeJson(JSONdata, http.getString());
-
-    if (error) {
-      #ifdef DEBUG
-      Serial.println(F("Error parsing JSON data"));
-      #endif
-      return JSONdata;
-    } else {
-      return JSONdata;
-    }
-  } else {
-    #ifdef DEBUG
-    Serial.println(F("Error sending request to server"));
-    #endif
-    return JSONdata;
-  }
-
-  http.end();
-  return JSONdata;
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*
-// Getter & Setters
-bool IrrigationController::getMainSwitch() const { return main_switch; }
-void IrrigationController::setMainSwitch(bool value) { main_switch = value; }
-bool IrrigationController::getSwitch3() const { return placeholder3; }
-void IrrigationController::setSwitch3(bool value) { placeholder3 = value; }
-bool IrrigationController::getDataloggingSwitch() const { return dataloging_switch; }
-void IrrigationController::setDataloggingSwitch(bool value) { dataloging_switch = value; }
-bool IrrigationController::getIrrigationSystemSwitch() const { return irrigation_system_switch; }
-void IrrigationController::setIrrigationSystemSwitch(bool value) { irrigation_system_switch = value; }
-*/

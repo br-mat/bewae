@@ -17,11 +17,19 @@
 #define RasPi 1
 
 #ifndef CONFIG_FILE_PATH
-#define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
+#define CONFIG_FILE_PATH "/zconfig.JSON" //specifies name of config file stored within spiffs
+#endif
+
+#ifndef IRRIGA_FILE_PATH
+#define IRRIGA_FILE_PATH "/controller-config.JSON" //specifies name of config file stored within spiffs
 #endif
 
 #ifndef SENSOR_FILE_PATH
-#define SENSOR_FILE_PATH "/sensors.JSON" //specifies name of config file stored within spiffs
+#define SENSOR_FILE_PATH "/sensor-config.JSON" //specifies name of config file stored within spiffs
+#endif
+
+#ifndef SWITCH_FILE_PATH
+#define SWITCH_FILE_PATH "/switch-config.JSON"
 #endif
 
 #ifndef INFLUXDB_FIELD
@@ -29,11 +37,11 @@
 #endif
 
 #ifndef CONF_FILE_SIZE
-#define CONF_FILE_SIZE 2048 // estimate at https://arduinojson.org/v6/assistant/#/step1
+#define CONF_FILE_SIZE 4096 // estimate at https://arduinojson.org/v6/assistant/#/step1
 #endif
 
 #ifndef SENSOR_FILE_SIZE
-#define SENSOR_FILE_SIZE 3072 // estimate at https://arduinojson.org/v6/assistant/#/step1
+#define SENSOR_FILE_SIZE 4096 // estimate at https://arduinojson.org/v6/assistant/#/step1
 #endif
 
 #ifndef DS3231_I2C_ADDRESS
@@ -45,14 +53,18 @@
 #endif
 
 #ifndef MAX_MSG_LEN
-#define MAX_MSG_LEN 128
+#define MAX_MSG_LEN 128 //MQTT msg length
+#endif
+
+#ifndef MAX_GROUP_LENGTH
+#define MAX_GROUP_LENGTH 5 //Max Group length
 #endif
 
 #ifndef uS_TO_S_FACTOR
-#define uS_TO_S_FACTOR 1000000  //Conversion factor for micro seconds to seconds
+#define uS_TO_S_FACTOR 1000000 //Conversion factor for micro seconds to seconds
 #endif
 #ifndef TIME_TO_SLEEP
-#define TIME_TO_SLEEP  8        //Time ESP32 will go to sleep (in seconds)
+#define TIME_TO_SLEEP  8 //Time ESP32 will go to sleep (in seconds)
 #endif
 
 #ifndef measurement_LSB
@@ -180,7 +192,7 @@
     #endif
 
     #ifndef max_groups
-    #define max_groups 6 //number of possible solenoids (v-pins)
+    #define max_groups 16 //number of possible solenoids (v-pins)
     #endif
 
     #ifndef MAX_PUMPS
@@ -193,6 +205,10 @@
 
     #ifndef SOLENOID_COOLDOWN
     #define SOLENOID_COOLDOWN 30000UL //min cooldown time of each solenoid ==> MILLISECOND
+    #endif
+
+    #ifndef DRIVER_COOLDOWN
+    #define DRIVER_COOLDOWN 5000UL // min cooldown of drivers and hardware (somewhat depending on max_active_time_sec)
     #endif
     
     //pump & transistor max on time
@@ -217,11 +233,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // virtual pins (shift register)
     #ifndef pump1
-    #define pump1 (uint8_t)5
+    #define pump1 (uint8_t)0
     #endif
 
     #ifndef pump2
-    #define pump2 (uint8_t)5
+    #define pump2 (uint8_t)1
     #endif
 
     // moisture sensors
@@ -237,5 +253,4 @@
     #ifndef stat_request
     #define stat_request 2
     #endif
-
 #endif
