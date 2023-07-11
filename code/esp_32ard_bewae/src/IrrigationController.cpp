@@ -85,17 +85,18 @@ int IrrigationController::readyToWater(int currentHour, int currentDay) {
 // INPUT: currentHour int of full hour
 //        currentDay int of day of month
 
+// TODO: Rework if checks to be more compact remove old repeating calls
+
   //lastDay = 0; lastHour = 0; // TESTING/DEBUGING
   // check for hour change and shift water_time base value into watering value to be processed
-  if((this->lastDay != currentDay) || (this->lastHour != currentHour)){
+  bool timechange = (this->lastDay != currentDay) || (this->lastHour != currentHour);
+  if(timechange){
     #ifdef DEBUG
     Serial.println(F("Hour change detected"));
     #endif
     // set new update timestamp
     this->lastDay = currentDay;
     this->lastHour = currentHour;
-    // writte water_time to watering to start watering process
-    this->watering = this->water_time; // multiply with factor to adjust wheater conditons when raspi not reachable?
   }
 
   // check if group is set
@@ -106,10 +107,22 @@ int IrrigationController::readyToWater(int currentHour, int currentDay) {
     return 0;
   }
 
-    // check if there is something to do
+  // check if group is set for this hour
+  if((this->timetable & (1 << currentHour)) != 0){
+    // writte water_time to watering to start watering process
+    this->watering = this->water_time; // multiply with factor to adjust wheater conditons when raspi not reachable?
+  }
+  else{
+    #ifdef DEBUG
+    Serial.println(F("Nothing to do this time"));
+    #endif
+    return 0; // nothing to do this time
+  }
+
+  // check if there is something to do (probably repeating call)
   if (this->watering == 0) {
     #ifdef DEBUG
-    Serial.println("Nothing to do");
+    Serial.println(F("Nothing to do"));
     #endif
     return 0; // done or nothing for this time
   }
@@ -304,7 +317,7 @@ void IrrigationController::activatePWM(int time) {
   }
 
   // seting shiftregister to 0
-  Helper::shiftvalue(0, max_groups);
+  Helper::shiftvalue(0, max_groups, INVERT_SHIFTOUT);
 
   // perform actual function
   unsigned long value = 0;  // Initialize the value to 0
@@ -323,7 +336,7 @@ void IrrigationController::activatePWM(int time) {
   #endif
 
   // activate pins
-  Helper::shiftvalue(value, max_groups);
+  Helper::shiftvalue(value, max_groups, INVERT_SHIFTOUT);
   delay(100); //balance load after pump switches on
 
   // control PWM pin by changing the duty cycle:
@@ -362,7 +375,7 @@ void IrrigationController::activatePWM(int time) {
 
   // reset
   // seting shiftregister to 0
-  Helper::shiftvalue(0, max_groups);
+  Helper::shiftvalue(0, max_groups, INVERT_SHIFTOUT);
 
   digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
   digitalWrite(st_cp_shft, LOW);
@@ -401,7 +414,7 @@ void IrrigationController::activate(int time_s) {
   }
 
   // seting shiftregister to 0
-  Helper::shiftvalue(0, max_groups);
+  Helper::shiftvalue(0, max_groups, INVERT_SHIFTOUT);
 
   // perform actual function
   unsigned long value = 0;  // Initialize the value to 0
@@ -416,7 +429,7 @@ void IrrigationController::activate(int time_s) {
   #endif
 
   // activate pins
-  Helper::shiftvalue(value, max_groups);
+  Helper::shiftvalue(value, max_groups, INVERT_SHIFTOUT);
 
   delay(100); //balance load after pump switches on
 
@@ -433,7 +446,7 @@ void IrrigationController::activate(int time_s) {
 
   // reset
   // seting shiftregister to 0
-  Helper::shiftvalue(0, max_groups);
+  Helper::shiftvalue(0, max_groups, INVERT_SHIFTOUT);
 
   digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
   digitalWrite(st_cp_shft, LOW);
