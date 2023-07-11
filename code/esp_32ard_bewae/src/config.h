@@ -17,7 +17,6 @@
 #define RasPi 1
 
 #ifndef CONFIG_FILE_PATH
-#define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
 #define CONFIG_FILE_PATH "/config_garten.JSON" //specifies name of config file stored within spiffs
 #endif
 
@@ -232,6 +231,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // default static variable definitions & virtual pins (shift register)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // reverse shiftregister output in case of optocoupler
+    #ifndef INVERT_SHIFTOUT
+    #define INVERT_SHIFTOUT true
+    #endif
+
     // virtual pins (shift register)
     #ifndef pump1
     #define pump1 (uint8_t)0
@@ -250,7 +254,7 @@
     #define high_lim 1500 //(m Volt)high limitation, values passed that threshold are not realistic
     #endif
 
-    //commands
+    // commands
     #ifndef stat_request
     #define stat_request 2
     #endif
