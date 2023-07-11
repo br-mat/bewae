@@ -18,6 +18,7 @@
 
 #ifndef CONFIG_FILE_PATH
 #define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
+#define CONFIG_FILE_PATH "/config_garten.JSON" //specifies name of config file stored within spiffs
 #endif
 
 #ifndef IRRIGA_FILE_PATH

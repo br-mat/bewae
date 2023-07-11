@@ -46,11 +46,16 @@ InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLU
 //  HELPER     functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // seting shiftregister to defined value (8bit)
-void Helper::shiftvalue8b(uint8_t val){
+void Helper::shiftvalue8b(uint8_t val, bool invert){
   //Function description: shiftout 8 bit value, MSBFIRST
   //FUNCTION PARAMETER:
   //val         -- 8bit value writte out to shift register                             uint8_t
   //------------------------------------------------------------------------------------------------
+
+  // invert val if needed
+  if (invert) {
+    val = ~val;  // Invert the value if the invert flag is set to true
+  }
   digitalWrite(st_cp_shft, LOW);
   shiftOut(data_shft, sh_cp_shft, MSBFIRST, val); //take byte type as value
   digitalWrite(st_cp_shft, HIGH); //update output of the register
@@ -60,12 +65,18 @@ void Helper::shiftvalue8b(uint8_t val){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // set shiftregister to defined value (32 bit)
-void Helper::shiftvalue(uint32_t val, uint8_t numBits) {
+void Helper::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
   // Function description: shift out specified number of bits from a value, MSBFIRST
   // FUNCTION PARAMETERS:
   // val       -- value to be shifted out                      uint32_t
   // numBits   -- number of bits to be shifted out              uint8_t
   // ------------------------------------------------------------------------------------------------
+
+  // invert val if needed
+  if (invert) {
+    val = ~val;  // Invert the value if the invert flag is set to true
+  Serial.print("inverted: "); Serial.println(val, BIN);
+  }
 
   // Split the long value into two bytes
   byte highByte = (val >> 8) & 0xFF;

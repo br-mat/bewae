@@ -184,7 +184,7 @@ void setup() {
 // initialize bme280 sensor
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   digitalWrite(sw_3_3v, HIGH); delay(5);
-  shiftvalue(0, max_groups);
+  shiftvalue(0, max_groups, INVERT_SHIFTOUT);
   digitalWrite(sw_sens, HIGH);
   digitalWrite(sw_sens2, HIGH);
 
@@ -278,7 +278,7 @@ void loop(){
 // start loop
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 digitalWrite(sw_3_3v, HIGH); delay(10);
-shiftvalue(0, max_groups);
+shiftvalue(0, max_groups, INVERT_SHIFTOUT);
 delay(10);
 #ifdef DEBUG
 Serial.println(F("start loop setup"));
@@ -305,7 +305,7 @@ if(rtc_status != 0){
 
     //reactivate 3.3v supply
     digitalWrite(sw_3_3v, HIGH); delay(10);
-    shiftvalue(0, max_groups);
+    shiftvalue(0, max_groups, INVERT_SHIFTOUT);
     delay(10);
     if(i > (int)10){
       break;
@@ -499,9 +499,9 @@ if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_inter
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 thirsty = true; //uncoment for testing only
 //if(thirsty){
-if(true){
+if(true){ // always enter checking, timing is handled by irrigation class
   digitalWrite(sw_3_3v, HIGH); delay(10); //switch on shift register! and logic?
-  shiftvalue(0, max_groups);
+  shiftvalue(0, max_groups, INVERT_SHIFTOUT);
   #ifdef DEBUG
   Serial.println(F("start watering phase"));
   #endif
@@ -590,7 +590,7 @@ if(true){
       thirsty = false;
     }
   }
-  shiftvalue(0, max_groups); // TODO CHANGE TO NEW shiftvalue
+  shiftvalue(0, max_groups, INVERT_SHIFTOUT); // TODO CHANGE TO NEW shiftvalue
   delay(10);
   digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
 }
