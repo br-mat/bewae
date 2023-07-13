@@ -120,7 +120,7 @@ class IrrigationController {
 
     // Public function: Handling watering process calling related functionality
     // call this function every now and then to keep track of time variables
-    int waterOn(int hour, int day);
+    int watering_task_handler(int hour, int day);
 
     // Resets all member variables to their default values
     void reset();
