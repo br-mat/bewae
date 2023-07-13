@@ -508,69 +508,69 @@ if(true){ // always enter checking, timing is handled by irrigation class
   #endif
   delay(30);
 
-  // --- Watering ---
-  //description: trigger at specific time
-  //             alternate the solenoids to avoid heat damage, let cooldown time if only one remains
-  //Hints:  main mosfet probably get warm
-  //        pause procedure when measure events needs to happen
-  //        NEVER INTERUPT WHILE WATERING!
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  while((loop_t + measure_intervall > millis()) & (thirsty)){
-    // process will trigger multiple loop iterations until thirsty is set false
-    // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
-    delay(15);
+  // load config file
+  JsonObject groups = getJsonObjects("group", CONFIG_FILE_PATH);
 
-    // load config file
-    JsonObject groups = getJsonObjects("group", CONFIG_FILE_PATH);
-    // check for valid object
-    if (groups.isNull()) {
+  // check for valid object
+  if (groups.isNull()) {
+    #ifdef DEBUG
+    Serial.println(F("Error: No 'Group' found in file!"));
+    #endif
+    thirsty = false; // break loop and continue programm
+  }
+
+  // get number of kv pairs within JSON object
+  int numgroups = groups.size();
+
+  // sanity check
+  if (numgroups > max_groups) {
+    #ifdef DEBUG
+    Serial.println(F("Warning: too many groups! Exiting procedure"));
+    #endif
+    thirsty = false;
+  }
+
+  // load empty irrigationcontroller instances 
+  IrrigationController Group[numgroups];
+  int j = 0;
+
+  // Iterate over each group and load the config
+  for (JsonObject::iterator groupIterator = groups.begin(); groupIterator != groups.end(); ++groupIterator) {
+    // Check if j exceeds the maximum number of groups
+    if (j >= numgroups) {
       #ifdef DEBUG
-      Serial.println(F("Error: No 'Group' found in file!"));
-      #endif
-      break; // break loop and continue programm
-    }
-
-    // get number of kv pairs within JSON object
-    int numgroups = groups.size();
-
-    // sanity check
-    if (numgroups > max_groups) {
-      #ifdef DEBUG
-      Serial.println(F("Warning: too many groups! Exiting procedure"));
+      Serial.println(F("Warning: Too many groups! Exiting procedure"));
       #endif
       thirsty = false;
       break;
     }
 
-    // load empty irrigationcontroller instances 
-    IrrigationController Group[numgroups];
-    int j = 0;
-
-    // Iterate over each group and load the config
-    for (JsonObject::iterator groupIterator = groups.begin(); groupIterator != groups.end(); ++groupIterator) {
-      // Check if j exceeds the maximum number of groups
-      if (j >= numgroups) {
-        #ifdef DEBUG
-        Serial.println(F("Warning: Too many groups! Exiting procedure"));
-        #endif
-        thirsty = false;
-        break;
-      }
-
-      // Load schedule configuration for the current group
-      bool success = Group[j].loadScheduleConfig(*groupIterator);
-      if (!success) { // if it fails reset class instance
-        #ifdef DEBUG
-        Serial.println(F("Error: Failed to load schedule configuration for group"));
-        #endif
-        // Reset the class to an empty state
-        Group[j].reset();
-        break;
-      }
-
-      // Increment j for the next group
-      j++;
+    // Load schedule configuration for the current group
+    bool success = Group[j].loadScheduleConfig(*groupIterator);
+    if (!success) { // if it fails reset class instance
+      #ifdef DEBUG
+      Serial.println(F("Error: Failed to load schedule configuration for group"));
+      #endif
+      // Reset the class to an empty state
+      Group[j].reset();
+      break;
     }
+
+    // Increment j for the next group
+    j++;
+  }
+
+  // --- Watering ---
+  // description: trigger at specific time
+  //              alternate the solenoids to avoid heat damage, let cooldown time if only one remains
+  // Hints:  main mosfet probably get warm
+  //         pause procedure when measure events needs to happen
+  //         NEVER INTERUPT WHILE WATERING!
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  while((loop_t + measure_intervall > millis()) & (thirsty)){
+    // process will trigger multiple loop iterations until thirsty is set false
+    // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
+    delay(15);
 
     // Iterate over all irrigation controller objects in the Group array
     // This process will trigger multiple loop iterations until thirsty is set false
@@ -592,6 +592,7 @@ if(true){ // always enter checking, timing is handled by irrigation class
     }
     esp_light_sleep_start(); // sleep one period
   }
+
   shiftvalue(0, max_groups, INVERT_SHIFTOUT); // TODO CHANGE TO NEW shiftvalue
   delay(10);
   digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register

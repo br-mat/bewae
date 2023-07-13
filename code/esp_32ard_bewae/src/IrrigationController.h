@@ -116,7 +116,7 @@ class IrrigationController {
 
     // Member function checks if a group is ready:
     // returns watering time in (seconds) as int when ready, -1 when waiting, and 0 (finished, not configured, error)
-    int readyToWater(int currentHour, int currentDay);
+    int readyToWater();
 
     // Public function: Handling watering process calling related functionality
     // call this function every now and then to keep track of time variables

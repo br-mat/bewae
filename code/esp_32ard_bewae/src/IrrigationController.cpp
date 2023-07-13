@@ -76,17 +76,13 @@ IrrigationController::~IrrigationController() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Function:
-// Handling watering procedure:
-// It checks if the irrigation system is ready to water. If so:
-// calculates the remaining watering time and updates the waterTime variable and returns the active time.
-// It returns -1 if the system is not ready to water.
-// 0 if group is not configured at that time or in error case
-int IrrigationController::readyToWater(int currentHour, int currentDay) {
+// check if hardware is ready for watering, returns:
+// - (time in sec) allowed time to be active
+// - -1 if the system is not ready to water
+// - 0 if group is not configured at that time or in error case
+int IrrigationController::readyToWater() {
 // INPUT: currentHour int of full hour
 //        currentDay int of day of month
-
-// TODO: Rework if checks to be more compact remove old repeating calls
-// TODO MOVE timechange section to watering_task_handler as its more fitting to handle there this should just return time or some indication of what to do
 
   // check if group is set
   if(!this->is_set){ //return 0 if the group is not set
@@ -109,10 +105,9 @@ int IrrigationController::readyToWater(int currentHour, int currentDay) {
 
   // get the current time in milliseconds
   unsigned long currentMillis = millis();
-  //int len = sizeof(driver_pins)/sizeof(int);
 
   // Accessing the elements of driver_pins using a range-based for loop
-  for (const auto& pinValue : this->driver_pins) { // TODO: UNSIGNED INT FOR PINS FIX THIS ISSUE LATER
+  for (const auto& pinValue : this->driver_pins) { // TODO: UNSIGNED INT FOR PINS FIX THIS LATER
       // Check each pin
       if (pinValue > static_cast<int>(max_groups)) {
           #ifdef DEBUG
@@ -130,7 +125,6 @@ int IrrigationController::readyToWater(int currentHour, int currentDay) {
           #endif
           return -1; // Pin needs cooldown
       }
-  //Serial.print(controller_pins[pinValue].getPin()); Serial.println(" pin ok");
   }
 
   // check if there is enough water time left
@@ -147,7 +141,7 @@ int IrrigationController::readyToWater(int currentHour, int currentDay) {
   Serial.println();
   Serial.print("watering time: "); Serial.println(remainingTime);
   #endif
-  return remainingTime; //return active time
+  return remainingTime; // return active time
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -469,7 +463,7 @@ int IrrigationController::watering_task_handler(int hour, int day) {
   }
 
   // get info if system is allowed to water
-  int active_time = readyToWater(hour, day);
+  int active_time = readyToWater();
 
   // check if fnished
   if (active_time == 0) {
@@ -518,7 +512,7 @@ int IrrigationController::watering_task_handler(int hour, int day) {
     this->watering = this->watering - active_time; // update the water time
 
     // save water time variable
-    if (!saveScheduleConfig(CONFIG_FILE_PATH, name)){
+    if (!saveScheduleConfig(CONFIG_FILE_PATH, name)){ // WARNING: calling this too ofthen could wear out flash memory
       #ifdef DEBUG
       Serial.println(F("Failed to save status!"));
       #endif

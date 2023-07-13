@@ -17,7 +17,7 @@
 #define RasPi 1
 
 #ifndef CONFIG_FILE_PATH
-#define CONFIG_FILE_PATH "/config_garten.JSON" //specifies name of config file stored within spiffs
+#define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
 #endif
 
 #ifndef IRRIGA_FILE_PATH
@@ -233,7 +233,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // reverse shiftregister output in case of optocoupler
     #ifndef INVERT_SHIFTOUT
-    #define INVERT_SHIFTOUT true
+    #define INVERT_SHIFTOUT false
     #endif
 
     // virtual pins (shift register)
