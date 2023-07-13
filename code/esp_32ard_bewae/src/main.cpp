@@ -377,9 +377,9 @@ if(true){
   }
 }
 #ifdef DEBUG
-Serial.println(F("Config: ")); Serial.print(F("Bewae switch: ")); Serial.println(sw0);
-Serial.print(F("Value override: ")); Serial.println(sw1);
-Serial.print(F("Timetable override: ")); Serial.println(sw2);
+Serial.println(F("Config: ")); Serial.print(F("Main switch: ")); Serial.println(status_switches.getMainSwitch());
+Serial.print(F("Irrigation switch: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
+Serial.print(F("Measurement switch: ")); Serial.println(status_switches.getDatalogingSwitch());
 Serial.print(F("Timetable: ")); Serial.println(timetable, BIN);
 #endif
 
@@ -396,7 +396,8 @@ Serial.print(F("Datalogphase: ")); Serial.println(actual_time-last_activation > 
 Serial.println(actual_time); Serial.println(last_activation); Serial.println(measure_intervall-500000UL);
 Serial.println((float)((float)actual_time-(float)last_activation)); Serial.println(up_time);
 #endif
-if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall)) && (status_switches.getDatalogingSwitch()))
+//if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall)) && (status_switches.getDatalogingSwitch()))
+if(false) // TODO FIX condition and work with status switches
 {
   last_activation = actual_time; //first action refresh the time
   #ifdef DEBUG
@@ -503,7 +504,7 @@ if(true){ // always enter checking, timing is handled by irrigation class
   digitalWrite(sw_3_3v, HIGH); delay(10); //switch on shift register! and logic?
   shiftvalue(0, max_groups, INVERT_SHIFTOUT);
   #ifdef DEBUG
-  Serial.println(F("start watering phase"));
+  Serial.println(F("Enter watering phase"));
   #endif
   delay(30);
 
@@ -581,7 +582,7 @@ if(true){ // always enter checking, timing is handled by irrigation class
       //hour1 = 19 // uncomment for testing
 
       // start watering selected group
-      status += Group[i].waterOn(hour1, day_m1);
+      status += Group[i].watering_task_handler(hour1, day_m1);
       delay(500); // give little delay
     }
 
@@ -589,6 +590,7 @@ if(true){ // always enter checking, timing is handled by irrigation class
     if(!status){
       thirsty = false;
     }
+    esp_light_sleep_start(); // sleep one period
   }
   shiftvalue(0, max_groups, INVERT_SHIFTOUT); // TODO CHANGE TO NEW shiftvalue
   delay(10);
