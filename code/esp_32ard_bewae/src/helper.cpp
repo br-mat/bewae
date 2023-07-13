@@ -75,8 +75,12 @@ void Helper::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
   // invert val if needed
   if (invert) {
     val = ~val;  // Invert the value if the invert flag is set to true
-  Serial.print("inverted: "); Serial.println(val, BIN);
   }
+
+  #ifdef DEBUG
+  Serial.print(F("Shifting '"));
+  Serial.print(val, BIN); Serial.println(F("'"));
+  #endif
 
   // Split the long value into two bytes
   byte highByte = (val >> 8) & 0xFF;
@@ -444,7 +448,6 @@ DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
     jsonDoc.clear();
     return jsonDoc;
   }
-  
   return jsonDoc;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -455,7 +458,7 @@ DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
 bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
   if (path == nullptr) { // check for valid path, a function could possibly use this and set a nullptr as path
     #ifdef DEBUG
-    Serial.println("Invalid file path");
+    Serial.println(F("Invalid file path"));
     #endif
     return false;
   }
@@ -463,7 +466,7 @@ bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_L
   File newFile = SPIFFS.open(path, "w"); // open the config file for writing
   if (!newFile) { // check if file was opened successfully
     #ifdef DEBUG
-    Serial.println("Failed to open config file for writing");
+    Serial.println(F("Error: Failed to open config file for writing"));
     #endif
     newFile.close();
     return false; // error occured
@@ -472,6 +475,7 @@ bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_L
   // Write the JSON data to the config file
   serializeJson(jsonDoc, newFile);
   newFile.close();
+
   return true; // all good
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -627,22 +631,19 @@ bool Helper::updateConfig(const char* path){
   for (JsonObject::iterator it = group.begin(); it != group.end(); ++it) {
     const char* key = it->key().c_str();
     // Check if the key is within the keys of oldGroup
-  String jsonstr2;
-  serializeJson(it->value()["lastup"].as<JsonArray>(), jsonstr2);
-  Serial.print("Preserved lastup: "); Serial.println(jsonstr2);
-  // check if key exists
-  if (oldGroup.containsKey(key)) {
-      // preserve values
-      it->value()["watering"] = oldGroup[key]["watering"].as<int16_t>();
-      it->value()["lastup"] = oldGroup[key]["lastup"].as<JsonArray>();
+    // check if key exists
+    if (oldGroup.containsKey(key)) {
+        // preserve values
+        it->value()["watering"] = oldGroup[key]["watering"].as<int16_t>();
+        it->value()["lastup"] = oldGroup[key]["lastup"].as<JsonArray>();
+      }
+      else {
+        // new group should be created and saved, or some error occured
+        #ifdef DEBUG
+        Serial.println(F("Warning: Failed to retrieve watering value of old group object"));
+        #endif
+      }
     }
-    else {
-      // new group should be created and saved, or some error occured
-      #ifdef DEBUG
-      Serial.println(F("Warning: Failed to retrieve watering value of old group object"));
-      #endif
-    }
-  }
 
     // Write the updated JSON data to the config file
     return Helper::writeConfigFile(newdoc, CONFIG_FILE_PATH);

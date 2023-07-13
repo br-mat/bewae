@@ -86,43 +86,23 @@ int IrrigationController::readyToWater(int currentHour, int currentDay) {
 //        currentDay int of day of month
 
 // TODO: Rework if checks to be more compact remove old repeating calls
-
-  //lastDay = 0; lastHour = 0; // TESTING/DEBUGING
-  // check for hour change and shift water_time base value into watering value to be processed
-  bool timechange = (this->lastDay != currentDay) || (this->lastHour != currentHour);
-  if(timechange){
-    #ifdef DEBUG
-    Serial.println(F("Hour change detected"));
-    #endif
-    // set new update timestamp
-    this->lastDay = currentDay;
-    this->lastHour = currentHour;
-  }
+// TODO MOVE timechange section to watering_task_handler as its more fitting to handle there this should just return time or some indication of what to do
 
   // check if group is set
   if(!this->is_set){ //return 0 if the group is not set
     #ifdef DEBUG
-    Serial.println("Not set");
+    Serial.print(F("Group '"));
+    Serial.print(this->name); Serial.println(F("' not set"));
     #endif
     return 0;
-  }
-
-  // check if group is set for this hour
-  if((this->timetable & (1 << currentHour)) != 0){
-    // writte water_time to watering to start watering process
-    this->watering = this->water_time; // multiply with factor to adjust wheater conditons when raspi not reachable?
-  }
-  else{
-    #ifdef DEBUG
-    Serial.println(F("Nothing to do this time"));
-    #endif
-    return 0; // nothing to do this time
   }
 
   // check if there is something to do (probably repeating call)
   if (this->watering == 0) {
     #ifdef DEBUG
-    Serial.println(F("Nothing to do"));
+    Serial.print(F("Group '"));
+    Serial.print(this->name); 
+    Serial.println(F("' nothing to do (old call?)"));
     #endif
     return 0; // done or nothing for this time
   }
@@ -155,29 +135,16 @@ int IrrigationController::readyToWater(int currentHour, int currentDay) {
 
   // check if there is enough water time left
   if (this->watering <= 0) {
-    return 0; // group done, info handled in waterOn
+    return 0; // group done, info handled in watering_task_handler
   }
 
   // calculate the remaining watering time, return seconds using min function
   int remainingTime = min(this->watering, max_active_time_sec);
   remainingTime = max(remainingTime, (int)0); //avoid values beyond 0
-  this->watering -= remainingTime; // update the water time
-
-  // save water time variable
-  if (!saveScheduleConfig(CONFIG_FILE_PATH, name)){
-    #ifdef DEBUG
-    Serial.println(F("Failed to save status!"));
-    #endif
-    return 0; // saving variable error
-  }
-
-  // update the last activation time of the pins when everything is fine
-  for (const auto& pinValue : this->driver_pins) {
-      controller_pins[pinValue].setLastActivation();
-  }
 
   // return the remaining time which the pins should be active
   #ifdef DEBUG
+  Serial.println();
   Serial.print("watering time: "); Serial.println(remainingTime);
   #endif
   return remainingTime; //return active time
@@ -457,20 +424,48 @@ void IrrigationController::activate(int time_s) {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Public function: Handling watering process calling related functionality
-// call this function every now and then to keep track of time variables
-int IrrigationController::waterOn(int hour, int day) {
+// Public function: Handling watering process calling related functionality, seting variables saving config
+int IrrigationController::watering_task_handler(int hour, int day) {
   // Function description: Starts the irrigation procedure after checking if the hardware is ready
   // FUNCTION PARAMETER:
   // currentHour - the active hour to check the with the timetable
+  // currentDay - the active day
   // returns - int 1 if not finished and 0 if finished
+  // call this function at least once an hour to update information on what is already done  
+  // check for hour change and shift water_time base value into watering value to be processed
 
   // if not set return early
   if(!this->is_set){
     #ifdef DEBUG
-    Serial.println(F("Group not set!"));
+    Serial.print(F("Group '")); Serial.print(this->name); Serial.println(F("' not set!"));
     #endif
     return 0;
+  }
+
+  //lastDay = 0; lastHour = 0; // TESTING/DEBUGING
+  // check if group is set for this hour
+  bool correcthour = (this->timetable & (1 << hour)) != 0;
+  if(!correcthour){
+    #ifdef DEBUG
+    Serial.print(F("Group '"));
+    Serial.print(this->name); Serial.println(F("' nothing to do this time"));
+    #endif
+    return 0; // nothing to do this time
+  }
+
+  // look for new hour and update runtimevariables
+  bool timechange = (this->lastDay != day) || (this->lastHour != hour);
+  if(timechange){
+    #ifdef DEBUG
+    Serial.print(F("Group '"));
+    Serial.print(this->name); Serial.println(F("' hour change detected"));
+    #endif
+    // set new update timestamp
+    this->lastDay = day;
+    this->lastHour = hour;
+
+    // writte water_time to watering to start watering process
+    this->watering = this->water_time; // multiply with factor to adjust wheater conditons when raspi not reachable?
   }
 
   // get info if system is allowed to water
@@ -479,7 +474,8 @@ int IrrigationController::waterOn(int hour, int day) {
   // check if fnished
   if (active_time == 0) {
     #ifdef DEBUG
-    Serial.println(F("Group done!"));
+    Serial.print(F("Group '"));
+    Serial.print(this->name); Serial.println(F("' checked!"));
     #endif
     return 0;
   }
@@ -487,7 +483,8 @@ int IrrigationController::waterOn(int hour, int day) {
   // check if it should wait
   if (active_time < 0) {
     #ifdef DEBUG
-    Serial.println(F("Group need cooldown!"));
+    Serial.print(F("Group '"));
+    Serial.print(this->name); Serial.println(F("' need cooldown!"));
     #endif
     return 1;
   }
@@ -497,15 +494,36 @@ int IrrigationController::waterOn(int hour, int day) {
     // Print info to serial if wanted
     #ifdef DEBUG
     Serial.print(F("Watering group: "));
-    Serial.println(name);
-    Serial.print("driver_pins values: ");
+    Serial.println(name); Serial.print(F("driver_pins values: "));
     for (int pin : driver_pins) {
       Serial.print(pin);
-      Serial.print(", ");
+      Serial.print(F(", "));
     }
     Serial.println();
     Serial.print(F("Time: ")); Serial.println(active_time);
     #endif
+
+    #ifdef DEBUG
+    Serial.println(F("Set activationtimestamp to pin: "));
+    #endif
+    // update the last activation time of the pins when everything is fine
+    for (const auto& pinValue : this->driver_pins) {
+        controller_pins[pinValue].setLastActivation();
+        #ifdef DEBUG
+        Serial.print(pinValue); Serial.print(F(" "));
+        #endif
+    }
+
+    // update watering variable
+    this->watering = this->watering - active_time; // update the water time
+
+    // save water time variable
+    if (!saveScheduleConfig(CONFIG_FILE_PATH, name)){
+      #ifdef DEBUG
+      Serial.println(F("Failed to save status!"));
+      #endif
+      return 0; // saving variable error
+    }
 
     // Activate watering process
     activate(active_time);
@@ -519,14 +537,13 @@ int IrrigationController::waterOn(int hour, int day) {
   if(watering == 0){
     #ifdef DEBUG
     Serial.print(F("Group '"));
-    Serial.print(name);
-    Serial.println(F("' finished! OLD STATEMENT"));
+    Serial.print(name); Serial.println(F("' finished! OLD STATEMENT"));
     #endif
     return 0;
   }
 
   #ifdef DEBUG
-  Serial.println("Warning something unhandeled occured in warterOn!");
+  Serial.println(F("Warning: something unhandeled occured in warterOn!"));
   #endif
 
   return 0;
@@ -551,13 +568,12 @@ long IrrigationController::combineTimetables()
     // validate if key is something that could be used
     JsonObject groupItem = it->value();
     bool condition = groupItem["is_set"];
-    if(condition){
+    if(!condition){
       continue; // skip if not set
     }
     long timetable = groupItem["timetable"];
     combinedTimetable |= timetable;
   }
-  
   return combinedTimetable;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
