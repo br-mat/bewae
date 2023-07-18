@@ -123,11 +123,12 @@ Die Schaltungen wurden mit fritzing erstellt, die Steckbrettansicht bietet gute 
 
  Board 1:                  | Board 3:                  | Board 5:
 :-------------------------:|:-------------------------:|:-------------------------:
-![config](/docs/pictures/bewae3_3_board3v22_Leiterplatte) |  ![config](/docs/pictures/bewae3_3_board3v2_Leiterplatte.png) | ![config](/docs/pictures/bewae3_3_board5v5_final_Leiterplatte)
+![Board1](/docs/pictures/bewae3_3_board1v3_838_Leiterplatte.png) | ![Board3](/docs/pictures/bewae3_3_board3v22_Leiterplatte.png) | ![Board5](/docs/pictures/bewae3_3_board5v5_final_Leiterplatte.png)
 
 ### **bewae3_3_board1v3_838.fzz** Hauptplatine (PCB)
 Große Hauptplatine. Platz für bis zu 16 analoge Sensoren sowie bme280 und rtc-Modul über i2c. 8 Pins für Ventile/Pumpen (Erweiterbar) diese können über Relais oder dem PCB Board 3 einfach verwendet werden.
 <br>
+
 
 ### **bewae3_3_board3v22.fzz** als Erweiterung (PCB)
 Als Erweiterung gedacht. Hat den Zweck Steckplätze für Sensoren und weitere Verbraucher zu liefern. Zur Erweiterung der 8 Pins der Hauptplatine kann das Schieberegister verwendet werden. Insgesamt 13 Steckplätze für Sensoren inklusive Versorgung sowie 2 Pumpen (*12V*) und 10 kleinere Ventile (*12V*).
