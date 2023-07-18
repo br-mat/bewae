@@ -397,7 +397,7 @@ Serial.println(actual_time); Serial.println(last_activation); Serial.println(mea
 Serial.println((float)((float)actual_time-(float)last_activation)); Serial.println(up_time);
 #endif
 //if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall)) && (status_switches.getDatalogingSwitch()))
-if(false) // TODO FIX condition and work with status switches
+if(false) // TODO FIX condition and work with status switches (might not work as expected)
 {
   last_activation = actual_time; //first action refresh the time
   #ifdef DEBUG
@@ -410,89 +410,7 @@ if(false) // TODO FIX condition and work with status switches
   digitalWrite(sw_sens2, HIGH);  //activate sensor rail
   delay(500);
 
-  // Perform measurement of every configured vpin sensor (mux)
-  JsonObject sens = getJsonObjects("sensor", CONFIG_FILE_PATH);
-  // check for valid object
-  if (sens.isNull()) {
-    #ifdef DEBUG
-    Serial.println(F("Error: No 'Group' found in file!"));
-    #endif
-  }
-  else{
-    int numsens = sens.size();
-    // iterate over json object, find all configured sensors measure and post the results
-    for(JsonPair kv : sens){
-      bool status = kv.value()["is_set"].as<bool>();
-      // check status
-      if (!status) {
-        continue; // skip iteration if sensor is not set
-      }
-      int pin = String(kv.key().c_str()).toInt();
-      String name = kv.value()["name"].as<String>();
-      int low = kv.value()["llim"].as<int>();
-      int high = kv.value()["hlim"].as<int>();
-      float factor = kv.value()["fac"].as<float>();
-
-      // create measurement instance
-      VpinController sensor(name, pin, low, high, factor);
-      float result;
-
-      // check if relative or standard value is wanted
-      if ((low != 0) && (high != 0)){
-        result = sensor.measureRel();
-      }
-      else{
-        result = sensor.measure();
-      }
-
-      // pub gathered datapoint
-      bool cond = pubInfluxData(name, String(INFLUXDB_FIELD), result);
-
-      #ifdef DEBUG
-      // info pub data
-      if (!cond) {
-        Serial.print(F("Problem occured while publishing data to InfluxDB!"));
-      }
-      Serial.print(F("Publishing data from: ")); Serial.println(name);
-      Serial.print(F("Value: ")); Serial.println(result);
-      #endif
-    }
-  }
-
-  // BME280 sensor (default)
-  #ifdef BME280
-  if (!bme.begin(BME280_I2C_ADDRESS)) {
-    #ifdef DEBUG
-    Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
-    #endif
-  }
-  #ifdef DEBUG
-  Serial.print(F("Start measuring BME280"));
-  #endif
-
-  // setup bme measurment
-  MeasuringController bme_sensor[3] =
-  {
-    {"bme_temp", [&]() { return bme.readTemperature(); }},
-    {"bme_hum", [&]() { return bme.readHumidity(); }},
-    {"bme_pres", [&]() { return bme.readPressure(); }}
-  };
-
-  for(int i=0; i < 3; i++){
-    float result = bme_sensor->measure();
-    bool cond = pubInfluxData(bme_sensor->getSensorName(), String(INFLUXDB_FIELD), result);
-    #ifdef DEBUG
-    if (!cond){
-    Serial.println(F("Problem publishing BME!"));
-    }
-    #endif
-  }
-  #endif //bme280
-
-  // DHT11 sensor (alternative)
-  #ifdef DHT
-  //possible dht solution --- CURRENTLY NOT IMPLEMENTED!
-  #endif //dht
+  // TODO integrate new sensor controller class measuring functionality
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
