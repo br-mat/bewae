@@ -35,50 +35,48 @@ Automated Sensor Controlled Irrigation with Raspberry Pi & Arduino <br>
 ## Content:
 - [Introduction (EN)](#introduction-(en))
 - [Introduction (EN)](#introduction-(en))
-  * [Current build](#currentbuild)
-  * [description](#description)
-  * [system diagram](#systemdiagram)
+- [system diagram](#systemdiagram)
 - [control](#control-of-irrigation)
 - [details](#details)
   * [boards](#boards)
-  * [Code Arduino Nano](#code-arduino-nano)
-  * [code ESP8266-01](#code-esp8266-01)
+  * [Code ESP 32](#code-esp32)
   * [RaspberryPi](#raspberrypi)
 - [Images & Creation](#images--creation)
 
 ## Introduction (EN)
-This version is more of a test version. It has been reworked to fit an ESP32 board. <br>
-This is **not** a step-by-step guide - a little basic knowledge in dealing with Linux and microcontrollers is required. It should only be given an insight into the project and make it easier for me to rebuild in spring or at new locations. That's why I decided to use German, but I would like to add an English version later. <br>
+This version is to be seen more as a test version. <br>
+The current processing is not a step-by-step guide. It requires some basic knowledge of working with Linux and microcontrollers. The purpose is merely to provide an insight into the project and facilitate its reconstruction in spring or at new locations. Therefore, I have opted for German, but I also plan to add an English version. <br>
 
-## Einleitung (DE)
-Diese Version ist eher als Testversion zu sehen. <br>
-Bei der bisherigen Aufarbeitung handelt es sich **nicht** um eine Step-by-step Anleitung es ist ein wenig Grundwissen im Umgang mit Linux und Mikrokontrollern vorausgesetzt. Es soll lediglich ein Einblick in das Projekt gegeben werden und mir den Wiederaufbau im Frühjahr oder an neuen Standorten erleichtern. Deshalb habe ich mich auch für Deutsch entschieden, möchte jedoch noch eine englische Version ergänzen. <br>
+## Systemdiagramm
 
-### current structure
+### V3.3 Diagram:
+
+ System Setup:                  | Solar Setup:
+:-------------------------:|:-------------------------:
+![System](/docs/pictures/SystemdiagrammV3_3.png "Systemdiagramm 3.3") | ![Solar](/docs/pictures/systemdiagramSolar.png "Solar diagramm 3.3")
+(zeigt grobe Skizzierung des Systems)
+
+### Current Setup:
 - ESP32
-- RaspberryPi 4 B (*4GB*)
-- *6* Valves *12V
-- *2* pumps (currently only one *12V* in operation)
-- *16* Analog/digital pins for sensors & other measurements (soil moisture, photoresistor, etc.)
+- Raspberry Pi 4 B (4GB)
+- 6 Valves 12V
+- 2 Pumps (currently only one 12V pump in operation)
+- 16 Analog/Digital Pins for sensors & other measurements (soil moisture, photoresistor, etc.)
 - BME280 Temperature/Humidity/Pressure Sensor
-- RTC DS3231 Real Time Clock
-- micro SD module & micro SD card
-- Irrigation kit hoses, sprinklers, etc.
-- *10W 12V* Solar Panel
-- *12 Ah* *12V* lead acid battery
-- Solar charge controller
+- RTC DS3231 Real-Time Clock
+- Irrigation Kit: Hoses, Sprinklers, etc.
+- 20W 12V Solar Panel
+- 12Ah 12V Lead-Acid Battery
+- Solar Charge Controller
 
 ### Description
-An Overview of the circuit structure in the attached [*systemdiagram.png*](#systemdiagram) as a block diagram. The control of the circuit is managed by an [*ESP-32*](https://de.wikipedia.org/wiki/ESP32) microcontroller. The sensors and modules in the system are capable of collecting a large amount of data, including soil moisture readings, temperature, humidity, air pressure, and sunshine duration. These data points are sent to the [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) through [*MQTT*](#mqtt) protocol, where they are stored and presented in a visually appealing manner using the Grafana software. <br>
-The irrigation system is operated according to a pre-defined schedule, which can be set with pre-programmed values or controlled remotely through the network. The irrigation process can be monitored and adjusted in real-time using an [*MQTT*](#mqtt) messaging client. The system can also be accessed remotely through a set-up [*VPN*](https://www.pivpn.io/), allowing users to keep an eye on their plants and water them from any location. <br>
-The folders included in this markdown file contain the code for both controllers, the json export file for the Grafana dashboard, and the Python scripts used to process the [*MQTT*](#mqtt) messages. The database used in this system is [*InfluxDB*](#influxdb), where all collected data is stored for future reference. The relevant programs and scripts are set to launch automatically at every boot process, ensuring smooth operation, thanks to crontab. <br>
-<br>
+An ESP-32 is used for control. Various sensors and modules record a variety of data, including soil moisture, temperature, humidity, air pressure, and duration of sunlight. This data is sent to a Raspberry Pi using an InfluxDB client and stored in InfluxDB 2.0. <br>
+
+The irrigation follows a schedule that can either work with pre-programmed values or be controlled over the network. By setting up a VPN (e.g. PiVPN), you can also monitor and water your plants from remote locations. <br>
 
 **Current Status:** <br>
 
-A circuit diagram was created using [fritzing](https://fritzing.org/) for easier handling, and two [PCB](#boards) were printed. Data from various sensors (soil moisture, temperature, etc.) is sent to a [RaspberryPi](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) where it is stored in a database. The irrigation control can be done either automatically using sensor input or through a MQTT messaging app on a smartphone. With [VPN](https://www.pivpn.io/), control and monitoring are possible from anywhere. <br>
-
-Supply: It has now become a self-sufficient system equipped with a small PV module, a lead battery, and a small 100l water tank. Depending on the temperature, it's now only necessary to remember to fill the tank once a week. <br>
+The system is equipped with a small PV module, a lead-acid battery, and a small 100l water tank. Depending on the temperature, the tank only needs to be filled once a week. <br>
 
 
 ## System diagram
@@ -86,146 +84,99 @@ Supply: It has now become a self-sufficient system equipped with a small PV modu
 ### V3.3 preview:
 ![System](/docs/pictures/Systemdiagramm3_3.png "Systemdiagramm 3.3")
 
-## Irrigation control
+## Irrigation Control
 
-To control the irrigation system 2 variables are used, timetable and water-time:
--	timetable is represented by a 4 bytelong int number, where every bit stands for a clock hour. The 8 most significant bits represent the group id. It is possible to set an individual timetable for each group.
--	water-time is used to set the active time in seconds for the specified group (solenoid and pump). It can be set individually for each group.
-The control itself can be set in 3 ways:
--	Programming the microcontroller
--	MQTT via W-LAN (phone or pi)
--	Config file on flash (SPIFFS)
+The irrigation is controlled using the settings in the config.JSON file. Two variables are used for this purpose - timetable and water-time:
 
-### Control via MQTT (phone or pi):
-
-To be able to set something via MQTT the commands must be sent under the correct topic. These are conf/set-timetable/group-id and conf/set-water-time/group-id. <br>
-
-#### **timetable**:
-
-To set the timetable: 
-```
-conf/set-timetable/gerneral
-```
-The watering values can be changed as follows:
-```
-#water group 0 at 7, 10 and 18 o'clock
-0:7,10,18
-#water group 2 at same time as master group (group 0)
-2:master
-```
-Important:
-Group 0 is the "master" group, so group 0 can be set with the code master. The group ID must start at 0 and be ascending because these numbers are used as indices for the call on the microcontroller. The values sent with the code represent the full hours to be cast. A "," is accepted as a separator. It is also possible to adjust the group to the master group with the string "master", "off" to turn off the circuit (not implemented yet).
-
-#### **water-time**:
-
-To set the water-time variable of the individual groups this scheme should be used:
-```
-conf/set-water-time/groupID
-```
-Important: Pay attention to the ID that is also defined on the microcontroller for the respective group. The ID's must start at 0 and be ascending. The value is set in seconds that the valves operate.
-<br>
-
-Enter group: | Overview:
-:-------------------------:|:-------------------------:
-![config](/docs/pictures/mqtt-app.jpg) | ![config](/docs/pictures/watering-config.jpg)
-
-### control via programming (default):
-
-Open main.cpp file and search for the two code snippets below, there you can change the values directly in code. <br>
-
-Timetable: 
-```
-// change timetable 2523211917151311 9 7 5 3 1
-// | | | | | | | | | | | | |
-unsigned long int timetable_default = 0b000000000100000000000000;
-// | | | | | | | | | | | | |
-// 2422201816141210 8 6 4 2 0
-```
+- timetable: It is represented by the first 24 bits of an integer, with each bit corresponding to an hour of the day. To save space, it is stored as a long integer.
+- water-time: This is the time (in seconds) for which the respective group is watered. Multiple valves or valve + pump combinations can be set simultaneously.
 
 <br>
 
-Water-time, where the last 3 are just important during run time and should be set zero. With the first boolean entry we can switch this group on/off. The v-pin and pump pin depend on the setup at the boards.
-
+```cpp
+// Example timetable                      23211917151311 9 7 5 3 1
+//                                       | | | | | | | | | | | |
+unsigned long int timetable_default = 0b00000000000100000000010000000000;
+//                                       | | | | | | | | | | | |
+// Decimal representation: 1049600      22201816141210 8 6 4 2 0
+//
 ```
-// change water-time
-// is_set, v-pin, pump_pin, name, watering-time default, timetable, watering base, watering time, last act,
-solenoid group[max_groups] =
-{ 
-  {true, 0, pump1, "Tom1", 100, 0.0f, 0, 0, 0}, //group0 tomatoes 1
-  {true, 1, pump1, "Tom2", 80, 0.0f, 0, 0, 0}, //group1 tomatoes 2
-  {true, 2, pump1, "Gewa", 30, 0.0f, 0, 0, 0}, //group2 greenhouse
-  {true, 3, pump1, "Chil", 40, 0.0f, 0, 0, 0}, //group3 Chillis
-  {true, 6, pump1, "Krtr", 20, 0.0f, 0, 0, 0}, //group4 herbs
-  {true, 7, pump1, "earthb", 50, 0.0f, 0, 0, 0}, //group5 strawberries
+The control can be done in the following ways:
+
+MQTT over W-LAN (phone or Pi) (not yet re-implemented)
+Config file in Flash (SPIFFS) if no network was found
+
+### config.JSON
+
+This file contains all relevant settings. Thanks to Node-Red, it is provided by the Raspberry Pi within the network and can be queried by the microcontroller. For this purpose, the address in connection.h must be adjusted. <br>
+Thus, the irrigation can be influenced by changes to the two mentioned variables. <br>
+
+```json
+// JSON group template
+{"group": {
+    "Tomatoes": {         // Group name
+    "is_set": 1,           // Indicates status
+    "vpins": [0, 5],        // List of pins bound to the group
+    "lastup": [0, 0],       // Runtime variable - do not touch!
+    "watering": 0,         // Runtime variable - do not touch!
+    "water-time": 10,      // Water time in seconds
+    "timetable": 1049600   // Timetable (first 24 bits)
+    },
+    .
+    .
+    .
+  }
 }
 ```
-<br>
 
-### control via Config File (WIP):
-The Raspberry Pi holds a config file that is provided through Node-Red and is meant to be retrieved via an HTTP GET request.
-The irrigation system keeps a copy of the file in memory and updates it regularly. The current implementation remains, but may need to be modified to ensure that the file is always up-to-date with the latest settings on the Pi. <br>
+### Node-Red Flow:
+
+The used Node-Red flow is located in the node-red-flows folder. If necessary, change the address or path to the file.
 
 # Details
 
-## Circuit boards
-The circuits were created with fritzing, the plug-in board view offers a good overview and is ideal for prototypes. From a certain size of the project, however, fritzing is no longer ideal. <br>
+## Boards
 
-Board 1: | Board 2:
-:-------------------------:|:-------------------------:
-![config](/docs/pictures/bewae3_3_board1v3_7_board.png) | ![config](/docs/pictures/bewae3_3_board2v6_board.png)
+The circuits were created using Fritzing, and the breadboard view provides a good overview and is ideal for prototypes. However, Fritzing may not be the most suitable option for larger projects. Gerber files are available. For the Fritzing files, only the board view is relevant. All boards use the ESP-32 as the microcontroller. <br>
 
-### **bewae3_3_board1v3_7.fzz** Motherboard (PCB)
-Has the purpose to control the system and to collect all data. All relevant sensors and modules as well as controls are combined on this board and processed by an [*ESP-32*](https://de.wikipedia.org/wiki/ESP32).
+ Board 1:                  | Board 3:                  | Board 5:
+:-------------------------:|:-------------------------:|:-------------------------:
+![Board1](/docs/pictures/bewae3_3_board1v3_838_Leiterplatte.png) | ![Board3](/docs/pictures/bewae3_3_board3v22_Leiterplatte.png) | ![Board5](/docs/pictures/bewae3_3_board5v5_final_Leiterplatte.png)
 
-<br>
+### **bewae3_3_board1v3_838.fzz** Main Board (PCB)
+Large main board. Space for up to 16 analog sensors, as well as BME280 and RTC module via I2C. 8 pins for valves/pumps (expandable). These can be used either with relays or directly with the PCB Board 3.<br>
 
-### **bewae3_3_board2v6.fzz** as extension (PCB)
-It is intended as an extension. The board offers 13 slots for sensors as well as 2 pumps (*12V*) and 6 valves (*12V*). The voltage of the lead battery (accumulator) should be able to be tapped via the voltage divider.
-<br> 
-This board could be individually adapted to meet changed requirements. For example, instead of the complex (but economical) logic circuitry to control the transistors, relays could be used to switch the individual components.
-<br>
+### **bewae3_3_board3v22.fzz** as an Extension (PCB)
+Designed as an extension. Its purpose is to provide slots for sensors and other devices. The shift register can be used to expand the 8 pins of the main board. A total of 16 slots for sensors including power supply, as well as 2 pins for pumps (*12V*) and 10 smaller valves (*12V*).<br>
+
+### **bewae3_3_board5v5_final.fzz** as Main Board (PCB)
+Smaller main board. Dispenses with a large number of sensor connections. Space for 2x 5V sensors, 2x 3V sensors, 1x LDR, I2C bus, and 1-Wire bus. BME280 and RTC module are also provided.<br>
+
 
 ## Code ESP32
 [Arduino-Nano Code](/code/bewae_main_nano/bewae_v3_nano/src/main.cpp)
 <br>
 
-### General
-The code is served up using Visual Studio Code and the Platformio extension, VS code provides a comprehensive IDE and is excellent for larger projects. <br>
+### How to deploy the code:
+First, make sure you have PlatformIO installed in Visual Studio Code. Then, open the project folder in VS Code. Next, plug in your ESP-32 Controller and click on the arrow icon in the PlatformIO taskbar to upload your code. The device should be detected automatically. <br>
 
-For the program to run, the RTC module must be properly connected and working. The SD card, the BME280 and network control can be deactivated via config. Simply comment out the definitions in the *config.h* file. <br>
+Before executing the program on the controller, it will check if some devices are responding, so be sure to connect them properly. <br>
 
-For the control and communication via the network to work, the WLAN settings must be configured correctly. Here, only the data of the respective network must be filled in. <br>
+Don’t forget to update your connection settings. Simply change the ‘connection.h’ file within the src folder to match your (network) configuration. <br>
 
-For debugging purposes it is recommended to tap RX and TX pins on the microcontroller and set the *DEBUG* definition. <br>
+### Change time of RTC:
+
+Make sure to set the time of the RTC either setup a code example for this device or uncomment my function in the setup. If my approach is used don’t forget to comment it again otherwise time will be reset every reboot. <br>
 
 ## Raspberrypi
-### General
-Personally, I am currently using a [**RaspberryPi 4B**](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) with *4GB* Ram on which a [*VPN*](https://www.pivpn.io/) (**wireguard**) and [*Pihole*](https://pi-hole.net/) are also installed. Through the [*VPN*](https://www.pivpn.io/) I can also access the data on the road or if necessary intervene in the irrigation. I do not go into further detail on the installation, but it is relatively simple and well described in numerous tutorials. <br>For the operation is also sufficient the availability in the local network, here are necessary:
-- SSid (network name): ExampleNetworkXY
-- Password: Example passwordXY
-- IP or hostname of the RaspberryPi (IP statically assigned)
-For easier configuration either screen, ssh, teamviewer, vnc viewer ... on the Raspberrypi also on these points I do not go further, because they are good to find elsewhere. <br>
 
-### InfluxDB
-If influx has not been installed yet, after a short search there are lots of useful tutorials e.g.: [(pimylifeup)](https://pimylifeup.com/raspberry-pi-influxdb/).
-<br>
+### Node-Red
 
-To set up the database, we first start by creating a user. To do this, start InfluxDB by entering the following line in the terminal.
-```
-influx
-```
-Influx should now have started, now continue to enter into the interface:
-```
-CREATE USER "username" WITH PASSWORD "password"
-CREATE DATABASE "database
-GRANT ALL ON "username" TO "database".
-```
-This ***username*** as well as ***password*** and the ***database*** must be filled in the microcontroller code.
-<br>
-To get out of this "interface" you simply have to enter the command **exit** and you are back in the terminal.
-```
-exit
-```
+TODO: update documentation
+
+### InfluxDB 2.0
+
+TODO: update documentation
 
 ### Grafana
 ![grafana dashboard example](/docs/pictures/grafanarainyday.png "Grafana rainy day") <br>
@@ -238,9 +189,8 @@ Under 'Configuration' you have to enter the 'Datasources'. Here you must now mak
 
 ![Datasource configuration](/docs/pictures/datasources.png "Datasource configuration example") <br>
 
-### MQTT&Python
+### MQTT (OUTDATED!!)
 
-#### MQTT
 **MQTT** (Message Queuing Telemetry Transport) Is an open network protocol for machine-to-machine (M2M) communication that enables the transmission of telemetry data in the form of messages between devices. How it works [(link)](http://www.steves-internet-guide.com/mqtt-works/). <br>
 The sent messages are composed of topic and payload. Topics are used for easy assignment and have a fixed structure in my case:
 ```
@@ -271,37 +221,24 @@ In addition to this topic, the data is appended in the payload, the content as a
 There is also a [link](https://pimylifeup.com/raspberry-pi-mosquitto-mqtt-server/) here.
 Username and password must be adjusted again in all places in the code.
 
-#### Python
-To read or write the data sent via [*MQTT*](#mqtt) into the database the Python script [MQTTInfluxDBBridge3.py](/code/pi_scripts/MQTTInfluxDBBridge3.py) is used. The script itself comes from a [tutorial](https://diyi0t.com/visualize-mqtt-data-with-influxdb-and-grafana/) and was adapted to fit the requirements in my project. The Python code can be started with the shell script [launcher1.sh](/code/pi_scripts/launcher1.sh) automatically with crontab at every boot. Since the Pi takes some time to start everything error-free at boot time, I delay the start of the script by *20* seconds. <br>
-To avoid errors only **int** values should be sent via [*MQTT*](#mqtt) (*2* **byte**), the data type **int** is *2* **byte** large on the [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano). <br>
-```
-sudo crontab -e
-```
-Opens cron with any editor to now enter the desired programs. As an example:
-```
-@reboot /path/file.sh
-```
-Additional [information](https://pimylifeup.com/cron-jobs-and-crontab/) to cron.
-
 #### mqttdash app (optional)
-On my **Android** smartphone I have downloaded the app [mqttdash](https://play.google.com/store/apps/details?id=net.routix.mqttdash&hl=de_AT&gl=US). This is very easy and intuitive to use, you have to enter the address user and password created above and can then configure the topics. It is important that only **int** values can be sent. If you have more than *6* groups you have to adjust the variable max_groups again in every place in all programs. All topics sent via [*MQTT*](#mqtt) and entered as *'measurement'* *'water_time'* are forwarded to the [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) via [*MQTT*](#mqtt) and entered into the database. By the entry *'location'* they can be distinguished therefore it is recommended to use the same name and a numbering because the *'locations'* are sorted and sent in ascending order from the [*ESP-01*](https://de.wikipedia.org/wiki/ESP8266) via [*MQTT*](#mqtt) to the [*Arduino Nano*](https://store.arduino.cc/products/arduino-nano).
+On my **Android** smartphone I have downloaded the app mqttdash. This is very easy and intuitive to use, you have to enter the address user and password created above and can then configure the topics. It is important that only **int** values can be sent. If you have more than 6 groups you have to adjust the variable max_groups again in every place in all programs. All topics sent via MQTT and entered as 'measurement' 'water_time' are forwarded to the ESP-01 via MQTT and entered into the database. By the entry 'location' they can be distinguished therefore it is recommended to use the same name and a numbering because the 'locations' are sorted and sent in ascending order from the ESP-01 via MQTT to the Arduino Nano.
 
 An example screenshot from the app, the numbers stand for the time (s) in which the respective valve is open and water is pumped (approx. 0.7l/min):
-![mqttdash app](/docs/pictures/mqttdash.jpg) <br>
+mqttdash app <br>
 
-## Pictures & Origin
+## Pictures & Development
 
-**Evolution:** <br>
-The project itself arose from an absence of several weeks in which the balcony plants would have been without supply. The green should be kept alive with a watering kit, hoses and a few nozzles and a pump. A regular watering like a timer seemed too boring to me and my interest in a small tinkering project was aroused. Capacitive soil moisture sensors and 4 small *12V* valves were quickly ordered, Arduinos I had enough at home, so it came within a week to [version 1](#v1) and the survival of the plants was secured. Out of necessity a project was born that kept me busy for a while, continuously extended and improved it fulfills far more than first planned. <br>
-<br>
+**Development:** <br>
+The project emerged from a several-week absence during which the balcony plants would have been left without care. The idea was to keep the greens alive using an irrigation set, hoses, a few nozzles, and a pump. However, a regular watering schedule like a timer seemed too boring, and it sparked my interest in a small DIY project. Capacitive soil moisture sensors and 4 small *12V* valves were quickly ordered, as I had enough Arduinos at home. Within a week, [Version 1](#v1) came to life, securing the survival of the plants. It evolved from a necessity into a project that kept me busy for a while, and through continuous expansion and improvement, it now fulfills much more than originally planned. <br>
 
-Finally, a small collection of photos of several versions of the project that have been created over time:
+Finally, here is a small collection of photos depicting various versions of the project taken over time: <br>
 
 ### V3
 
-![Image](/docs/pictures/bewaeV3(summer). jpg) <br>
-![Image](/docs/pictures/bewaeV3(autumn). jpg) <br>
-![Image](/docs/pictures/bewaeV3(Box). jpg) <br>
+![Image](/docs/pictures/bewaeV3(summer).jpg) <br>
+![Image](/docs/pictures/bewaeV3(autumn).jpg) <br>
+![Image](/docs/pictures/bewaeV3(Box).jpg) <br>
 ![Image](/docs/pictures/MainPCB.jpg) <br>
 
 ### V2
