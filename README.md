@@ -45,7 +45,11 @@ Die Bewässrung folgt einem Zeitplan. Der entweder mit einprogrammierten Werten 
 ## Systemdiagramm
 
 ### V3.3 Abbildung:
-![System](/docs/pictures/Systemdiagramm3_3.png "Systemdiagramm 3.3")
+
+ System Setup:                  | Solar Setup:
+:-------------------------:|:-------------------------:
+![System](/docs/pictures/SystemdiagrammV3_3.png "Systemdiagramm 3.3") | ![Solar](/docs/pictures/systemdiagramSolar.png "Solar diagramm 3.3")
+(zeigt grobe Skizzierung des Systems)
 
 ### aktueller Aufbau
 - ESP32
