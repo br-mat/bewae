@@ -23,10 +23,6 @@ Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino <br>
   * [RaspberryPi](#raspberrypi)
 - [Bilder & Entstehung](#bilder--Entstehung)
 
-## Introduction (EN)
-This version is more of a test version. It has been reworked to fit an ESP32 board. <br>
-This is **not** a step-by-step guide - a little basic knowledge in dealing with Linux and microcontrollers is required. It should only be given an insight into the project and make it easier for me to rebuild in spring or at new locations. That's why I decided to use German, but I would like to add an English version later. <br>
-
 ## Einleitung (DE)
 Diese Version ist eher als Testversion zu sehen. <br>
 Bei der bisherigen Aufarbeitung handelt es sich nicht um eine Schritt-für-Schritt-Anleitung. Es wird ein gewisses Grundwissen im Umgang mit Linux und Mikrokontrollern vorausgesetzt. Ziel ist es, lediglich einen Einblick in das Projekt zu geben und den Wiederaufbau im Frühjahr oder an neuen Standorten zu erleichtern. <br>
@@ -166,7 +162,7 @@ TODO: update documentation
 
 TODO: update documentation
 
-### Grafana
+### Grafana (OUTDATED!)
 ![grafana dashboard example](/docs/pictures/grafanarainyday.png "Grafana rainy day") <br>
 
 [[Tutorials]](https://grafana.com/tutorials/install-grafana-on-raspberry-pi/) Grafana kann genutzt werden um die gesammelten Daten in schönen plots darzustellen. Somit ist eine Überwachung der Feuchtigkeitswerte der Pflanzen sehr leicht möglich. <br>

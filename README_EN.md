@@ -3,26 +3,6 @@
 
 v3.3 WIP versions now are not stable
 
-- added openweather scripts (saving current conditions & air condition to influxDB)
-- added corresponding . sh launcher files
-- added ESP32 build
-- added 2nd circuit handling pumps & solenoids
-- updated (and tested) main circuit, corrected bugs & problems on ESP32 build
-- updated english translation of new version
-- updated documentation
-
-todo:
-- add openwather forecast script
-- add dynamic watering controlled by Pi (using ML later)
-- reimplement SD card module?
-- implement config file using SPIFFS
-- add new configuration file feature to replace default programming settings
-
-open problems:
-- sensor rail needs 5V not 3V! (hooked onto logic switch for now)
-- backup SD card module malfunctions
-- reverse voltage protection on 12V IN get really hot (bridged for now)
-
 ### About
 
 Automated Sensor Controlled Irrigation with Raspberry Pi & Arduino <br>
@@ -178,7 +158,7 @@ TODO: update documentation
 
 TODO: update documentation
 
-### Grafana
+### Grafana (OUTDATED!)
 ![grafana dashboard example](/docs/pictures/grafanarainyday.png "Grafana rainy day") <br>
 
 Again, there are very good [tutorials](https://grafana.com/tutorials/install-grafana-on-raspberry-pi/) to fall back on, so I won't go into detail about the installation process. Grafana can be used to display the collected data in nice plots. So monitoring the moisture levels of the plants is very easy. <br>
