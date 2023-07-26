@@ -64,6 +64,9 @@ class BasicSensor {
     // Pure virtual measure function that must be overridden by derived classes
     virtual float measure() = 0;
 
+    // Publishing Data
+    bool pubData(float value);
+
     // setters & getters
     String getSensorName() const;
     void setSensorName(const String& name);
@@ -71,9 +74,13 @@ class BasicSensor {
     bool getStatus() const;
     void setStatus(bool status);
 
+    float getValue() const;
+    void setValue(float result);
+
   private:
     String sensorName; // Name of the sensor
     bool status;       // Status of the sensor (true = on, false = off)
+    float result;      // result value
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

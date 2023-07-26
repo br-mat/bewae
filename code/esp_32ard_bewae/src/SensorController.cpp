@@ -34,6 +34,11 @@ BasicSensor::BasicSensor(const String& name) : sensorName(name), status(true) {}
 // Basic Destructor
 BasicSensor::~BasicSensor() {}
 
+bool BasicSensor::pubData(float value){
+// TODO
+    return Helper::pubInfluxData(this->sensorName, INFLUXDB_FIELD, value);
+}
+
 // getters & setters
 String BasicSensor::getSensorName() const {
     return sensorName;
@@ -49,6 +54,14 @@ bool BasicSensor::getStatus() const {
 
 void BasicSensor::setStatus(bool status) {
     this->status = status;
+}
+
+float BasicSensor::getValue() const {
+    return status;
+}
+
+void BasicSensor::setValue(float result) {
+    this->result = result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
