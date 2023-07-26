@@ -195,6 +195,10 @@
     #define max_groups 16 //number of possible solenoids (v-pins)
     #endif
 
+    #ifndef oneWireBus
+    #define oneWireBus 4 // GPIO where the DS18B20 is connected to
+    #endif
+
     #ifndef MAX_PUMPS
     #define MAX_PUMPS 2 //number of possible pumps (v-pins)
     #endif

@@ -29,9 +29,10 @@
 //Standard
 #include <Arduino.h>
 #include <Wire.h>
-#include <SPI.h>
-#include <SD.h>
-#include "SPIFFS.h"
+//#include <SPI.h>
+//#include <SD.h>
+#include <SPIFFS.h>
+#include <OneWire.h>
 
 //external
 #include <Adafruit_Sensor.h>
@@ -39,6 +40,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <DallasTemperature.h>
 
 //custom
 #include <connection.h>
@@ -70,12 +72,8 @@ unsigned long last_activation = 0; //timemark variable
 bool thirsty = false; //marks if a watering cycle is finished
 bool config = false;  //handle wireless configuration
 
-bool post_DATA = true; //controlls if data is sent back to pi or not
-bool msg_stop = false; //is config finished or not
-bool sw6 = 1;  //system switch (ON/OFF) NOT IMPLEMENTED YET
-bool sw0 = 1; //bewae switch (ON/OFF)
-bool sw1 = 0; //water time override condition
-bool sw2 = 0; //timetable override condition
+// Setup a oneWire instance to communicate with any OneWire device
+OneWire oneWire(oneWireBus);
 
 Adafruit_BME280 bme; // use I2C interface
 
@@ -172,7 +170,7 @@ void setup() {
     return;
   }
   
-  File file = SPIFFS.open(CONFIG_FILE_PATH);
+  fs::File file = SPIFFS.open(CONFIG_FILE_PATH);
   if(!file){
     Serial.println("Failed to open file for reading");
     return;
@@ -397,7 +395,7 @@ Serial.println(actual_time); Serial.println(last_activation); Serial.println(mea
 Serial.println((float)((float)actual_time-(float)last_activation)); Serial.println(up_time);
 #endif
 //if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall)) && (status_switches.getDatalogingSwitch()))
-if(false) // TODO FIX condition and work with status switches (might not work as expected)
+if(false) // TODO FIX condition and work with status switches
 {
   last_activation = actual_time; //first action refresh the time
   #ifdef DEBUG
@@ -410,7 +408,84 @@ if(false) // TODO FIX condition and work with status switches (might not work as
   digitalWrite(sw_sens2, HIGH);  //activate sensor rail
   delay(500);
 
-  // TODO integrate new sensor controller class measuring functionality
+  // Perform measurement of every configured vpin sensor (mux)
+  JsonObject sens = getJsonObjects("sensor", CONFIG_FILE_PATH);
+  // check for valid object
+  if (sens.isNull()) {
+    #ifdef DEBUG
+    Serial.println(F("Error: No 'Group' found in file!"));
+    #endif
+  }
+  else{
+    int numsens = sens.size();
+    // iterate over json object, find all configured sensors measure and post the results
+    for(JsonPair kv : sens){
+      bool status = kv.value()["is_set"].as<bool>();
+      // check status
+      if (!status) {
+        continue; // skip iteration if sensor is not set
+      }
+      int pin = String(kv.key().c_str()).toInt();
+      String name = kv.value()["name"].as<String>();
+      int low = kv.value()["llim"].as<int>();
+      int high = kv.value()["hlim"].as<int>();
+      float factor = kv.value()["fac"].as<float>();
+
+      // create measurement instance
+      VpinController sensor(name, pin, low, high, 0, factor);
+      float result;
+
+      // perform measuring
+      result = sensor.measure();
+
+      // pub gathered datapoint
+      bool cond = pubInfluxData(name, String(INFLUXDB_FIELD), result);
+
+      #ifdef DEBUG
+      // info pub data
+      if (!cond) {
+        Serial.print(F("Problem occured while publishing data to InfluxDB!"));
+      }
+      Serial.print(F("Publishing data from: ")); Serial.println(name);
+      Serial.print(F("Value: ")); Serial.println(result);
+      #endif
+    }
+  }
+
+  // BME280 sensor (default)
+  #ifdef BME280
+  if (!bme.begin(BME280_I2C_ADDRESS)) {
+    #ifdef DEBUG
+    Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
+    #endif
+  }
+  #ifdef DEBUG
+  Serial.print(F("Start measuring BME280"));
+  #endif
+
+  // setup bme measurment
+  MeasuringController bme_sensor[3] =
+  {
+    {"bme_temp", [&]() { return bme.readTemperature(); }},
+    {"bme_hum", [&]() { return bme.readHumidity(); }},
+    {"bme_pres", [&]() { return bme.readPressure(); }}
+  };
+
+  for(int i=0; i < 3; i++){
+    float result = bme_sensor->measure();
+    bool cond = pubInfluxData(bme_sensor->getSensorName(), String(INFLUXDB_FIELD), result);
+    #ifdef DEBUG
+    if (!cond){
+    Serial.println(F("Problem publishing BME!"));
+    }
+    #endif
+  }
+  #endif //bme280
+
+  // DHT11 sensor (alternative)
+  #ifdef DHT
+  //possible dht solution --- CURRENTLY NOT IMPLEMENTED!
+  #endif //dht
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

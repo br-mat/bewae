@@ -22,8 +22,8 @@
 //Standard
 #include <Arduino.h>
 #include <Wire.h>
-#include <SPI.h>
-#include <SD.h>
+//#include <SPI.h> // TODO fix namespacing problem with spiffs fs::File and SDfs::File for example
+//#include <SD.h>
 
 //external
 #include <Adafruit_Sensor.h>
@@ -32,12 +32,14 @@
 
 #include <Helper.h>
 
+/*
 #define SD_MOSI      13
 #define SD_MISO      5
 #define SD_SCK       14
 
 SPIClass spiSD(HSPI);
 //spiSD.begin(SD_SCK, SD_MISO, SD_MOSI);
+*/
 
 // Create an instance of the InfluxDBClient class with the specified URL, database name and token
 InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLUXDB_TOKEN);
@@ -463,7 +465,7 @@ bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_L
     return false;
   }
 
-  File newFile = SPIFFS.open(path, "w"); // open the config file for writing
+  fs::File newFile = SPIFFS.open(path, "w"); // open the config file for writing
   if (!newFile) { // check if file was opened successfully
     #ifdef DEBUG
     Serial.println(F("Error: Failed to open config file for writing"));
