@@ -113,7 +113,7 @@ Der verwendete Node-Red-Flow befindet sich im Ordner node-red-flows. Gegebenenfa
 
 ## Konfiguration der Sensoren:
 
-TODO: fill out section
+TODO: complete documentation
 
 <br>
 
@@ -156,13 +156,13 @@ Stellen Sie sicher, dass Sie die Zeit des RTC einstellen, entweder durch Einrich
 
 ### Node-Red
 
-TODO: update documentation
+TODO: complete documentation
 
 ### InfluxDB 2.0
 
-TODO: update documentation
+TODO: complete documentation
 
-### Grafana (OUTDATED!)
+### Grafana (TODO: Update docs)
 ![grafana dashboard example](/docs/pictures/grafanarainyday.png "Grafana rainy day") <br>
 
 [[Tutorials]](https://grafana.com/tutorials/install-grafana-on-raspberry-pi/) Grafana kann genutzt werden um die gesammelten Daten in schönen plots darzustellen. Somit ist eine Überwachung der Feuchtigkeitswerte der Pflanzen sehr leicht möglich. <br>
