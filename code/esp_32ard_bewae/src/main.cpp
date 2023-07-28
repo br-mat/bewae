@@ -56,8 +56,6 @@ using namespace std;
 #define DEBUG 1
 #endif
 
-using namespace Helper;
-
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
 //---- GLOBAL VARIABLES AND DEFINITIONS --------------------------------------------------------------------------------
@@ -76,6 +74,9 @@ bool config = false;  //handle wireless configuration
 OneWire oneWire(oneWireBus);
 
 Adafruit_BME280 bme; // use I2C interface
+
+// initialize Hardware configuration with Helper class
+//Helper_config1_main HWHelper;
 
 //limitations & watering & other
 //group limits and watering (some hardcoded stuff)                          
@@ -181,10 +182,8 @@ void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize bme280 sensor
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  digitalWrite(sw_3_3v, HIGH); delay(5);
-  shiftvalue(0, max_groups, INVERT_SHIFTOUT);
-  digitalWrite(sw_sens, HIGH);
-  digitalWrite(sw_sens2, HIGH);
+  HWHelper.enablePeripherals();
+  HWHelper.enableSensor();
 
   Serial.println(F("BME280 Sensor event test"));
   if (!bme.begin(BME280_I2C_ADDRESS)) {
@@ -234,14 +233,14 @@ void setup() {
   //  sec,min,h,day_w,day_m,month,ear
 
   //initialize global time
-  Helper::read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
+  HWHelper.read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
 
   delay(500);  //make TX pin Blink 2 times
   Serial.print(F("Measure intervall: "));
   delay(500);
   Serial.println(measure_intervall);
   
-  system_sleep(); //turn off all external transistors
+  HWHelper.system_sleep(); //turn off all external transistors
   delay(500);
   
   // configure low power timer
@@ -251,16 +250,16 @@ void setup() {
   //init Irrigation Controller instance and update config
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   #ifdef RasPi
-  wakeModemSleep();
+  HWHelper.wakeModemSleep();
   delay(1);
   // update the config file stored in spiffs
   // in order to work a RasPi with node-red and configured flow is needed
-  updateConfig(CONFIG_FILE_PATH);
+  HWHelper.updateConfig(CONFIG_FILE_PATH);
   #endif
   //hour_ = 0;
   //disableWiFi();
 
-  system_sleep(); //turn off all external transistors
+  HWHelper.system_sleep(); //turn off all external transistors
 
 }
 
@@ -275,9 +274,8 @@ void loop(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // start loop
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-digitalWrite(sw_3_3v, HIGH); delay(10);
-shiftvalue(0, max_groups, INVERT_SHIFTOUT);
-delay(10);
+//deactivate 3.3v supply
+HWHelper.enablePeripherals();
 #ifdef DEBUG
 Serial.println(F("start loop setup"));
 #endif
@@ -302,8 +300,8 @@ if(rtc_status != 0){
     rtc_status = Wire.endTransmission();
 
     //reactivate 3.3v supply
-    digitalWrite(sw_3_3v, HIGH); delay(10);
-    shiftvalue(0, max_groups, INVERT_SHIFTOUT);
+    HWHelper.enablePeripherals();
+
     delay(10);
     if(i > (int)10){
       break;
@@ -321,11 +319,15 @@ else{
 // get time
 if (!(bool)rtc_status)
 {
-  read_time(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
+  HWHelper.enablePeripherals(); //reactivate 3.3v supply
+  HWHelper.read_time(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
 }
 
+//deactivate 3.3v supply
+HWHelper.disablePeripherals();
+
 // update configuration
-SwitchController status_switches;
+SwitchController status_switches(&HWHelper);
 status_switches.updateSwitches();
 
 // check for hour change and update config
@@ -333,19 +335,19 @@ status_switches.updateSwitches();
 if(true){
   // check for hour change
   up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); // refresh the up_time every hour, no need for extra function or lib to calculate the up time
-  read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_); // update long time timestamp
+  HWHelper.read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_); // update long time timestamp
 
   // setup empty class instance & check timetables
   IrrigationController controller;
 
   #ifdef RasPi
   // look for config updates
-  wakeModemSleep();
+  HWHelper.wakeModemSleep();
   delay(1);
 
   // update whole config
   // in order to work a RasPi with node-red and configured flow is needed
-  updateConfig(CONFIG_FILE_PATH);
+  HWHelper.updateConfig(CONFIG_FILE_PATH);
   #endif
 
   // combine timetables
@@ -403,89 +405,17 @@ if(false) // TODO FIX condition and work with status switches
   #endif
 
   // turn on sensors
-  delay(1);
-  digitalWrite(sw_sens, HIGH);   //activate mux & SD
-  digitalWrite(sw_sens2, HIGH);  //activate sensor rail
+  HWHelper.enablePeripherals();
+  HWHelper.enableSensor();
   delay(500);
 
-  // Perform measurement of every configured vpin sensor (mux)
-  JsonObject sens = getJsonObjects("sensor", CONFIG_FILE_PATH);
-  // check for valid object
-  if (sens.isNull()) {
-    #ifdef DEBUG
-    Serial.println(F("Error: No 'Group' found in file!"));
-    #endif
-  }
-  else{
-    int numsens = sens.size();
-    // iterate over json object, find all configured sensors measure and post the results
-    for(JsonPair kv : sens){
-      bool status = kv.value()["is_set"].as<bool>();
-      // check status
-      if (!status) {
-        continue; // skip iteration if sensor is not set
-      }
-      int pin = String(kv.key().c_str()).toInt();
-      String name = kv.value()["name"].as<String>();
-      int low = kv.value()["llim"].as<int>();
-      int high = kv.value()["hlim"].as<int>();
-      float factor = kv.value()["fac"].as<float>();
+  // TODO: IMPLEMENT SENSORING
 
-      // create measurement instance
-      VpinController sensor(name, pin, low, high, 0, factor);
-      float result;
 
-      // perform measuring
-      result = sensor.measure();
 
-      // pub gathered datapoint
-      bool cond = pubInfluxData(name, String(INFLUXDB_FIELD), result);
 
-      #ifdef DEBUG
-      // info pub data
-      if (!cond) {
-        Serial.print(F("Problem occured while publishing data to InfluxDB!"));
-      }
-      Serial.print(F("Publishing data from: ")); Serial.println(name);
-      Serial.print(F("Value: ")); Serial.println(result);
-      #endif
-    }
-  }
-
-  // BME280 sensor (default)
-  #ifdef BME280
-  if (!bme.begin(BME280_I2C_ADDRESS)) {
-    #ifdef DEBUG
-    Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
-    #endif
-  }
-  #ifdef DEBUG
-  Serial.print(F("Start measuring BME280"));
-  #endif
-
-  // setup bme measurment
-  MeasuringController bme_sensor[3] =
-  {
-    {"bme_temp", [&]() { return bme.readTemperature(); }},
-    {"bme_hum", [&]() { return bme.readHumidity(); }},
-    {"bme_pres", [&]() { return bme.readPressure(); }}
-  };
-
-  for(int i=0; i < 3; i++){
-    float result = bme_sensor->measure();
-    bool cond = pubInfluxData(bme_sensor->getSensorName(), String(INFLUXDB_FIELD), result);
-    #ifdef DEBUG
-    if (!cond){
-    Serial.println(F("Problem publishing BME!"));
-    }
-    #endif
-  }
-  #endif //bme280
-
-  // DHT11 sensor (alternative)
-  #ifdef DHT
-  //possible dht solution --- CURRENTLY NOT IMPLEMENTED!
-  #endif //dht
+  HWHelper.disablePeripherals();
+  HWHelper.disableSensor();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -494,15 +424,15 @@ if(false) // TODO FIX condition and work with status switches
 thirsty = true; //uncoment for testing only
 //if(thirsty){
 if(true){ // always enter checking, timing is handled by irrigation class
-  digitalWrite(sw_3_3v, HIGH); delay(10); //switch on shift register! and logic?
-  shiftvalue(0, max_groups, INVERT_SHIFTOUT);
+  HWHelper.enablePeripherals();
+
   #ifdef DEBUG
   Serial.println(F("Enter watering phase"));
   #endif
   delay(30);
 
   // load config file
-  JsonObject groups = getJsonObjects("group", CONFIG_FILE_PATH);
+  JsonObject groups = HWHelper.getJsonObjects("group", CONFIG_FILE_PATH);
 
   // check for valid object
   if (groups.isNull()) {
@@ -586,9 +516,8 @@ if(true){ // always enter checking, timing is handled by irrigation class
     esp_light_sleep_start(); // sleep one period
   }
 
-  shiftvalue(0, max_groups, INVERT_SHIFTOUT); // TODO CHANGE TO NEW shiftvalue
-  delay(10);
-  digitalWrite(sw_3_3v, LOW); //switch OFF logic gates (5V) and shift register
+  HWHelper.disablePeripherals();
+  HWHelper.disableSensor();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -608,7 +537,7 @@ if (((loop_t + measure_intervall) > millis()) && (!thirsty)){
   #endif
 
   for(int i = 0; i < sleepCycles ; i++){
-    system_sleep(); //turn off all external transistors
+    HWHelper.system_sleep(); //turn off all external transistors
     esp_light_sleep_start();
     if(loop_t + measure_intervall < millis()){
       break; //break loop to start measuring
