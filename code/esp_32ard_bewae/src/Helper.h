@@ -66,6 +66,10 @@ public:
     virtual void shiftvalue(uint32_t val, uint8_t numBits, bool invert = false); // set shift register with more bits (32 bit)
     virtual void system_sleep(); // prepare low power mode (currently without light or deepsleep; TODO!)
     virtual void controll_mux(uint8_t channel, String mode, int *val);
+    virtual void enablePeripherals(); // enable 3v3 and others to other devices
+    virtual void disablePeripherals(); // disable 3v3 and others to other devices
+    virtual void enableSensor(); // enable 3v3 and others to other devices
+    virtual void disableSensor(); // disable 3v3 and others to other devices
 };
 
 // Hardware configuration 1 (Board 1) main
@@ -74,24 +78,61 @@ class Helper_config1_main : public HelperBase{
 };
 
 // Hardware configuration 1 (Board 1) alternative
-class Helper_config1_alternate : public HelperBase{
+class Helper_config1_Board1v3838 : public HelperBase{
 public:
     void shiftvalue8b(uint8_t val, bool invert = false) override; // set shift register to value (8 bit)
     void shiftvalue(uint32_t val, uint8_t numBits, bool invert = false) override; // set shift register with more bits (32 bit)
     void system_sleep() override; // prepare low power mode (currently without light or deepsleep; TODO!)
     void controll_mux(uint8_t channel, String mode, int *val) override;
+    void enablePeripherals() override; // enable 3v3 and others to other devices
+    void disablePeripherals() override; // disable 3v3 and others to other devices
+    void enableSensor() override; // enable 3v3 and others to other devices
+    void disableSensor() override; // disable 3v3 and others to other devices
+
+private:
+    enum Pins {
+        PWM = 32,
+        SW_SENS = 4,
+        SW_SENS2 = 25,
+        SW_3_3V = 23,
+        EN_MUX_1 = 5,
+        S3_MUX_1 = 16,
+        S2_MUX_1 = 17,
+        S1_MUX_1 = 18,
+        S0_MUX_1 = 19,
+        SIG_MUX_1 = 39,
+        ST_CP_SHFT = 26,
+        DATA_SHFT = 33,
+        SH_CP_SHFT = 27
+    };
 };
 
 // Hardware configuration 2 (Board 5)
-class Helper_config2 : public HelperBase{
+class Helper_config1_Board5v5 : public HelperBase{
 public:
     void shiftvalue8b(uint8_t val, bool invert = false) override; // set shift register to value (8 bit)
     void shiftvalue(uint32_t val, uint8_t numBits, bool invert = false) override; // set shift register with more bits (32 bit)
     void system_sleep() override; // prepare low power mode (currently without light or deepsleep; TODO!)
-    void controll_mux(uint8_t channel, String mode, int *val) override;
+    //void controll_mux(uint8_t channel, String mode, int *val) override; // keep empty
+    void enablePeripherals() override; // enable 3v3 and others to other devices
+    void disablePeripherals() override; // disable 3v3 and others to other devices
+    void enableSensor() override; // enable 3v3 and others to other devices
+    void disableSensor() override; // disable 3v3 and others to other devices
+
+private:
+    enum Pins {
+        PWM = 32,
+        SW_SENS = 4,
+        SW_SENS2 = 25,
+        SW_3_3V = 23,
+        SIG_MUX_1 = 39,
+        ST_CP_SHFT = 17,
+        DATA_SHFT = 13,
+        SH_CP_SHFT = 16
+    };
 };
 
 // allowing to use HelperClass without having to create an instance of the class
-//extern Helper_config1_main HWHelper;
+extern Helper_config1_Board5v5 HWHelper;
 
 #endif

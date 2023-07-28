@@ -46,81 +46,6 @@ SPIClass spiSD(HSPI);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  HELPER     functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// seting shiftregister to defined value (8bit)
-void HelperBase::shiftvalue8b(uint8_t val, bool invert){
-  //Function description: shiftout 8 bit value, MSBFIRST
-  //FUNCTION PARAMETER:
-  //val         -- 8bit value writte out to shift register                             uint8_t
-  //------------------------------------------------------------------------------------------------
-
-  // invert val if needed
-  if (invert) {
-    val = ~val;  // Invert the value if the invert flag is set to true
-  }
-  digitalWrite(st_cp_shft, LOW);
-  shiftOut(data_shft, sh_cp_shft, MSBFIRST, val); //take byte type as value
-  digitalWrite(st_cp_shft, HIGH); //update output of the register
-  delayMicroseconds(100);
-  digitalWrite(st_cp_shft, LOW);
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// set shiftregister to defined value (32 bit)
-void HelperBase::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
-  // Function description: shift out specified number of bits from a value, MSBFIRST
-  // FUNCTION PARAMETERS:
-  // val       -- value to be shifted out                      uint32_t
-  // numBits   -- number of bits to be shifted out              uint8_t
-  // ------------------------------------------------------------------------------------------------
-
-  // invert val if needed
-  if (invert) {
-    val = ~val;  // Invert the value if the invert flag is set
-  }
-
-  #ifdef DEBUG
-  Serial.print(F("Shifting '"));
-  Serial.print(val, BIN); Serial.println(F("'"));
-  #endif
-
-  // Split the long value into two bytes
-  byte highByte = (val >> 8) & 0xFF;
-  byte lowByte = val & 0xFF;
-
-  // Shift out the high byte first
-  shiftOut(data_shft, sh_cp_shft, MSBFIRST, highByte);
-
-  // Then shift out the low byte
-  shiftOut(data_shft, sh_cp_shft, MSBFIRST, lowByte);
-
-  // Pulse the latch pin to activate the outputs
-  digitalWrite(st_cp_shft, LOW);
-  digitalWrite(st_cp_shft, HIGH);
-  digitalWrite(st_cp_shft, LOW);
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//Function: deactivate the modules, prepare for sleep & setting mux to "lowpower standby" mode:
-void HelperBase::system_sleep(){
-  digitalWrite(vent_pwm, LOW);     //pulls vent pwm pin low
-  digitalWrite(sw_sens, LOW);  //deactivates sensors
-  digitalWrite(sw_sens2, LOW);      //deactivates energy hungry devices
-  digitalWrite(sw_3_3v, LOW);      //deactivates energy hungry devices
-  delay(1);
-  digitalWrite(en_mux_1, HIGH);    //deactivates mux 1 on HIGH
-  digitalWrite(s0_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
-  digitalWrite(s1_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
-  digitalWrite(s2_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
-  digitalWrite(s3_mux_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
-
-
-  disableWiFi();
-  //esp_light_sleep_start();
-  #ifdef DEBUG
-  Serial.println(F("Output on standby"));
-  #endif
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Function description: copy strings
 //FUNCTION PARAMETER:
@@ -130,96 +55,6 @@ void HelperBase::system_sleep(){
 //------------------------------------------------------------------------------------------------
 void HelperBase::copy(int* src, int* dst, int len) {
   memcpy(dst, src, sizeof(src[0])*len);
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
-//FUNCTION PARAMETER:
-//control_pins  -- pins to set the mux binaries [4 pins]; mux as example;            uint8_t array [4]
-//NOT IN USE channel_setup -- array to define the 16 different channels; mux_channel as example; uint8_t array [16][4]
-//channel       -- selected channel; 0-15 as example;                                 uint8_t
-//sipsop        -- signal input signal output; free pin on arduino;                   uint8_t
-//enable        -- enable a selected mux; free pin on arduino;                        uint8_t
-//mode          -- mode wanted to use; set_low, set_high, read;                       String
-//val           -- pointer to reading value; &value in function call;                 int (&pointer)   
-//------------------------------------------------------------------------------------------------
-void HelperBase::controll_mux(uint8_t channel, String mode, int *val){
-  // shutdown wifi to avoid conflicts wif ADC2
-  WiFi.mode(WIFI_OFF);
-
-  // define important variables
-  uint8_t sipsop = sig_mux_1;
-  uint8_t enable = en_mux_1;
-
-  // setup pin config
-  int control_pins[4] = {s0_mux_1,s1_mux_1,s2_mux_1,s3_mux_1};
-  
-  uint8_t channel_setup[16][4]={
-    {0,0,0,0}, //channel 0
-    {1,0,0,0}, //channel 1
-    {0,1,0,0}, //channel 2
-    {1,1,0,0}, //channel 3
-    {0,0,1,0}, //channel 4
-    {1,0,1,0}, //channel 5
-    {0,1,1,0}, //channel 6
-    {1,1,1,0}, //channel 7
-    {0,0,0,1}, //channel 8
-    {1,0,0,1}, //channel 9
-    {0,1,0,1}, //channel 10
-    {1,1,0,1}, //channel 11
-    {0,0,1,1}, //channel 12
-    {1,0,1,1}, //channel 13
-    {0,1,1,1}, //channel 14
-    {1,1,1,1}  //channel 15
-  };
-  
-  //make sure sig in/out of the mux is disabled
-  digitalWrite(enable, HIGH);
-  
-  //selecting channel
-  for(int i=0; i<4; i++){
-    digitalWrite(control_pins[i], channel_setup[channel][i]);
-  }
-  //modes
-  //"set_low" mode
-  if(mode == String("set_low")){
-    pinMode(sipsop, OUTPUT); //turning signal to output
-    delay(1);
-    digitalWrite(sipsop, LOW);
-    digitalWrite(enable, LOW);
-    delay(1);
-    digitalWrite(enable, HIGH);
-    pinMode(sipsop, INPUT); //seting back on input to not accidentally short the circuit somewhere
-  }
-  //"set_high" mode
-  if(mode == String("set_high")){
-    pinMode(sipsop, OUTPUT); //turning signal to output
-    delay(1);
-    digitalWrite(sipsop, HIGH);
-    digitalWrite(enable, LOW);
-    delay(1);
-    digitalWrite(enable, HIGH);
-    pinMode(sipsop, INPUT); //seting back to input to not accidentally short the circuit somewhere
-  }
-  //"read" mode
-  if(mode == String("read")){
-    double valsum=0;
-    pinMode(sipsop, INPUT); //make sure its on input
-    digitalWrite(enable, LOW);
-    delay(2); //give time to stabilize reading
-    *val=analogRead(sipsop); //throw away 
-    *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
-    for(int i=0; i<15; i++){
-      valsum += analogRead(sipsop);
-    }
-    *val=(int)(valsum/15.0+0.5); //take measurement (mean value)
-    delayMicroseconds(100);
-    digitalWrite(enable, HIGH);
-  }
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -670,47 +505,285 @@ bool HelperBase::updateConfig(const char* path){
 
 
 
-void Helper_config1_alternate::shiftvalue8b(uint8_t val, bool invert) {
+void HelperBase::shiftvalue8b(uint8_t val, bool invert) {
     // Provide a new implementation of system_sleep specific to Helper_config1_alternate here
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Helper_config1_alternate::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
+void HelperBase::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
     // Provide a new implementation of system_sleep specific to Helper_config1_alternate here
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Helper_config1_alternate::system_sleep() {
+void HelperBase::system_sleep() {
     // Provide a new implementation of system_sleep specific to Helper_config1_alternate here
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Helper_config1_alternate::controll_mux(uint8_t channel, String mode, int *val) {
+void HelperBase::controll_mux(uint8_t channel, String mode, int *val) {
     // Provide a new implementation of system_sleep specific to Helper_config1_alternate here
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Activate system
+void HelperBase::enablePeripherals() {
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Disable system
+void HelperBase::disablePeripherals() {
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Activate additional sensor rail
+void HelperBase::enableSensor() {
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Disable additional sensor rail
+void HelperBase::disableSensor() {
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-void Helper_config2::shiftvalue8b(uint8_t val, bool invert) {
+// seting shiftregister to defined value (8bit)
+void Helper_config1_Board1v3838::shiftvalue8b(uint8_t val, bool invert){
+  //Function description: shiftout 8 bit value, MSBFIRST
+  //FUNCTION PARAMETER:
+  //val         -- 8bit value writte out to shift register                             uint8_t
+  //------------------------------------------------------------------------------------------------
+
+  // invert val if needed
+  if (invert) {
+    val = ~val;  // Invert the value if the invert flag is set to true
+  }
+  digitalWrite(Pins::ST_CP_SHFT, LOW);
+  shiftOut(Pins::DATA_SHFT, Pins::SH_CP_SHFT, MSBFIRST, val); //take byte type as value
+  digitalWrite(Pins::ST_CP_SHFT, HIGH); //update output of the register
+  delayMicroseconds(100);
+  digitalWrite(Pins::ST_CP_SHFT, LOW);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// set shiftregister to defined value (32 bit)
+void Helper_config1_Board1v3838::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
+  // Function description: shift out specified number of bits from a value, MSBFIRST
+  // FUNCTION PARAMETERS:
+  // val       -- value to be shifted out                      uint32_t
+  // numBits   -- number of bits to be shifted out              uint8_t
+  // ------------------------------------------------------------------------------------------------
+
+  // invert val if needed
+  if (invert) {
+    val = ~val;  // Invert the value if the invert flag is set
+  }
+
+  #ifdef DEBUG
+  Serial.print(F("Shifting '"));
+  Serial.print(val, BIN); Serial.println(F("'"));
+  #endif
+
+  // Split the long value into two bytes
+  byte highByte = (val >> 8) & 0xFF;
+  byte lowByte = val & 0xFF;
+
+  // Shift out the high byte first
+  shiftOut(Pins::DATA_SHFT, Pins::SH_CP_SHFT, MSBFIRST, highByte);
+
+  // Then shift out the low byte
+  shiftOut(Pins::DATA_SHFT, Pins::SH_CP_SHFT, MSBFIRST, lowByte);
+
+  // Pulse the latch pin to activate the outputs
+  digitalWrite(Pins::ST_CP_SHFT, LOW);
+  digitalWrite(Pins::ST_CP_SHFT, HIGH);
+  digitalWrite(Pins::ST_CP_SHFT, LOW);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Function: deactivate the modules, prepare for sleep & setting mux to "lowpower standby" mode:
+void Helper_config1_Board1v3838::system_sleep(){
+  digitalWrite(Pins::PWM, LOW);     //pulls vent pwm pin low
+  digitalWrite(Pins::SW_SENS, LOW);  //deactivates sensors
+  digitalWrite(Pins::SW_SENS2, LOW);      //deactivates energy hungry devices
+  digitalWrite(Pins::SW_3_3V, LOW);      //deactivates energy hungry devices
+  delay(1);
+  digitalWrite(Pins::EN_MUX_1 , HIGH);    //deactivates mux 1 on HIGH
+  digitalWrite(Pins::S0_MUX_1 , HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
+  digitalWrite(Pins::S1_MUX_1 , HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
+  digitalWrite(Pins::S2_MUX_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
+  digitalWrite(Pins::S3_MUX_1 , HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
+
+
+  disableWiFi();
+  //esp_light_sleep_start();
+  #ifdef DEBUG
+  Serial.println(F("Output on standby"));
+  #endif
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Function description: Controlls the mux, only switches for a short period of time for reading and sending short pulses
+//FUNCTION PARAMETER:
+//control_pins  -- pins to set the mux binaries [4 pins]; mux as example;            uint8_t array [4]
+//NOT IN USE channel_setup -- array to define the 16 different channels; mux_channel as example; uint8_t array [16][4]
+//channel       -- selected channel; 0-15 as example;                                 uint8_t
+//sipsop        -- signal input signal output; free pin on arduino;                   uint8_t
+//enable        -- enable a selected mux; free pin on arduino;                        uint8_t
+//mode          -- mode wanted to use; set_low, set_high, read;                       String
+//val           -- pointer to reading value; &value in function call;                 int (&pointer)   
+//------------------------------------------------------------------------------------------------
+void Helper_config1_Board1v3838::controll_mux(uint8_t channel, String mode, int *val){
+  // shutdown wifi to avoid conflicts wif ADC2
+  WiFi.mode(WIFI_OFF);
+
+  // define important variables
+  uint8_t sipsop = sig_mux_1;
+  uint8_t enable = en_mux_1;
+
+  // setup pin config
+  int control_pins[4] = {s0_mux_1,s1_mux_1,s2_mux_1,s3_mux_1};
+  
+  uint8_t channel_setup[16][4]={
+    {0,0,0,0}, //channel 0
+    {1,0,0,0}, //channel 1
+    {0,1,0,0}, //channel 2
+    {1,1,0,0}, //channel 3
+    {0,0,1,0}, //channel 4
+    {1,0,1,0}, //channel 5
+    {0,1,1,0}, //channel 6
+    {1,1,1,0}, //channel 7
+    {0,0,0,1}, //channel 8
+    {1,0,0,1}, //channel 9
+    {0,1,0,1}, //channel 10
+    {1,1,0,1}, //channel 11
+    {0,0,1,1}, //channel 12
+    {1,0,1,1}, //channel 13
+    {0,1,1,1}, //channel 14
+    {1,1,1,1}  //channel 15
+  };
+  
+  //make sure sig in/out of the mux is disabled
+  digitalWrite(enable, HIGH);
+  
+  //selecting channel
+  for(int i=0; i<4; i++){
+    digitalWrite(control_pins[i], channel_setup[channel][i]);
+  }
+  //modes
+  //"set_low" mode
+  if(mode == String("set_low")){
+    pinMode(sipsop, OUTPUT); //turning signal to output
+    delay(1);
+    digitalWrite(sipsop, LOW);
+    digitalWrite(enable, LOW);
+    delay(1);
+    digitalWrite(enable, HIGH);
+    pinMode(sipsop, INPUT); //seting back on input to not accidentally short the circuit somewhere
+  }
+  //"set_high" mode
+  if(mode == String("set_high")){
+    pinMode(sipsop, OUTPUT); //turning signal to output
+    delay(1);
+    digitalWrite(sipsop, HIGH);
+    digitalWrite(enable, LOW);
+    delay(1);
+    digitalWrite(enable, HIGH);
+    pinMode(sipsop, INPUT); //seting back to input to not accidentally short the circuit somewhere
+  }
+  //"read" mode
+  if(mode == String("read")){
+    double valsum=0;
+    pinMode(sipsop, INPUT); //make sure its on input
+    digitalWrite(enable, LOW);
+    delay(2); //give time to stabilize reading
+    *val=analogRead(sipsop); //throw away 
+    *val=analogRead(sipsop); //throw away
+    *val=analogRead(sipsop); //throw away
+    *val=analogRead(sipsop); //throw away
+    *val=analogRead(sipsop); //throw away
+    *val=analogRead(sipsop); //throw away
+    for(int i=0; i<15; i++){
+      valsum += analogRead(sipsop);
+    }
+    *val=(int)(valsum/15.0+0.5); //take measurement (mean value)
+    delayMicroseconds(100);
+    digitalWrite(enable, HIGH);
+  }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Activate system
+void Helper_config1_Board1v3838::enablePeripherals() {
+  digitalWrite(Pins::SW_3_3V, HIGH); delay(5);
+  HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
+  digitalWrite(Pins::SW_SENS, HIGH);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Disable system
+void Helper_config1_Board1v3838::disablePeripherals() {
+    digitalWrite(Pins::SW_3_3V, LOW); delay(5);
+    HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
+    digitalWrite(Pins::SW_SENS, LOW);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Activate additional sensor rail
+void Helper_config1_Board1v3838::enableSensor() {
+  digitalWrite(Pins::SW_SENS2, HIGH);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Disable additional sensor rail
+void Helper_config1_Board1v3838::disableSensor() {
+  digitalWrite(Pins::SW_SENS, LOW);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+void Helper_config1_Board5v5::shiftvalue8b(uint8_t val, bool invert) {
     // Provide a new implementation of system_sleep specific to Helper_config2 here
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Helper_config2::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
+void Helper_config1_Board5v5::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
     // Provide a new implementation of system_sleep specific to Helper_config2 here
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Helper_config2::system_sleep() {
+void Helper_config1_Board5v5::system_sleep() {
     // Provide a new implementation of system_sleep specific to Helper_config2 here
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Helper_config2::controll_mux(uint8_t channel, String mode, int *val) {
-    // Provide a new implementation of system_sleep specific to Helper_config2 here
+// Activate system
+void Helper_config1_Board5v5::enablePeripherals() {
+  digitalWrite(sw_3_3v, HIGH); delay(5);
+  HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
+  digitalWrite(sw_sens, HIGH);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Disable system
+void Helper_config1_Board5v5::disablePeripherals() {
+    digitalWrite(sw_3_3v, LOW); delay(5);
+    HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
+    digitalWrite(sw_sens, LOW);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Activate additional sensor rail
+void Helper_config1_Board5v5::enableSensor() {
+  digitalWrite(sw_sens2, HIGH);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Disable additional sensor rail
+void Helper_config1_Board5v5::disableSensor() {
+  digitalWrite(sw_sens2, LOW);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // allowing to use HelperClass without having to create an instance of the class
-//Helper_config1_main HWHelper;
+Helper_config1_Board5v5 HWHelper;

@@ -64,7 +64,7 @@ LoadDriverPin controller_pins[max_groups] =
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // DEFAULT Constructor seting an empty class
-IrrigationController::IrrigationController(HelperBase* helper)
+IrrigationController::IrrigationController()
     : is_set(false), timetable(0), lastupdate(0), watering(0), water_time(0), name("NV") {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -197,7 +197,7 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
 // Updates the values of a number of member variables in the IrrigationController class in the JSON file at the specified file path.
 // Returns true if the file was updated successfully, false if the file path is invalid or if there is an error reading or writing the file.
 bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], const char grp_name[MAX_GROUP_LENGTH]) {
-  DynamicJsonDocument jsonDoc =  helper->readConfigFile(path); // read the config file
+  DynamicJsonDocument jsonDoc =  HWHelper.readConfigFile(path); // read the config file
   // check jsonDoc
   if (jsonDoc.isNull()) {
     #ifdef DEBUG
@@ -233,7 +233,7 @@ bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], cons
   jsonDoc["group"][grp_name]["lastup"][1] = this->lastDay;
 
   // return bool to indicate if status failed
-  return helper->writeConfigFile(jsonDoc, path); // write the updated JSON data to the config file
+  return HWHelper.writeConfigFile(jsonDoc, path); // write the updated JSON data to the config file
   }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -278,7 +278,7 @@ void IrrigationController::activatePWM(int time) {
   }
 
   // seting shiftregister to 0
-  helper->shiftvalue(0, max_groups, INVERT_SHIFTOUT);
+  HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
 
   // perform actual function
   unsigned long value = 0;  // Initialize the value to 0
@@ -297,7 +297,7 @@ void IrrigationController::activatePWM(int time) {
   #endif
 
   // activate pins
-  helper->shiftvalue(value, max_groups, INVERT_SHIFTOUT);
+  HWHelper.shiftvalue(value, max_groups, INVERT_SHIFTOUT);
   delay(100); //balance load after pump switches on
 
   // control PWM pin by changing the duty cycle:
@@ -336,7 +336,7 @@ void IrrigationController::activatePWM(int time) {
 
   // reset
   // seting shiftregister to 0
-  helper->shiftvalue(0, max_groups, INVERT_SHIFTOUT);
+  HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
 
   digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
   digitalWrite(st_cp_shft, LOW);
@@ -375,7 +375,7 @@ void IrrigationController::activate(int time_s) {
   }
 
   // seting shiftregister to 0
-  helper->shiftvalue(0, max_groups, INVERT_SHIFTOUT);
+  HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
 
   // perform actual function
   unsigned long value = 0;  // Initialize the value to 0
@@ -390,7 +390,7 @@ void IrrigationController::activate(int time_s) {
   #endif
 
   // activate pins
-  helper->shiftvalue(value, max_groups, INVERT_SHIFTOUT);
+  HWHelper.shiftvalue(value, max_groups, INVERT_SHIFTOUT);
 
   delay(100); //balance load after pump switches on
 
@@ -407,7 +407,7 @@ void IrrigationController::activate(int time_s) {
 
   // reset
   // seting shiftregister to 0
-  helper->shiftvalue(0, max_groups, INVERT_SHIFTOUT);
+  HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
 
   digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
   digitalWrite(st_cp_shft, LOW);
@@ -545,14 +545,14 @@ int IrrigationController::watering_task_handler(int hour, int day) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Define the implementation of the combineTimetables() static member function
-long IrrigationController::combineTimetables(HelperBase* helper)
+long IrrigationController::combineTimetables()
 {
   // Initialize the combined timetable to 0.
   long combinedTimetable = 0;
 
   // load config
   DynamicJsonDocument doc(CONF_FILE_SIZE);
-  doc = helper->readConfigFile(CONFIG_FILE_PATH);
+  doc = HWHelper.readConfigFile(CONFIG_FILE_PATH);
 
   // Access the "groups" object
   JsonObject groups = doc["group"];

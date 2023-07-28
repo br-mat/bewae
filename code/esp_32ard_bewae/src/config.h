@@ -196,7 +196,7 @@
     #endif
 
     #ifndef oneWireBus
-    #define oneWireBus 4 // GPIO where the DS18B20 is connected to
+    #define oneWireBus 5 // GPIO where the DS18B20 is connected to
     #endif
 
     #ifndef MAX_PUMPS
@@ -233,7 +233,7 @@
     #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// default static variable definitions & virtual pins (shift register)
+// default static variable definitions & virtual pins (shift register)shiftvalue
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // reverse shiftregister output in case of optocoupler
     #ifndef INVERT_SHIFTOUT

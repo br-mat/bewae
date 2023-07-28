@@ -79,7 +79,7 @@ class IrrigationController {
     int water_time; //holds value of how long it should water, value will get saved to config
 
     // Helper config member
-    HelperBase* helper;
+    //HelperBase* helper;
 
     // PRIVATE METHODS:
     // Loads the config file and sets the values of the member variables
@@ -98,13 +98,12 @@ class IrrigationController {
 
     // Alternative constructor
     IrrigationController(
-                          HelperBase* helper,
                           const char path[PATH_LENGTH],
                           const char keyName[MAX_GROUP_LENGTH]
     );
 
     // DEFAULT Constructor seting an empty class
-    IrrigationController(HelperBase* helper);
+    IrrigationController();
 
     // DEFAULT Destructor free up dynamic allocated memory
     ~IrrigationController();
@@ -132,7 +131,7 @@ class IrrigationController {
     // Member function to update the data
     //bool updateController();
     // Define a static member function to combine the timetables of an array of IrrigationController objects using a loop
-    static long combineTimetables(HelperBase* helper);
+    static long combineTimetables();
 };
 
 #endif
