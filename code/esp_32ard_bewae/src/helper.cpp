@@ -41,14 +41,13 @@ SPIClass spiSD(HSPI);
 //spiSD.begin(SD_SCK, SD_MISO, SD_MOSI);
 */
 
-// Create an instance of the InfluxDBClient class with the specified URL, database name and token
-InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLUXDB_TOKEN);
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  HELPER     functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // seting shiftregister to defined value (8bit)
-void Helper::shiftvalue8b(uint8_t val, bool invert){
+void HelperBase::shiftvalue8b(uint8_t val, bool invert){
   //Function description: shiftout 8 bit value, MSBFIRST
   //FUNCTION PARAMETER:
   //val         -- 8bit value writte out to shift register                             uint8_t
@@ -67,7 +66,7 @@ void Helper::shiftvalue8b(uint8_t val, bool invert){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // set shiftregister to defined value (32 bit)
-void Helper::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
+void HelperBase::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
   // Function description: shift out specified number of bits from a value, MSBFIRST
   // FUNCTION PARAMETERS:
   // val       -- value to be shifted out                      uint32_t
@@ -76,7 +75,7 @@ void Helper::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
 
   // invert val if needed
   if (invert) {
-    val = ~val;  // Invert the value if the invert flag is set to true
+    val = ~val;  // Invert the value if the invert flag is set
   }
 
   #ifdef DEBUG
@@ -102,7 +101,7 @@ void Helper::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Function: deactivate the modules, prepare for sleep & setting mux to "lowpower standby" mode:
-void Helper::system_sleep(){
+void HelperBase::system_sleep(){
   digitalWrite(vent_pwm, LOW);     //pulls vent pwm pin low
   digitalWrite(sw_sens, LOW);  //deactivates sensors
   digitalWrite(sw_sens2, LOW);      //deactivates energy hungry devices
@@ -129,7 +128,7 @@ void Helper::system_sleep(){
 //dst         -- destiny array                                                      int
 //len         -- length of array                                                    int
 //------------------------------------------------------------------------------------------------
-void Helper::copy(int* src, int* dst, int len) {
+void HelperBase::copy(int* src, int* dst, int len) {
   memcpy(dst, src, sizeof(src[0])*len);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -144,8 +143,17 @@ void Helper::copy(int* src, int* dst, int len) {
 //mode          -- mode wanted to use; set_low, set_high, read;                       String
 //val           -- pointer to reading value; &value in function call;                 int (&pointer)   
 //------------------------------------------------------------------------------------------------
-void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, String mode, int *val){
+void HelperBase::controll_mux(uint8_t channel, String mode, int *val){
+  // shutdown wifi to avoid conflicts wif ADC2
+  WiFi.mode(WIFI_OFF);
+
+  // define important variables
+  uint8_t sipsop = sig_mux_1;
+  uint8_t enable = en_mux_1;
+
+  // setup pin config
   int control_pins[4] = {s0_mux_1,s1_mux_1,s2_mux_1,s3_mux_1};
+  
   uint8_t channel_setup[16][4]={
     {0,0,0,0}, //channel 0
     {1,0,0,0}, //channel 1
@@ -216,14 +224,14 @@ void Helper::controll_mux(uint8_t channel, uint8_t sipsop, uint8_t enable, Strin
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Convert normal decimal numbers to binary coded decimal
-byte  Helper::dec_bcd(byte val)
+byte  HelperBase::dec_bcd(byte val)
 {
   return( (val/10*16) + (val%10) );
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Convert binary coded decimal to normal decimal numbers
-byte  Helper::bcd_dec(byte val)
+byte  HelperBase::bcd_dec(byte val)
 {
   return( (val/16*10) + (val%16) );
 }
@@ -236,7 +244,7 @@ byte  Helper::bcd_dec(byte val)
 //hour       --                   hours   -- byte
 //dayofweek  --         weekday as number -- byte
 //dayofmonrh --    day of month as number -- byte
-void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
+void HelperBase::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
 {
   // sets time and date data to DS3231
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
@@ -261,7 +269,7 @@ void Helper::set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte 
 //dayofmonrh --    day of month as number -- byte
 //month      --                     month -- byte
 //year       --   year as number 2 digits -- byte
-void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
+void HelperBase::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
 {
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
   Wire.write(0); // set DS3231 register pointer to 00h
@@ -286,7 +294,7 @@ void Helper::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte
 //Function: give back a timestamp as string (iic)
 //FUNCTION PARAMETERS:
 // NONE
-String Helper::timestamp(){
+String HelperBase::timestamp(){
   String time_data="";
   byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
   // retrieve data from DS3231
@@ -307,12 +315,12 @@ String Helper::timestamp(){
 
 // Attempts to enable the WiFi and connect to a specified network.
 // Returns true if the connection was successful, false if not.
-bool Helper::connectWifi(){
+bool HelperBase::connectWifi(){
   if (WiFi.status() != WL_CONNECTED) {
     // Disconnect from any current WiFi connection and set the WiFi mode to station mode.
     WiFi.disconnect(true);  
     delayMicroseconds(100);
-    WiFi.mode(WIFI_STA);    
+    WiFi.mode(WIFI_STA);
 
     // Begin the process of connecting to the specified WiFi network.
     #ifdef DEBUG
@@ -361,7 +369,7 @@ bool Helper::connectWifi(){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // force modem sleep
-void Helper::setModemSleep() {
+void HelperBase::setModemSleep() {
   WiFi.setSleep(true);
   if (!setCpuFrequencyMhz(80)){
       Serial.println("Not valid frequency!");
@@ -373,7 +381,7 @@ void Helper::setModemSleep() {
 
 // Disables the WiFi on the device.
 // Returns true if the WiFi was successfully disabled, false if an error occurred.
-bool Helper::disableWiFi(){
+bool HelperBase::disableWiFi(){
   // Disconnect from the WiFi network.
   WiFi.disconnect(true);  
   // Set the WiFi mode to off.
@@ -386,7 +394,7 @@ bool Helper::disableWiFi(){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // unused
-void Helper::disableBluetooth(){
+void HelperBase::disableBluetooth(){
   // Quite unusefully, no relevable power consumption
   btStop();
   #ifdef DEBUG
@@ -397,17 +405,17 @@ void Helper::disableBluetooth(){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // waking up system
-void Helper::wakeModemSleep() {
+void HelperBase::wakeModemSleep() {
   #ifdef DEBUG
   Serial.println(F("Waking up modem!"));
   #endif
   setCpuFrequencyMhz(240);
-  Helper::connectWifi();
+  HelperBase::connectWifi();
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // search item in an array returning bool
-bool Helper::find_element(int *array, int item){
+bool HelperBase::find_element(int *array, int item){
   int len = sizeof(array);
   for(int i = 0; i < len; i++){
       if(array[i] == item){
@@ -420,7 +428,7 @@ bool Helper::find_element(int *array, int item){
 
 // Reads the JSON file at the specified file path and returns the data as a DynamicJsonDocument.
 // If the file path is invalid or if there is an error reading or parsing the file, an empty DynamicJsonDocument is returned.
-DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
+DynamicJsonDocument HelperBase::readConfigFile(const char path[PATH_LENGTH]) {
   // create buffer file
   DynamicJsonDocument jsonDoc(CONF_FILE_SIZE); // create JSON doc, if an error occurs it will return an empty jsonDoc
                                      // which can be checked using jsonDoc.isNull()
@@ -457,7 +465,7 @@ DynamicJsonDocument Helper::readConfigFile(const char path[PATH_LENGTH]) {
 
 // Writes the specified DynamicJsonDocument to the file at the specified file path as a JSON file.
 // Returns true if the file was written successfully, false if the file path is invalid or if there is an error writing the file.
-bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
+bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
   if (path == nullptr) { // check for valid path, a function could possibly use this and set a nullptr as path
     #ifdef DEBUG
     Serial.println(F("Invalid file path"));
@@ -484,9 +492,9 @@ bool Helper::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_L
 
 
 // send data to influxdb, return true when everything is ok
-bool Helper::pubInfluxData(String sensor_name, String field_name, float value) {
+bool HelperBase::pubInfluxData(InfluxDBClient* influx_client, String sensor_name, String field_name, float value) {
 
-  bool cond = Helper::connectWifi();
+  bool cond = HelperBase::connectWifi();
   if (!cond) {
     // if no connection is possible exit early
     #ifdef DEBUG
@@ -499,10 +507,10 @@ bool Helper::pubInfluxData(String sensor_name, String field_name, float value) {
   point.addField(field_name, value);  // Add temperature field to the Point object
 
   // Write the Point object to InfluxDB
-  if (!influx_client.writePoint(point)) {
+  if (!influx_client->writePoint(point)) {
     #ifdef DEBUG
     Serial.print(F("InfluxDB write failed: "));
-    Serial.println(influx_client.getLastErrorMessage());  // Print error message if write operation is unsuccessful
+    Serial.println(influx_client->getLastErrorMessage());  // Print error message if write operation is unsuccessful
     #endif
     return false;
   }
@@ -512,12 +520,13 @@ bool Helper::pubInfluxData(String sensor_name, String field_name, float value) {
     #endif
     return true;
   }
-
+  // default (should never be reached)
+  return false;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // blink onboard LED
-void Helper::blinkOnBoard(String howLong, int times) {
+void HelperBase::blinkOnBoard(String howLong, int times) {
    int duration;
   
    if (howLong == "long") {
@@ -538,10 +547,10 @@ void Helper::blinkOnBoard(String howLong, int times) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // loads JSON object from file using its key
-JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
+JsonObject HelperBase::getJsonObjects(const char* key, const char* filepath) {
   // load the stored file and get all keys
   DynamicJsonDocument doc(CONF_FILE_SIZE);
-  doc = Helper::readConfigFile(filepath);
+  doc = HelperBase::readConfigFile(filepath);
 
   JsonObject jsonobj;
 
@@ -573,7 +582,7 @@ JsonObject Helper::getJsonObjects(const char* key, const char* filepath) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // HTTP GET request to the Raspberry Pi server
-DynamicJsonDocument Helper::getJSONData(const char* server, int serverPort, const char* serverPath) {
+DynamicJsonDocument HelperBase::getJSONData(const char* server, int serverPort, const char* serverPath) {
   // create buffer file
   DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
   HTTPClient http;
@@ -610,12 +619,12 @@ DynamicJsonDocument Helper::getJSONData(const char* server, int serverPort, cons
 // This value is only relevant for the controller itself.
 // The function takes in a const char* type argument named path which specifies the path to retrieve new JSON data from the server.
 // Returns a bool value indicating the success of updating the config file with new JSON data from the server.
-bool Helper::updateConfig(const char* path){
+bool HelperBase::updateConfig(const char* path){
 
   // Check if the device is connected to WiFi
   if (WiFi.status() == WL_CONNECTED) {
     // Retrieve new JSON data from the server
-    DynamicJsonDocument newdoc = Helper::getJSONData(SERVER, SERVER_PORT, path);
+    DynamicJsonDocument newdoc = HelperBase::getJSONData(SERVER, SERVER_PORT, path);
     // Check if the retrieved data is not null
     if(newdoc.isNull()){
       #ifdef DEBUG
@@ -628,7 +637,7 @@ bool Helper::updateConfig(const char* path){
   // Access the "group" object of the new JSON data
   JsonObject group = newdoc["group"];
   // Retrieve the old group object from the config file
-  JsonObject oldGroup = Helper::getJsonObjects("group", CONFIG_FILE_PATH);
+  JsonObject oldGroup = HelperBase::getJsonObjects("group", CONFIG_FILE_PATH);
   // Iterate over all the keys in the new group object
   for (JsonObject::iterator it = group.begin(); it != group.end(); ++it) {
     const char* key = it->key().c_str();
@@ -648,7 +657,7 @@ bool Helper::updateConfig(const char* path){
     }
 
     // Write the updated JSON data to the config file
-    return Helper::writeConfigFile(newdoc, CONFIG_FILE_PATH);
+    return HelperBase::writeConfigFile(newdoc, CONFIG_FILE_PATH);
   }
   else{
     #ifdef DEBUG
@@ -658,3 +667,50 @@ bool Helper::updateConfig(const char* path){
   }
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+void Helper_config1_alternate::shiftvalue8b(uint8_t val, bool invert) {
+    // Provide a new implementation of system_sleep specific to Helper_config1_alternate here
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Helper_config1_alternate::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
+    // Provide a new implementation of system_sleep specific to Helper_config1_alternate here
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Helper_config1_alternate::system_sleep() {
+    // Provide a new implementation of system_sleep specific to Helper_config1_alternate here
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Helper_config1_alternate::controll_mux(uint8_t channel, String mode, int *val) {
+    // Provide a new implementation of system_sleep specific to Helper_config1_alternate here
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+void Helper_config2::shiftvalue8b(uint8_t val, bool invert) {
+    // Provide a new implementation of system_sleep specific to Helper_config2 here
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Helper_config2::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
+    // Provide a new implementation of system_sleep specific to Helper_config2 here
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Helper_config2::system_sleep() {
+    // Provide a new implementation of system_sleep specific to Helper_config2 here
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Helper_config2::controll_mux(uint8_t channel, String mode, int *val) {
+    // Provide a new implementation of system_sleep specific to Helper_config2 here
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// allowing to use HelperClass without having to create an instance of the class
+//Helper_config1_main HWHelper;
