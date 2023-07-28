@@ -29,14 +29,14 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Basic constructor
-BasicSensor::BasicSensor(const String& name) : sensorName(name), status(true) {}
+BasicSensor::BasicSensor(HelperBase* helper, const String& name) : helper(helper), sensorName(name), status(true) {}
 
 // Basic Destructor
 BasicSensor::~BasicSensor() {}
 
-bool BasicSensor::pubData(float value){
+bool BasicSensor::pubData(InfluxDBClient* influx_client, float value){
 // TODO
-    return Helper::pubInfluxData(this->sensorName, INFLUXDB_FIELD, value);
+    return helper->pubInfluxData(influx_client, this->sensorName, INFLUXDB_FIELD, value);
 }
 
 // getters & setters
@@ -69,8 +69,8 @@ void BasicSensor::setValue(float result) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Constructor with default measurement function nullptr
-MeasuringController::MeasuringController(const String& name, std::function<float()> measurementFunction)
-: BasicSensor(name), measurementFunction(measurementFunction) {}
+MeasuringController::MeasuringController(HelperBase* helper, const String& name, std::function<float()> measurementFunction)
+: BasicSensor(helper, name), measurementFunction(measurementFunction) {}
 
 // Destructor
 MeasuringController::~MeasuringController() {}
@@ -89,14 +89,14 @@ float MeasuringController::measure() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Total Constructor
-VpinController::VpinController(const String& name, int vpin, int low_limit, int high_limit, int additive, float factor)
-    : BasicSensor(name), virtualPin(vpin), low_limit(low_limit), high_limit(high_limit), additive(additive), factor(factor) {}
+VpinController::VpinController(HelperBase* helper, const String& name, int vpin, int low_limit, int high_limit, int additive, float factor)
+    : BasicSensor(helper, name), virtualPin(vpin), low_limit(low_limit), high_limit(high_limit), additive(additive), factor(factor) {}
 
 // Short Constructor
-VpinController::VpinController(const String& name, int vpin) : VpinController(name, vpin, 0, 0, 0, 1.0) {}
+VpinController::VpinController(HelperBase* helper, const String& name, int vpin) : VpinController(helper, name, vpin, 0, 0, 0, 1.0) {}
 
 // JSON Obj Constructor
-VpinController::VpinController(const String& name, const JsonObject& sensorConfig) : BasicSensor(name) { 
+VpinController::VpinController(HelperBase* helper, const String& name, const JsonObject& sensorConfig) : BasicSensor(helper, name) { 
     // validate JSON: Check for the presence of the additive and factor properties
     if (sensorConfig.containsKey("add")) {
         additive = sensorConfig["add"].as<int>();
@@ -129,7 +129,7 @@ VpinController::VpinController(const String& name, const JsonObject& sensorConfi
 float VpinController::measure() {
     // measurement performed either default or relative (in %)
     int result = 0;
-    Helper::controll_mux(this->virtualPin, sig_mux_1, en_mux_1, "read", &result); // use virtualPin on MUX and read its value
+    helper->controll_mux(this->virtualPin, "read", &result); // use virtualPin on MUX and read its value
 
     // check if rel measurement is needed
     if ((high_limit != 0) && (low_limit != 0)) {
@@ -153,14 +153,14 @@ float VpinController::measure() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Total Constructor
-PinController::PinController(const String& name, int pin, int low_limit, int high_limit, int additive, float factor)
-    : BasicSensor(name), pin(pin), low_limit(low_limit), high_limit(high_limit), additive(additive), factor(factor) {}
+PinController::PinController(HelperBase* helper, const String& name, int pin, int low_limit, int high_limit, int additive, float factor)
+    : BasicSensor(helper, name), pin(pin), low_limit(low_limit), high_limit(high_limit), additive(additive), factor(factor) {}
 
 // Short Constructor
-PinController::PinController(const String& name, int pin) : PinController(name, pin, 0, 0, 0, 1.0) {}
+PinController::PinController(HelperBase* helper, const String& name, int pin) : PinController(helper, name, pin, 0, 0, 0, 1.0) {}
 
 // JSON Obj Constructor
-PinController::PinController(const String& name, const JsonObject& sensorConfig) : BasicSensor(name) { 
+PinController::PinController(HelperBase* helper, const String& name, const JsonObject& sensorConfig) : BasicSensor(helper, name) { 
     // validate JSON: Check for the presence of the additive and factor properties
     if (sensorConfig.containsKey("add")) {
         additive = sensorConfig["add"].as<int>();
@@ -214,14 +214,14 @@ float PinController::measure() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Total Constructor
-SoilTempSensor::SoilTempSensor(const String& name, int addr, int additive, float factor)
-    : BasicSensor(name), addr(addr), additive(additive), factor(factor), sensors(&oneWire) {}
+SoilTempSensor::SoilTempSensor(HelperBase* helper, const String& name, int addr, int additive, float factor)
+    : BasicSensor(helper, name), addr(addr), additive(additive), factor(factor), sensors(&oneWire) {}
 
 // Short Constructor
-SoilTempSensor::SoilTempSensor(const String& name, int addr) : SoilTempSensor(name, addr, 0, 1.0) {}
+SoilTempSensor::SoilTempSensor(HelperBase* helper, const String& name, int addr) : SoilTempSensor(helper, name, addr, 0, 1.0) {}
 
 // JSON Obj Constructor
-SoilTempSensor::SoilTempSensor(const String& name, const JsonObject& sensorConfig) : BasicSensor(name) { 
+SoilTempSensor::SoilTempSensor(HelperBase* helper, const String& name, const JsonObject& sensorConfig) : BasicSensor(helper, name) { 
     // validate JSON: Check for the presence of the additive and factor properties
     if (sensorConfig.containsKey("add")) {
         additive = sensorConfig["add"].as<int>();
@@ -233,23 +233,26 @@ SoilTempSensor::SoilTempSensor(const String& name, const JsonObject& sensorConfi
     } else {
         factor = 1.0;
     }
-    if (sensorConfig.containsKey("addr")) {
-        addr = sensorConfig["addr"].as<uint16_t>();
+    if (sensorConfig.containsKey("pin")) {
+        addr = sensorConfig["pin"].as<uint16_t>();
     } else {
         addr = 0.0;
     }
 
-    oneWire = OneWire(addr);
+    oneWire = OneWire((uint8_t)addr);
     sensors = DallasTemperature(&oneWire);
 }
 
 // Override the measure function to read from an Arduino pin
 float SoilTempSensor::measure() {
     sensors.begin();  // Initialize the DS18B20 sensor
-    sensors.requestTemperatures();  // Request temperature conversion
+    delay(100);
+
+    // Request temperature
+    this->sensors.requestTemperatures();
 
     // Read temperature from DS18B20 sensor
-    float temperatureC = sensors.getTempCByIndex(0);
+    float temperatureC = this->sensors.getTempCByIndex(0);
 
     // Apply additive and factor
     temperatureC = temperatureC + additive;
@@ -264,11 +267,11 @@ float SoilTempSensor::measure() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Total Constructor
-bmeSensor::bmeSensor(const String& name, int addr, int mode)
-    : BasicSensor(name), addr(addr) {}
+bmeSensor::bmeSensor(HelperBase* helper, const String& name, int addr, int mode)
+    : BasicSensor(helper, name), addr(addr) {}
 
 // JSON Obj Constructor
-bmeSensor::bmeSensor(const String& name, const JsonObject& sensorConfig) : BasicSensor(name) { 
+bmeSensor::bmeSensor(HelperBase* helper, const String& name, const JsonObject& sensorConfig) : BasicSensor(helper, name) { 
     // validate JSON: Check for the presence of the additive and factor properties
     if (sensorConfig.containsKey("addr")) {
         addr = sensorConfig["addr"].as<int>();
@@ -286,22 +289,22 @@ bmeSensor::bmeSensor(const String& name, const JsonObject& sensorConfig) : Basic
 // Override the measure function to read from an Arduino pin
 float bmeSensor::measure() {
     // Initialize the BME280 sensor
-    if (!bme.begin(addr)) {
+    if (!bme_.begin(this->addr)) {
         Serial.println("Could not find a valid BME280 sensor, check wiring!");
         return 0;
     }
 
     float result;
-    switch (mode)
+    switch (this->mode)
     {
     case 0:
-        result = bme.readTemperature();
+        result = bme_.readTemperature();
         break;
     case 1:
-        result = bme.readHumidity();
+        result = bme_.readHumidity();
         break;
     case 2:
-        result = bme.readPressure();
+        result = bme_.readPressure();
         break;
     default:
         break;

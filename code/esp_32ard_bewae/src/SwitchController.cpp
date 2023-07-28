@@ -1,8 +1,8 @@
 #include "SwitchController.h"
 
 // Constructor
-SwitchController::SwitchController() {
-  JsonObject switches = Helper::getJsonObjects("switch", CONFIG_FILE_PATH);
+SwitchController::SwitchController(HelperBase* helper) : helper(helper) {
+  JsonObject switches = helper->getJsonObjects("switch", CONFIG_FILE_PATH);
   int reading_errors = 0;
   if (!switches.isNull()) {
     if (switches.containsKey("main")) {
@@ -49,7 +49,7 @@ SwitchController::SwitchController() {
 bool SwitchController::saveSwitches() {
 
   // Load the config file
-  DynamicJsonDocument jsonDoc = Helper::readConfigFile(CONFIG_FILE_PATH);
+  DynamicJsonDocument jsonDoc = helper->readConfigFile(CONFIG_FILE_PATH);
   if (jsonDoc.isNull()) {
     return false;
   }
@@ -62,7 +62,7 @@ bool SwitchController::saveSwitches() {
   switches["dmmy"] = this->placeholder3;
   
   // Save the updated config file
-  bool success = Helper::writeConfigFile(jsonDoc, CONFIG_FILE_PATH);
+  bool success = helper->writeConfigFile(jsonDoc, CONFIG_FILE_PATH);
   if (!success) {
     #ifdef DEBUG
     Serial.println("Error: could not save switches to config file.");
@@ -77,7 +77,7 @@ bool SwitchController::saveSwitches() {
 bool SwitchController::updateSwitches(){
   // Update config variables from local file
   // get newest locally stored config
-  JsonObject switches = Helper::getJsonObjects("switch", CONFIG_FILE_PATH);
+  JsonObject switches = helper->getJsonObjects("switch", CONFIG_FILE_PATH);
 
   // check json object
   if (switches.size() == 0) {

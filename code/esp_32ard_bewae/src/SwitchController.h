@@ -2,7 +2,7 @@
 #define SWITCHCONTROLLER_H
 
 #include <ArduinoJson.h>
-#include "Helper.h"
+#include <Helper.h>
 
 class SwitchController {
   private:
@@ -12,11 +12,13 @@ class SwitchController {
     bool irrigation_system_switch; // irrigation system switch
     bool placeholder3; // switch
 
+    HelperBase* helper;
+
     DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath);
 
   public:
     // Constructor
-    SwitchController();
+    SwitchController(HelperBase* helper);
 
     // SAVE SWITCH SETTINGS TO CONFIG FILE:
     bool saveSwitches();

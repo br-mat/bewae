@@ -56,7 +56,7 @@
 class BasicSensor {
   public:
     // Basic constructor that takes the name of the sensor as an argument
-    BasicSensor(const String& name);
+    BasicSensor(HelperBase* helper, const String& name);
 
     // Basic Destructor
     virtual ~BasicSensor();
@@ -65,7 +65,7 @@ class BasicSensor {
     virtual float measure() = 0;
 
     // Publishing Data
-    bool pubData(float value);
+    virtual bool pubData(InfluxDBClient* influx_client, float value);
 
     // setters & getters
     String getSensorName() const;
@@ -76,6 +76,9 @@ class BasicSensor {
 
     float getValue() const;
     void setValue(float result);
+
+    // Helper config member
+    HelperBase* helper;
 
   private:
     String sensorName; // Name of the sensor
@@ -92,7 +95,7 @@ class MeasuringController : public BasicSensor {
   public:
     // Constructor that takes the name of the sensor and a std::function as arguments.
     // The measurement function is optional and defaults to nullptr if not provided.
-    MeasuringController(const String& name, std::function<float()> measurementFunction = nullptr);
+    MeasuringController(HelperBase* helper, const String& name, std::function<float()> measurementFunction = nullptr);
 
     // Destructor
     ~MeasuringController();
@@ -102,7 +105,6 @@ class MeasuringController : public BasicSensor {
 
   private:
     std::function<float()> measurementFunction; // std::function that returns a float and takes no arguments.
-
     //using BasicSensor::sensorName;
     //using BasicSensor::status;
 };
@@ -115,14 +117,14 @@ class MeasuringController : public BasicSensor {
 class VpinController : public BasicSensor {
   public:
     // Total Constructor
-    VpinController(const String& name, int vpin, int low_limit, int high_limit, int additive, float factor);
+    VpinController(HelperBase* helper, const String& name, int vpin, int low_limit, int high_limit, int additive, float factor);
 
     // Short Constructor
-    VpinController(const String& name, int vpin);
+    VpinController(HelperBase* helper, const String& name, int vpin);
 
     // JSON Obj Constructor
     // pass name (key) and config (value)
-    VpinController(const String& name, const JsonObject& sensorConfig);
+    VpinController(HelperBase* helper, const String& name, const JsonObject& sensorConfig);
 
     // Override virtual measure function from base class to read and return the value from the specified virtual pin.
     float measure() override; // measurement performed either default or relative (in %)
@@ -146,14 +148,14 @@ class VpinController : public BasicSensor {
 class PinController : public BasicSensor {
   public:
       // Total Constructor
-    PinController(const String& name, int pin, int low_limit, int high_limit, int additive, float factor);
+    PinController(HelperBase* helper, const String& name, int pin, int low_limit, int high_limit, int additive, float factor);
 
     // Short Constructor
-    PinController(const String& name, int pin);
+    PinController(HelperBase* helper, const String& name, int pin);
 
     // JSON Obj Constructor
     // pass name (key) and config (value)
-    PinController(const String& name, const JsonObject& sensorConfig);
+    PinController(HelperBase* helper, const String& name, const JsonObject& sensorConfig);
     
     // Override the measure function to read from an Arduino pin
     float measure() override;
@@ -173,14 +175,14 @@ class PinController : public BasicSensor {
 class SoilTempSensor : public BasicSensor {
   public:
       // Total Constructor
-    SoilTempSensor(const String& name, int addr, int additive, float factor);
+    SoilTempSensor(HelperBase* helper, const String& name, int addr, int additive, float factor);
 
     // Short Constructor
-    SoilTempSensor(const String& name, int addr);
+    SoilTempSensor(HelperBase* helper, const String& name, int addr);
 
     // JSON Obj Constructor
     // pass name (key) and config (value)
-    SoilTempSensor(const String& name, const JsonObject& sensorConfig);
+    SoilTempSensor(HelperBase* helper, const String& name, const JsonObject& sensorConfig);
     
     // Override the measure function to read from an Arduino pin
     float measure() override;
@@ -200,19 +202,18 @@ class SoilTempSensor : public BasicSensor {
 class bmeSensor : public BasicSensor {
   public:
       // Total Constructor
-    bmeSensor(const String& name, int addr, int mode);
+    bmeSensor(HelperBase* helper, const String& name, int addr, int mode);
 
     // JSON Obj Constructor
     // pass name (key) and config (value)
-    bmeSensor(const String& name, const JsonObject& sensorConfig);
+    bmeSensor(HelperBase* helper, const String& name, const JsonObject& sensorConfig);
     
-    // Override the measure function to read from an Arduino pin
+    // Override the measure function
     float measure() override;
 
   private:
-    Adafruit_BME280 bme; // BME280 sensor instance
+    Adafruit_BME280 bme_; // BME280 sensor instance
     int addr; // I2C address of the BME280 sensor
     int mode;
-
 };
 #endif
