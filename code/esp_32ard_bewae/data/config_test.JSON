@@ -16,35 +16,21 @@
       "Tom1": {
         "is_set": 1,
         "vpins": [
-          1,
-          10
+          0,
+          1
         ],
         "lastup": [
           0,
           0
         ],
         "watering": 0,
-        "water-time": 40,
-        "timetable": 66688
+        "water-time": 10,
+        "timetable": 8388607
       },
       "Tom2": {
         "is_set": 1,
         "vpins": [
-          1,
-          9
-        ],
-        "lastup": [
           0,
-          0
-        ],
-        "watering": 0,
-        "water-time": 45,
-        "timetable": 66688
-      },
-      "Gewa": {
-        "is_set": 1,
-        "vpins": [
-          1,
           2
         ],
         "lastup": [
@@ -52,24 +38,10 @@
           0
         ],
         "watering": 0,
-        "water-time": 17,
-        "timetable": 524416
+        "water-time": 10,
+        "timetable": 8388607
       },
-      "Krtr": {
-        "is_set": 1,
-        "vpins": [
-          1,
-          11
-        ],
-        "lastup": [
-          0,
-          0
-        ],
-        "watering": 0,
-        "water-time": 13,
-        "timetable": 512
-      },
-      "Basi": {
+      "Gewa": {
         "is_set": 1,
         "vpins": [
           1,
@@ -80,40 +52,64 @@
           0
         ],
         "watering": 0,
-        "water-time": 18,
-        "timetable": 524416
+        "water-time": 10,
+        "timetable": 8388607
       },
-      "Erdb": {
+      "Krtr": {
         "is_set": 1,
         "vpins": [
-          1,
-          8
+          1
         ],
         "lastup": [
           0,
           0
         ],
         "watering": 0,
-        "water-time": 20,
-        "timetable": 524416
+        "water-time": 10,
+        "timetable": 8388607
+      },
+      "Basi": {
+        "is_set": 1,
+        "vpins": [
+          0
+        ],
+        "lastup": [
+          2
+        ],
+        "watering": 0,
+        "water-time": 10,
+        "timetable": 8388607
+      },
+      "Erdb": {
+        "is_set": 1,
+        "vpins": [
+          3
+        ],
+        "lastup": [
+          0,
+          0
+        ],
+        "watering": 0,
+        "water-time": 10,
+        "timetable": 8388607
       }
     },
     "sensor": {
-      "vpin": {
-        "12Vbat": {
-          "pin": 18,
+      "pin": {
+        "test1": {
+          "pin": 26,
           "hlim": 100,
           "llim": 0
         },
-        "Erdbeeren": {
-          "pin": 0,
+        "test2": {
+          "pin": 27,
           "hlim": 100,
           "llim": 0,
           "fac": 0.9,
           "add": 1
         },
-        "Gemüse": {
-          "pin": 0,
+        "test3": {
+          "pin": 34,
           "hlim": 100,
           "llim": 0,
           "fac": 0.9,
@@ -123,11 +119,6 @@
       "bme": {
         "Gehaeuse": {
           "addr": 118
-        }
-      },
-      "pin": {
-        "Licht": {
-          "pin": 15
         }
       },
       "1wire": {
