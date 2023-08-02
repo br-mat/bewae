@@ -17,19 +17,7 @@
 #define RasPi 1
 
 #ifndef CONFIG_FILE_PATH
-#define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
-#endif
-
-#ifndef IRRIGA_FILE_PATH
-#define IRRIGA_FILE_PATH "/controller-config.JSON" //specifies name of config file stored within spiffs
-#endif
-
-#ifndef SENSOR_FILE_PATH
-#define SENSOR_FILE_PATH "/sensor-config.JSON" //specifies name of config file stored within spiffs
-#endif
-
-#ifndef SWITCH_FILE_PATH
-#define SWITCH_FILE_PATH "/switch-config.JSON"
+#define CONFIG_FILE_PATH "/config_test.JSON" //specifies name of config file stored within spiffs
 #endif
 
 #ifndef INFLUXDB_FIELD
@@ -91,18 +79,6 @@
     #define topic_prefix "home/bewae_data/"
     #endif
 
-    #ifndef humidity_topic_sens2 //old
-    #define humidity_topic_sens2 "home/sens2/humidity"
-    #endif
-
-    #ifndef temperature_topic_sens2 //old
-    #define temperature_topic_sens2 "home/sens2/temperature"
-    #endif
-
-    #ifndef pressure_topic_sens2 //old
-    #define pressure_topic_sens2 "home/sens2/pressure"
-    #endif
-
     #ifndef config_status
     #define config_status "home/bewae/config_status" //signal Pi that system is up and listening for instructions
     #endif
@@ -110,18 +86,6 @@
     //subsciption topics
     #ifndef watering_topic
     #define watering_topic "home/bewae/config" //bewae config and config status indicate things not passed to influx recive watering instructions
-    #endif
-    #ifndef bewae_sw
-    #define bewae_sw "home/nano/bewae_sw" //switching watering system no/off
-    #endif
-    #ifndef watering_sw
-    #define watering_sw "home/nano/watering_sw" //switching value override on/off (default values on esp (false) or sent from pi (true))
-    #endif
-    #ifndef timetable_sw
-    #define timetable_sw "home/nano/timetable_sw" //switch custom timetable on/off (take default (false) take sent (true))
-    #endif
-    #ifndef timetable_content
-    #define timetable_content "home/nano/timetable" //changing timetable
     #endif
     #ifndef testing
     #define testing "home/test/tester"
@@ -220,10 +184,6 @@
     #define max_active_time_sec 40 //max time active of each solenoid ==> SECOND
     #endif
 
-    #ifndef pump_cooldown_sec
-    #define pump_cooldown_sec 60000UL //max time active of each pump ==> MILLISECOND
-    #endif
-
     #ifndef pwm_ch0
     #define pwm_ch0 0 //pwm channel
     #endif
@@ -237,29 +197,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // reverse shiftregister output in case of optocoupler
     #ifndef INVERT_SHIFTOUT
-    #define INVERT_SHIFTOUT false
-    #endif
-
-    // virtual pins (shift register)
-    #ifndef pump1
-    #define pump1 (uint8_t)0
-    #endif
-
-    #ifndef pump2
-    #define pump2 (uint8_t)1
-    #endif
-
-    // moisture sensors
-    #ifndef low_lim
-    #define low_lim 1000  //(m Volt) lower limitations, values lower are not realistic
-    #endif
-    
-    #ifndef high_lim
-    #define high_lim 1500 //(m Volt)high limitation, values passed that threshold are not realistic
-    #endif
-
-    // commands
-    #ifndef stat_request
-    #define stat_request 2
+    #define INVERT_SHIFTOUT true // set true if using negative logic relais
     #endif
 #endif
