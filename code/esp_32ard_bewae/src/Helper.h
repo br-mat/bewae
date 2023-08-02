@@ -88,6 +88,7 @@ public:
     void disablePeripherals() override; // disable 3v3 and others to other devices
     void enableSensor() override; // enable 3v3 and others to other devices
     void disableSensor() override; // disable 3v3 and others to other devices
+    void setPinModes(); // set pinmode of all enum elements to OUT/INPUT
 
 private:
     enum Pins {
@@ -100,11 +101,15 @@ private:
         S2_MUX_1 = 17,
         S1_MUX_1 = 18,
         S0_MUX_1 = 19,
-        SIG_MUX_1 = 39,
+        //SIG_MUX_1 = 39, // input pins
         ST_CP_SHFT = 26,
         DATA_SHFT = 33,
         SH_CP_SHFT = 27
     };
+    // iteratble configuratoin pins
+    const uint8_t output_pins[12] = {PWM, SW_SENS, SW_SENS2, SW_3_3V, EN_MUX_1, S3_MUX_1, S2_MUX_1, S1_MUX_1, S0_MUX_1, ST_CP_SHFT, DATA_SHFT, SH_CP_SHFT};
+    // configured input pins
+    const uint8_t input_pins[1] = {39};
 };
 
 // Hardware configuration 2 (Board 5)
@@ -118,6 +123,7 @@ public:
     void disablePeripherals() override; // disable 3v3 and others to other devices
     void enableSensor() override; // enable 3v3 and others to other devices
     void disableSensor() override; // disable 3v3 and others to other devices
+    void setPinModes();
 
 private:
     enum Pins {
@@ -125,11 +131,15 @@ private:
         SW_SENS = 4,
         SW_SENS2 = 25,
         SW_3_3V = 23,
-        SIG_MUX_1 = 39,
+        //SIG_MUX_1 = 39, // input pins
         ST_CP_SHFT = 17,
         DATA_SHFT = 13,
         SH_CP_SHFT = 16
     };
+    // iteratble configuratoin pins
+    const uint8_t output_pins[7] = {PWM, SW_SENS, SW_SENS2, SW_3_3V, ST_CP_SHFT, DATA_SHFT, SH_CP_SHFT};
+    // configured input pins
+    const uint8_t input_pins[7] = {26, 27, 39, 18, 15, 34, 36};
 };
 
 // allowing to use HelperClass without having to create an instance of the class

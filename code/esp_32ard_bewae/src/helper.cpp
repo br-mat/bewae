@@ -740,20 +740,78 @@ void Helper_config1_Board1v3838::disableSensor() {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// set pins to mode
+void Helper_config1_Board1v3838::setPinModes() {
+    for (auto pin : this->output_pins) {
+        pinMode(pin, OUTPUT);
+    }
+    for (auto pin : this->input_pins) {
+        pinMode(pin, INPUT);
+    }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 void Helper_config1_Board5v5::shiftvalue8b(uint8_t val, bool invert) {
-    // Provide a new implementation of system_sleep specific to Helper_config2 here
+  // invert val if needed
+  if (invert) {
+    val = ~val;  // Invert the value if the invert flag is set to true
+  }
+  digitalWrite(Pins::ST_CP_SHFT, LOW);
+  shiftOut(Pins::DATA_SHFT, Pins::SH_CP_SHFT, MSBFIRST, val); //take byte type as value
+  digitalWrite(Pins::ST_CP_SHFT, HIGH); //update output of the register
+  delayMicroseconds(100);
+  digitalWrite(Pins::ST_CP_SHFT, LOW);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Helper_config1_Board5v5::shiftvalue(uint32_t val, uint8_t numBits, bool invert) {
-    // Provide a new implementation of system_sleep specific to Helper_config2 here
+  // Function description: shift out specified number of bits from a value, MSBFIRST
+  // FUNCTION PARAMETERS:
+  // val       -- value to be shifted out                      uint32_t
+  // numBits   -- number of bits to be shifted out              uint8_t
+  // ------------------------------------------------------------------------------------------------
+
+  // invert val if needed
+  if (invert) {
+    val = ~val;  // Invert the value if the invert flag is set
+  }
+
+  #ifdef DEBUG
+  Serial.print(F("Shifting '"));
+  Serial.print(val, BIN); Serial.println(F("'"));
+  #endif
+
+  // Split the long value into two bytes
+  byte highByte = (val >> 8) & 0xFF;
+  byte lowByte = val & 0xFF;
+
+  // Shift out the high byte first
+  shiftOut(Pins::DATA_SHFT, Pins::SH_CP_SHFT, MSBFIRST, highByte);
+
+  // Then shift out the low byte
+  shiftOut(Pins::DATA_SHFT, Pins::SH_CP_SHFT, MSBFIRST, lowByte);
+
+  // Pulse the latch pin to activate the outputs
+  digitalWrite(Pins::ST_CP_SHFT, LOW);
+  digitalWrite(Pins::ST_CP_SHFT, HIGH);
+  digitalWrite(Pins::ST_CP_SHFT, LOW);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Helper_config1_Board5v5::system_sleep() {
-    // Provide a new implementation of system_sleep specific to Helper_config2 here
+  digitalWrite(Pins::PWM, LOW);     //pulls vent pwm pin low
+  digitalWrite(Pins::SW_SENS, LOW);  //deactivates sensors
+  digitalWrite(Pins::SW_SENS2, LOW);      //deactivates energy hungry devices
+  digitalWrite(Pins::SW_3_3V, LOW);      //deactivates energy hungry devices
+  delay(1);
+
+  disableWiFi();
+  //esp_light_sleep_start();
+  #ifdef DEBUG
+  Serial.println(F("Output on standby"));
+  #endif
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -782,6 +840,17 @@ void Helper_config1_Board5v5::enableSensor() {
 // Disable additional sensor rail
 void Helper_config1_Board5v5::disableSensor() {
   digitalWrite(sw_sens2, LOW);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// set pins to mode
+void Helper_config1_Board5v5::setPinModes() {
+    for (auto pin : this->output_pins) {
+        pinMode(pin, OUTPUT);
+    }
+    for (auto pin : this->input_pins) {
+        pinMode(pin, INPUT);
+    }
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
