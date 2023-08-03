@@ -143,6 +143,6 @@ private:
 };
 
 // allowing to use HelperClass without having to create an instance of the class
-extern Helper_config1_Board5v5 HWHelper;
+extern Helper_config1_Board1v3838 HWHelper;
 
 #endif

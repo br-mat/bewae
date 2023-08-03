@@ -108,21 +108,35 @@ void HelperBase::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,
 {
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
   Wire.write(0); // set DS3231 register pointer to 00h
-  Wire.endTransmission();
-  Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
-  // request seven bytes of data from DS3231 starting from register 00h
-  *second = bcd_dec(Wire.read() & 0x7f);
-  *minute = bcd_dec(Wire.read());
-  *hour = bcd_dec(Wire.read() & 0x3f);
-  *dayOfWeek = bcd_dec(Wire.read());
-  *dayOfMonth = bcd_dec(Wire.read());
-  *month = bcd_dec(Wire.read());
-  *year = bcd_dec(Wire.read());
-  #ifdef DEBUG
-  char timestamp[20];
-  sprintf(timestamp, "%02d.%02d.%02d %02d:%02d:%02d", *dayOfMonth, *month, *year, *hour, *minute, *second);
-  Serial.println(timestamp);
-  #endif
+  byte status = Wire.endTransmission(); // check if the transmission was successful
+  if (status == 0) { // no error
+    Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
+    // request seven bytes of data from DS3231 starting from register 00h
+    *second = bcd_dec(Wire.read() & 0x7f);
+    *minute = bcd_dec(Wire.read());
+    *hour = bcd_dec(Wire.read() & 0x3f);
+    *dayOfWeek = bcd_dec(Wire.read());
+    *dayOfMonth = bcd_dec(Wire.read());
+    *month = bcd_dec(Wire.read());
+    *year = bcd_dec(Wire.read());
+    #ifdef DEBUG
+    char timestamp[20];
+    sprintf(timestamp, "%02d.%02d.%02d %02d:%02d:%02d", *dayOfMonth, *month, *year, *hour, *minute, *second);
+    Serial.println(timestamp);
+    #endif
+  } else { // error occurred
+    // set all values to zero
+    *second = 0;
+    *minute = 0;
+    *hour = 0;
+    *dayOfWeek = 0;
+    *dayOfMonth = 0;
+    *month = 0;
+    *year = 0;
+    #ifdef DEBUG
+    Serial.println(F("Warning: DS3231 not connected"));
+    #endif
+  }
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -194,9 +208,9 @@ bool HelperBase::connectWifi(){
 
   // If the loop exits normally, the WiFi connection was successful. Print the IP address of the device and return true.
   #ifdef DEBUG
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.print("IP address: ");
+  Serial.println();
+  Serial.println(F("WiFi connected"));
+  Serial.print(F("IP address: "));
   Serial.println(WiFi.localIP());
   #endif
   return true;
@@ -207,7 +221,9 @@ bool HelperBase::connectWifi(){
 void HelperBase::setModemSleep() {
   WiFi.setSleep(true);
   if (!setCpuFrequencyMhz(80)){
-      Serial.println("Not valid frequency!");
+      #ifdef DEBUG
+      Serial.println(F("Not valid frequency!"));
+      #endif
   }
   // Use this if 40Mhz is not supported
   // setCpuFrequencyMhz(80); //(40) also possible
@@ -233,8 +249,8 @@ void HelperBase::disableBluetooth(){
   // Quite unusefully, no relevable power consumption
   btStop();
   #ifdef DEBUG
-  Serial.println("");
-  Serial.println("Bluetooth stop!");
+  Serial.println();
+  Serial.println(F("Bluetooth stop!"));
   #endif
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -394,7 +410,7 @@ JsonObject HelperBase::getJsonObjects(const char* key, const char* filepath) {
     Serial.println(F("Warning: Failed to read file or empty JSON object."));
     return jsonobj;
   }
-  
+
   // Access the key object and close file
   jsonobj = doc[key];
   delay(1);
@@ -779,6 +795,7 @@ void Helper_config1_Board5v5::shiftvalue(uint32_t val, uint8_t numBits, bool inv
   }
 
   #ifdef DEBUG
+  Serial.println();
   Serial.print(F("Shifting '"));
   Serial.print(val, BIN); Serial.println(F("'"));
   #endif
@@ -854,5 +871,3 @@ void Helper_config1_Board5v5::setPinModes() {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// allowing to use HelperClass without having to create an instance of the class
-Helper_config1_Board5v5 HWHelper;

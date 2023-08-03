@@ -75,6 +75,8 @@ OneWire oneWire(oneWireBus);
 
 Adafruit_BME280 bme; // use I2C interface
 
+Helper_config1_Board1v3838 HWHelper; // define Helper config
+
 // initialize Hardware configuration with Helper class
 //Helper_config1_main HWHelper;
 
@@ -189,40 +191,32 @@ HWHelper.setPinModes();
   HWHelper.enablePeripherals();
   HWHelper.enableSensor();
 
+  delay(300); // giving some time to handle powerup of devices
+
+  #ifdef DEBUG
   Serial.println(F("BME280 Sensor event test"));
   if (!bme.begin(BME280_I2C_ADDRESS)) {
-    #ifdef DEBUG
-    Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
-    #endif
-    int it = 0;
-    while (1){
-      delay(25);
-      it++;
-      #ifdef DEBUG
-      Serial.println(F("."));
-      #endif
-      if(it > 100){
-        break;
-      }
-    }
+    Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
   }
-  #ifdef DEBUG
   else{
     float temp_test = bme.readTemperature();
     Serial.print(F("Temperature reading: ")); Serial.println(temp_test);
   }
   #endif
-  delay(500);
+
+  delay(100);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize PWM:
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  //  ledcAttachPin(GPIO_pin, PWM_channel);
-  ledcAttachPin(vent_pwm, pwm_ch0);
   //Configure this PWM Channel with the selected frequency & resolution using this function:
   // ledcSetup(PWM_Ch, PWM_Freq, PWM_Res);
   ledcSetup(pwm_ch0, 21000, pwm_ch0_res);
+
+  //  ledcAttachPin(GPIO_pin, PWM_channel);
+  ledcAttachPin(vent_pwm, pwm_ch0);
+
   // PWM changing the duty cycle:
   // ledcWrite(pwm_ch0, pow(2, pwm_ch0_res) * fac);
 
@@ -236,16 +230,14 @@ HWHelper.setPinModes();
   //set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
   //  sec,min,h,day_w,day_m,month,ear
 
+  delay(100);
   //initialize global time
   HWHelper.read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
 
-  delay(500);  //make TX pin Blink 2 times
-  Serial.print(F("Measure intervall: "));
-  delay(500);
-  Serial.println(measure_intervall);
+  delay(30);
   
-  HWHelper.system_sleep(); //turn off all external transistors
-  delay(500);
+  HWHelper.system_sleep(); //power down prepare sleep
+  delay(100);
   
   // configure low power timer
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
@@ -263,7 +255,7 @@ HWHelper.setPinModes();
   //hour_ = 0;
   //disableWiFi();
 
-  HWHelper.system_sleep(); //turn off all external transistors
+  HWHelper.system_sleep(); //power down prepare sleep
 
 }
 
@@ -303,13 +295,15 @@ if(rtc_status != 0){
     Wire.beginTransmission(DS3231_I2C_ADDRESS);
     rtc_status = Wire.endTransmission();
 
-    //reactivate 3.3v supply
-    HWHelper.enablePeripherals();
+    if(i == (int)5){
+      //reactivate 3.3v supply
+      HWHelper.enablePeripherals();
+    }
 
-    delay(10);
-    if(i > (int)10){
+    if(i > (int)20){
       break;
     }
+    delay(100);
     i++;
   }
   //store into variable available for all following functions
@@ -323,12 +317,10 @@ else{
 // get time
 if (!(bool)rtc_status)
 {
-  HWHelper.enablePeripherals(); //reactivate 3.3v supply
+  //HWHelper.enablePeripherals(); //reactivate 3.3v supply
+  //delay(30);
   HWHelper.read_time(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
 }
-
-//deactivate 3.3v supply
-HWHelper.disablePeripherals();
 
 // update configuration
 SwitchController status_switches(&HWHelper);
@@ -341,9 +333,6 @@ if(true){
   up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); // refresh the up_time every hour, no need for extra function or lib to calculate the up time
   HWHelper.read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_); // update long time timestamp
 
-  // setup empty class instance & check timetables
-  IrrigationController controller;
-
   #ifdef RasPi
   // look for config updates
   HWHelper.wakeModemSleep();
@@ -353,6 +342,10 @@ if(true){
   // in order to work a RasPi with node-red and configured flow is needed
   HWHelper.updateConfig(CONFIG_FILE_PATH);
   #endif
+
+  // setup empty class instance & check timetables
+  IrrigationController controller;
+  delay(30);
 
   // combine timetables
   timetable = controller.combineTimetables();
@@ -380,6 +373,10 @@ if(true){
     
   }
 }
+
+// deactivate 3.3v supply
+HWHelper.disablePeripherals();
+
 #ifdef DEBUG
 Serial.println(F("Config: ")); Serial.print(F("Main switch: ")); Serial.println(status_switches.getMainSwitch());
 Serial.print(F("Irrigation switch: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
@@ -401,7 +398,7 @@ Serial.println(actual_time); Serial.println(last_activation); Serial.println(mea
 Serial.println((float)((float)actual_time-(float)last_activation)); Serial.println(up_time);
 #endif
 //if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall)) && (status_switches.getDatalogingSwitch()))
-if(false) // TODO FIX condition and work with status switches
+if(status_switches.getDatalogingSwitch()) // TODO FIX condition and work with status switches
 {
   last_activation = actual_time; //first action refresh the time
   #ifdef DEBUG
@@ -427,7 +424,7 @@ if(false) // TODO FIX condition and work with status switches
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 thirsty = true; //uncoment for testing only
 //if(thirsty){
-if(true){ // always enter checking, timing is handled by irrigation class
+if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timing is handled by irrigation class
   HWHelper.enablePeripherals();
 
   #ifdef DEBUG
