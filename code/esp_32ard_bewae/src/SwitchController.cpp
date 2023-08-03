@@ -85,10 +85,10 @@ bool SwitchController::updateSwitches(){
   }
 
   // updating class variables
-  this->main_switch = switches["main"];
-  this->dataloging_switch = switches["irig"];
-  this->irrigation_system_switch = switches["mssr"];
-  this->placeholder3 = switches["dmmy"];
+  this->main_switch = switches["main"]["value"].as<bool>();
+  this->dataloging_switch = switches["mssr"]["value"].as<bool>();
+  this->irrigation_system_switch = switches["irig"]["value"].as<bool>();
+  this->placeholder3 = switches["dmmy"]["value"].as<bool>();
 
   return true;
 }
