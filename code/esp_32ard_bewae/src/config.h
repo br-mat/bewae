@@ -197,6 +197,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // reverse shiftregister output in case of optocoupler
     #ifndef INVERT_SHIFTOUT
-    #define INVERT_SHIFTOUT false // set true if using negative logic relais
+    #define INVERT_SHIFTOUT true // set true if using negative logic relais
     #endif
 #endif

@@ -71,11 +71,20 @@ bool thirsty = false; //marks if a watering cycle is finished
 bool config = false;  //handle wireless configuration
 
 // Setup a oneWire instance to communicate with any OneWire device
-OneWire oneWire(oneWireBus);
+OneWire oneWireGlobal(oneWireBus);
+
+// Pass our oneWire reference to Dallas Temperature sensor 
+DallasTemperature soilsensorGlobal(&oneWireGlobal);
 
 Adafruit_BME280 bme; // use I2C interface
 
-Helper_config1_Board1v3838 HWHelper; // define Helper config
+Helper_config1_Board5v5 HWHelper; // define Helper config
+
+// Create a BasicSensor instance
+BasicSensor Sensors(&HWHelper, bme, soilsensorGlobal);
+
+// Create an instance of the InfluxDBClient class with the specified URL, database name and token
+InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLUXDB_TOKEN);
 
 // initialize Hardware configuration with Helper class
 //Helper_config1_main HWHelper;
@@ -90,24 +99,14 @@ Helper_config1_Board1v3838 HWHelper; // define Helper config
 //group 5 - kleine tom            4 brushes                  ~3.5l
 //group 6 - leer 4 brushes +3 small?        ~0.5l
 
-//NEW IMPLEMENTATION
-// The idea is to use the config file to controll the watering groups. This way 
-// with sending the JSON data we can adjust and initialize new groups over the air.
-// The switch conditions and timetables get reduced too as there is no need for handling outages of
-// wifi controll as the controller will then use what is stored locally in the config file.
-
-//IrrigationController
-// No need for initialization as it will be loaded from config file
-
-
 //timetable example
 //                                             2523211917151311 9 7 5 3 1
 //                                              | | | | | | | | | | | | |
 //unsigned long int timetable_default = 0b00000000000000000000010000000000;
 //                                               | | | | | | | | | | | | |
 //                                              2422201816141210 8 6 4 2 0
-unsigned long int timetable = 0; //initialize on default
 
+unsigned long int timetable = 0; // holding info at which hour system needs to do something
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -117,6 +116,10 @@ unsigned long int timetable = 0; //initialize on default
 
 // Initialise the WiFi and MQTT Client objects
 WiFiClient wificlient;
+
+// for now definitions can be found on bottom of code (TODO: move them later in seperate file afther testing)
+long irrigationHandler(); // perform irrigation returns timestamp of next event
+long sensoringHandler(); // perfurm sensoring returns timestamp of next event
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -236,6 +239,22 @@ HWHelper.setPinModes();
 
   delay(30);
   
+  soilsensorGlobal.begin();
+  delay(100);
+
+
+
+
+// TODO: TEST ds18b20
+// Request temperature
+soilsensorGlobal.requestTemperatures();
+delay(5);
+// Read temperature from DS18B20 sensor
+float temperatureC = soilsensorGlobal.getTempCByIndex(0);
+
+Serial.print("Test DS18B20: "); Serial.println(temperatureC);
+
+
   HWHelper.system_sleep(); //power down prepare sleep
   delay(100);
   
@@ -270,8 +289,9 @@ void loop(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // start loop
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//deactivate 3.3v supply
+// deactivate 3.3v supply
 HWHelper.enablePeripherals();
+
 #ifdef DEBUG
 Serial.println(F("start loop setup"));
 #endif
@@ -398,23 +418,24 @@ Serial.println(actual_time); Serial.println(last_activation); Serial.println(mea
 Serial.println((float)((float)actual_time-(float)last_activation)); Serial.println(up_time);
 #endif
 //if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall)) && (status_switches.getDatalogingSwitch()))
-if(status_switches.getDatalogingSwitch()) // TODO FIX condition and work with status switches
+if((status_switches.getDatalogingSwitch()) && (actual_time - last_activation > measure_intervall)) // TODO FIX condition and work with status switches
 {
   last_activation = actual_time; //first action refresh the time
   #ifdef DEBUG
   Serial.println(F("enter datalog phase"));
   #endif
 
-  // turn on sensors
+  // turn on additional systems
   HWHelper.enablePeripherals();
   HWHelper.enableSensor();
-  delay(500);
+  // shutdown wifi to free up adc2 pins!
+  HWHelper.disableWiFi();
+  delay(500); // give time to balance load
 
-  // TODO: IMPLEMENT SENSORING
+  // Sensoring implementation
+  sensoringHandler();
 
-
-
-
+  // shut down addidional systems
   HWHelper.disablePeripherals();
   HWHelper.disableSensor();
 }
@@ -422,8 +443,7 @@ if(status_switches.getDatalogingSwitch()) // TODO FIX condition and work with st
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // watering
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-thirsty = true; //uncoment for testing only
-//if(thirsty){
+//thirsty = true; //uncoment for testing only
 if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timing is handled by irrigation class
   HWHelper.enablePeripherals();
 
@@ -549,4 +569,36 @@ if (((loop_t + measure_intervall) > millis()) && (!thirsty)){
 #ifdef DEBUG
 Serial.println(F("End loop!"));
 #endif
+}
+
+
+
+// perform sensoring returns timestamp of next event
+long sensoringHandler(){
+    // TODO UPDATE WHOLE PROCEDURE
+    // idea:
+    // unified class with handlers, measure then triggers handlers
+    // maybe set up a data structure to publish it all at once later so i dont need to disconnect and connect wifi on each measurement
+    // test CODE HERE:
+    DynamicJsonDocument sensors(CONF_FILE_SIZE);
+    sensors = HWHelper.readConfigFile(CONFIG_FILE_PATH);
+    JsonObject obj;
+
+    float test = Sensors.onewirehandler();
+Serial.print("ds18b20 temp: "); Serial.println(test);
+  // handle analog pins
+Serial.println();
+    obj = sensors["sensor"].as<JsonObject>();
+
+    if(obj){
+        Serial.println("obj found: ");
+        for (JsonObject::iterator it = obj.begin(); it != obj.end(); ++it){
+            String name = it->key().c_str();
+            JsonObject sensorConfig = it->value().as<JsonObject>();
+          Serial.print("Obj name: "); Serial.println(name);
+            Sensors.measure(&HWHelper, name, sensorConfig);
+      }
+
+    }
+    return 0;
 }
