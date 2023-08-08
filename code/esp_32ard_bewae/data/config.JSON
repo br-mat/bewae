@@ -16,8 +16,8 @@
       "Tom1": {
         "is_set": 1,
         "vpins": [
-          1,
-          10
+          0,
+          1
         ],
         "lastup": [
           0,
@@ -30,8 +30,8 @@
       "Tom2": {
         "is_set": 1,
         "vpins": [
-          1,
-          9
+          0,
+          2
         ],
         "lastup": [
           0,
@@ -40,100 +40,28 @@
         "watering": 0,
         "water-time": 45,
         "timetable": 66688
-      },
-      "Gewa": {
-        "is_set": 1,
-        "vpins": [
-          1,
-          2
-        ],
-        "lastup": [
-          0,
-          0
-        ],
-        "watering": 0,
-        "water-time": 17,
-        "timetable": 524416
-      },
-      "Krtr": {
-        "is_set": 1,
-        "vpins": [
-          1,
-          11
-        ],
-        "lastup": [
-          0,
-          0
-        ],
-        "watering": 0,
-        "water-time": 13,
-        "timetable": 512
-      },
-      "Basi": {
-        "is_set": 1,
-        "vpins": [
-          1,
-          3
-        ],
-        "lastup": [
-          0,
-          0
-        ],
-        "watering": 0,
-        "water-time": 18,
-        "timetable": 524416
-      },
-      "Erdb": {
-        "is_set": 1,
-        "vpins": [
-          1,
-          8
-        ],
-        "lastup": [
-          0,
-          0
-        ],
-        "watering": 0,
-        "water-time": 20,
-        "timetable": 524416
       }
     },
     "sensor": {
-      "vpin": {
-        "12Vbat": {
-          "pin": 18,
-          "hlim": 100,
-          "llim": 0
-        },
-        "Erdbeeren": {
-          "pin": 0,
-          "hlim": 100,
-          "llim": 0,
-          "fac": 0.9,
-          "add": 1
-        },
-        "Gemüse": {
-          "pin": 0,
-          "hlim": 100,
-          "llim": 0,
-          "fac": 0.9,
-          "add": 1
-        }
+      "temp": {
+        "mode": "bmetemp"
       },
-      "bme": {
-        "Gehaeuse": {
-          "addr": 118
-        }
+      "hum": {
+        "mode": "bmehum"
       },
-      "pin": {
-        "Licht": {
-          "pin": 15
-        }
+      "press": {
+        "mode": "bmepress"
       },
-      "1wire": {
-        "Soiltemp": {
-          "pin": 5
-        }
+      "soiltemp": {
+        "mode": "soiltemp"
+      },
+      "moist1": {
+        "mode": "analog",
+        "pin": 26
+      },
+      "moist2": {
+        "mode": "analog",
+        "pin": 27
       }
     },
     "switch": {
@@ -141,10 +69,10 @@
         "value": 1
       },
       "irig": {
-        "value": 1
+        "value": 0
       },
       "mssr": {
-        "value": 0
+        "value": 1
       },
       "dmmy": {
         "value": 0
