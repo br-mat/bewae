@@ -1,11 +1,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// br-mat (c) 2022
+// br-mat (c) 2023
 // email: matthiasbraun@gmx.at
 //
-// This file contains a collection of helper functions for the irrigation system. It includes functions for
-// generating timestamps, controlling solenoids and pumps, reading and writing to config files, and interacting
-// with various hardware components.
+// This file containes the implementation of the Heleper Classes
 //
 // Dependencies:
 // - Arduino.h
@@ -137,6 +135,29 @@ void HelperBase::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,
     Serial.println(F("Warning: DS3231 not connected"));
     #endif
   }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Function: measure routine analog pin
+int HelperBase::readAnalogRoutine(uint8_t gpiopin)
+{
+    int num = 15;
+    float mean = 0;
+    int throwaway;
+    // throw away
+    for(int j = 0;j<3;j++){
+        throwaway = analogRead(gpiopin); // Read the value from the specified pin
+        delayMicroseconds(50);
+    }
+    // take mean
+    delay(1);
+    
+    for(int j = 0;j<num;j++){
+        mean += analogRead(gpiopin); // Read the value from the specified pin
+        delayMicroseconds(100);
+    }
+    float resultf = (mean/(float)num)+0.5f;
+    return (int)resultf;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -653,8 +674,8 @@ void Helper_config1_Board1v3838::controll_mux(uint8_t channel, String mode, int 
   WiFi.mode(WIFI_OFF);
 
   // define important variables
-  uint8_t sipsop = sig_mux_1;
-  uint8_t enable = en_mux_1;
+  uint8_t sipsop = this->SIG_MUX_1;
+  uint8_t enable = this->EN_MUX_1;
 
   // setup pin config
   int control_pins[4] = {s0_mux_1,s1_mux_1,s2_mux_1,s3_mux_1};
@@ -708,20 +729,21 @@ void Helper_config1_Board1v3838::controll_mux(uint8_t channel, String mode, int 
   }
   //"read" mode
   if(mode == String("read")){
-    double valsum=0;
+    float valsum=0;
     pinMode(sipsop, INPUT); //make sure its on input
     digitalWrite(enable, LOW);
-    delay(2); //give time to stabilize reading
+    delay(5); //give time to stabilize reading
     *val=analogRead(sipsop); //throw away 
     *val=analogRead(sipsop); //throw away
     *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
+    delay(5); //give time to stabilize reading
     for(int i=0; i<15; i++){
-      valsum += analogRead(sipsop);
+      delayMicroseconds(100);
+      int meas = analogRead(sipsop);
+      valsum += meas;
+Serial.print(meas); Serial.print(" ");
     }
-    *val=(int)(valsum/15.0+0.5); //take measurement (mean value)
+    *val=(float)(valsum/15.0f)+0.5f; //take measurement (mean value)
     delayMicroseconds(100);
     digitalWrite(enable, HIGH);
   }

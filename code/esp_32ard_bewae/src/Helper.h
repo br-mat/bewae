@@ -1,11 +1,12 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// br-mat (c) 2022
+// br-mat (c) 2023
 // email: matthiasbraun@gmx.at
 //
-// This file contains a collection of helper functions for the irrigation system. It includes functions for
-// generating timestamps, controlling solenoids and pumps, reading and writing to config files, and interacting
-// with various hardware components.
+// The Helper Classes should form representation of the Hardware.
+// This file contains a collection of helper functions for the irrigation system, enerating timestamps, 
+// controlling solenoids and pumps, reading and writing to config files and 
+// interacting with various hardware components.
 //
 // Dependencies:
 // - Arduino.h
@@ -45,6 +46,7 @@ public:
     byte bcd_dec(byte val); // Convert binary coded decimal to normal decimal numbers
     void set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year);
     void read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year);
+    int readAnalogRoutine(uint8_t gpiopin);
     bool disableWiFi(); // disables Wifi
     bool connectWifi(); // enables Wifi and connect
     void setModemSleep(); // disable wifi and reduce clock speed
@@ -101,13 +103,13 @@ private:
         S2_MUX_1 = 17,
         S1_MUX_1 = 18,
         S0_MUX_1 = 19,
-        //SIG_MUX_1 = 39, // input pins
+        SIG_MUX_1 = 39, // input pins
         ST_CP_SHFT = 26,
         DATA_SHFT = 33,
         SH_CP_SHFT = 27
     };
     // iteratble configuratoin pins
-    const uint8_t output_pins[12] = {PWM, SW_SENS, SW_SENS2, SW_3_3V, EN_MUX_1, S3_MUX_1, S2_MUX_1, S1_MUX_1, S0_MUX_1, ST_CP_SHFT, DATA_SHFT, SH_CP_SHFT};
+    const uint8_t output_pins[13] = {PWM, SW_SENS, SW_SENS2, SW_3_3V, EN_MUX_1, S3_MUX_1, S2_MUX_1, S1_MUX_1, S0_MUX_1, SIG_MUX_1, ST_CP_SHFT, DATA_SHFT, SH_CP_SHFT};
     // configured input pins
     const uint8_t input_pins[1] = {39};
 };
@@ -143,6 +145,6 @@ private:
 };
 
 // allowing to use HelperClass without having to create an instance of the class
-extern Helper_config1_Board1v3838 HWHelper;
+extern Helper_config1_Board5v5 HWHelper;
 
 #endif
