@@ -137,25 +137,112 @@ void HelperBase::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,
   }
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Function: read the time on the rtc module improved error handling
+//FUNCTION PARAMETERS:                      (i2c)
+//second     --                   seconds -- byte
+//minute     --                   minutes -- byte
+//hour       --                   hours   -- byte
+//dayofweek  --         weekday as number -- byte
+//dayofmonrh --    day of month as number -- byte
+//month      --                     month -- byte
+//year       --   year as number 2 digits -- byte
+bool HelperBase::readTime(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
+{
+  // enable rtc module
+  HWHelper.enablePeripherals();
+  delayMicroseconds(300);
+
+  // set up transmission
+  Wire.beginTransmission(DS3231_I2C_ADDRESS);
+  Wire.write(0); // set DS3231 register pointer to 00h
+  byte status = Wire.endTransmission(); // check if the transmission was successful
+
+  // catch error case
+  int i = 0;
+  while(status != 0){
+    //loop as long as the rtc module is unavailable!
+    #ifdef DEBUG
+    Serial.print(F(". "));
+    #endif
+    Wire.beginTransmission(DS3231_I2C_ADDRESS); // init
+    status = Wire.endTransmission(); // check
+    if (i == static_cast<int>(5)) HWHelper.enablePeripherals(); // reactivate power
+    if (i > static_cast<int>(10)) break; // break loop
+    delay(100); // give time
+    i++;
+  }
+
+  // read time
+  if (status == 0) { // no error
+    Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
+    // request seven bytes of data from DS3231 starting from register 00h
+    *second = bcd_dec(Wire.read() & 0x7f);
+    *minute = bcd_dec(Wire.read());
+    *hour = bcd_dec(Wire.read() & 0x3f);
+    *dayOfWeek = bcd_dec(Wire.read());
+    *dayOfMonth = bcd_dec(Wire.read());
+    *month = bcd_dec(Wire.read());
+    *year = bcd_dec(Wire.read());
+    #ifdef DEBUG
+    char timestamp[20];
+    sprintf(timestamp, "%02d.%02d.%02d %02d:%02d:%02d", *dayOfMonth, *month, *year, *hour, *minute, *second);
+    Serial.println(timestamp);
+    #endif
+    return true; // all good
+  } else { // error occurred
+    // set all values to zero
+    *second = 0;
+    *minute = 0;
+    *hour = 0;
+    *dayOfWeek = 0;
+    *dayOfMonth = 0;
+    *month = 0;
+    *year = 0;
+    #ifdef DEBUG
+    Serial.println(F("Warning: DS3231 not connected"));
+    #endif
+    return false; // problem occured
+  }
+  return false; // should never be reached
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Function: check if give pin is valid
+bool HelperBase::checkAnalogPin(int pin_check) // check if passed pin is valid
+{
+  #ifdef DEBUG
+  Serial.println(F("Warning: Empty function! Define a proper function for the inherrited class!"));
+  #endif
+  return 0;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Function: measure routine analog pin
 int HelperBase::readAnalogRoutine(uint8_t gpiopin)
 {
+    // test given pin
+    if(!checkAnalogPin(gpiopin)){
+      return 0;
+    }
+
+    pinMode(gpiopin, INPUT); // make sure pin is on input mode
+    delayMicroseconds(50);
+
     int num = 15;
     float mean = 0;
     int throwaway;
     // throw away
-    for(int j = 0;j<3;j++){
+    for(int j = 0; j<5; j++){
         throwaway = analogRead(gpiopin); // Read the value from the specified pin
         delayMicroseconds(50);
     }
-    // take mean
-    delay(1);
     
-    for(int j = 0;j<num;j++){
+    // take mean
+    for(int j = 0; j<num; j++){
         mean += analogRead(gpiopin); // Read the value from the specified pin
         delayMicroseconds(100);
     }
+
     float resultf = (mean/(float)num)+0.5f;
     return (int)resultf;
 }
@@ -206,7 +293,7 @@ bool HelperBase::connectWifi(){
   // Loop until the WiFi connection is established or the maximum number of attempts is reached.
   while (WiFi.status() != WL_CONNECTED) {
     // Wait 1 second before trying again.
-    delay(1000);
+    delay(250);
     //WiFi.begin(ssid, wifi_password);
     #ifdef DEBUG
     Serial.print(F(" ."));
@@ -614,7 +701,6 @@ bool HelperBase::updateConfig(const char* path){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
 void HelperBase::shiftvalue8b(uint8_t val, bool invert) {
     // Provide a new implementation of system_sleep specific to Helper_config1_alternate here
 }
@@ -743,15 +829,28 @@ void Helper_config1_Board1v3838::system_sleep(){
 //val           -- pointer to reading value; &value in function call;                 int (&pointer)   
 //------------------------------------------------------------------------------------------------
 void Helper_config1_Board1v3838::controll_mux(uint8_t channel, String mode, int *val){
+Serial.println("start measuring virtual analog");
   // shutdown wifi to avoid conflicts wif ADC2
-  WiFi.mode(WIFI_OFF);
+  disableWiFi(); // make sure to free adc2
+  enableSensor();
+  enablePeripherals();
+  delay(100); // give time to settle
+
+//delay(5000); // TEMP! REMOVE!
+
+  pinMode(SIG_MUX_1, INPUT);
+  pinMode(S0_MUX_1, OUTPUT);
+  pinMode(S1_MUX_1, OUTPUT);
+  pinMode(S2_MUX_1, OUTPUT);
+  pinMode(S3_MUX_1, OUTPUT);
+  pinMode(EN_MUX_1, OUTPUT);
 
   // define important variables
   uint8_t sipsop = this->SIG_MUX_1;
   uint8_t enable = this->EN_MUX_1;
 
   // setup pin config
-  int control_pins[4] = {s0_mux_1,s1_mux_1,s2_mux_1,s3_mux_1};
+  int control_pins[4] = {S0_MUX_1,S1_MUX_1,S2_MUX_1,S3_MUX_1};
   
   uint8_t channel_setup[16][4]={
     {0,0,0,0}, //channel 0
@@ -774,11 +873,17 @@ void Helper_config1_Board1v3838::controll_mux(uint8_t channel, String mode, int 
   
   //make sure sig in/out of the mux is disabled
   digitalWrite(enable, HIGH);
-  
+  delay(1);
+
   //selecting channel
   for(int i=0; i<4; i++){
     digitalWrite(control_pins[i], channel_setup[channel][i]);
   }
+
+  delay(100); // give time to settle
+
+//delay(10000); // TEMP! REMOVE!
+
   //modes
   //"set_low" mode
   if(mode == String("set_low")){
@@ -802,22 +907,19 @@ void Helper_config1_Board1v3838::controll_mux(uint8_t channel, String mode, int 
   }
   //"read" mode
   if(mode == String("read")){
-    float valsum=0;
+//Serial.print("Read v pin: "); Serial.println(channel);
     pinMode(sipsop, INPUT); //make sure its on input
     digitalWrite(enable, LOW);
-    delay(5); //give time to stabilize reading
-    *val=analogRead(sipsop); //throw away 
-    *val=analogRead(sipsop); //throw away
-    *val=analogRead(sipsop); //throw away
-    delay(5); //give time to stabilize reading
-    for(int i=0; i<15; i++){
-      delayMicroseconds(100);
-      int meas = analogRead(sipsop);
-      valsum += meas;
-Serial.print(meas); Serial.print(" ");
-    }
-    *val=(float)(valsum/15.0f)+0.5f; //take measurement (mean value)
-    delayMicroseconds(100);
+//Serial.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+    delay(250); //give time to stabilize reading
+//delay(3000);
+    int meas = readAnalogRoutine(sipsop);
+    *val=meas;
+
+//Serial.print(meas); Serial.print(" ");
+//delay(10000);
+
+    delayMicroseconds(10);
     digitalWrite(enable, HIGH);
   }
 }
@@ -862,13 +964,39 @@ void Helper_config1_Board1v3838::setPinModes() {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//Function: check if give pin is valid
+bool Helper_config1_Board1v3838::checkAnalogPin(int pin_check)
+{
+  int arraySize = sizeof(input_pins) / sizeof(input_pins[0]);
+  for (int i = 0; i < arraySize; i++) {
+    if ((uint8_t)pin_check == (uint8_t)input_pins[i]) {
+      return true; // Valid pin found
+    }
+  }
+  
+  #ifdef DEBUG
+  Serial.println(F("Invalid pin detected!"));
+  #endif
+  
+  return false; // Pin not found
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+// shift 8 bit value (probably not tested, use shiftvalue instead!)
 void Helper_config1_Board5v5::shiftvalue8b(uint8_t val, bool invert) {
+  // init register
+  digitalWrite(Pins::SW_3_3V, LOW);
+  digitalWrite(Pins::SH_CP_SHFT, LOW); //make sure clock is low so rising-edge triggers
+  digitalWrite(Pins::ST_CP_SHFT, LOW);
+  digitalWrite(Pins::DATA_SHFT, LOW);
+  delayMicroseconds(100);
+  digitalWrite(Pins::SW_3_3V, HIGH);
+
   // invert val if needed
   if (invert) {
     val = ~val;  // Invert the value if the invert flag is set to true
   }
+
   digitalWrite(Pins::ST_CP_SHFT, LOW);
   shiftOut(Pins::DATA_SHFT, Pins::SH_CP_SHFT, MSBFIRST, val); //take byte type as value
   digitalWrite(Pins::ST_CP_SHFT, HIGH); //update output of the register
@@ -883,6 +1011,14 @@ void Helper_config1_Board5v5::shiftvalue(uint32_t val, uint8_t numBits, bool inv
   // val       -- value to be shifted out                      uint32_t
   // numBits   -- number of bits to be shifted out              uint8_t
   // ------------------------------------------------------------------------------------------------
+
+  // init register
+  digitalWrite(Pins::SW_3_3V, LOW);
+  digitalWrite(Pins::SH_CP_SHFT, LOW); //make sure clock is low so rising-edge triggers
+  digitalWrite(Pins::ST_CP_SHFT, LOW);
+  digitalWrite(Pins::DATA_SHFT, LOW);
+  delayMicroseconds(100);
+  digitalWrite(Pins::SW_3_3V, HIGH);
 
   // invert val if needed
   if (invert) {
@@ -929,29 +1065,29 @@ void Helper_config1_Board5v5::system_sleep() {
 
 // Activate system
 void Helper_config1_Board5v5::enablePeripherals() {
-  digitalWrite(sw_3_3v, HIGH); delay(5);
+  digitalWrite(Pins::SW_3_3V, HIGH); delay(5);
   HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
-  digitalWrite(sw_sens, HIGH);
+  digitalWrite(Pins::SW_SENS, HIGH);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Disable system
 void Helper_config1_Board5v5::disablePeripherals() {
-    digitalWrite(sw_3_3v, LOW); delay(5);
+    digitalWrite(Pins::SW_3_3V, LOW); delay(5);
     HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
-    digitalWrite(sw_sens, LOW);
+    digitalWrite(Pins::SW_SENS, LOW);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Activate additional sensor rail
 void Helper_config1_Board5v5::enableSensor() {
-  digitalWrite(sw_sens2, HIGH);
+  digitalWrite(Pins::SW_SENS2, HIGH);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Disable additional sensor rail
 void Helper_config1_Board5v5::disableSensor() {
-  digitalWrite(sw_sens2, LOW);
+  digitalWrite(Pins::SW_SENS2, LOW);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -966,3 +1102,21 @@ void Helper_config1_Board5v5::setPinModes() {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//Function: check if give pin is valid
+bool Helper_config1_Board5v5::checkAnalogPin(int pin_check)
+{
+  int arraySize = sizeof(input_pins) / sizeof(input_pins[0]);
+  for (int i = 0; i < arraySize; i++) {
+Serial.print("Pin to check"); Serial.print(pin_check); Serial.print(" pin found: "); Serial.println(input_pins[i]);
+    if ((uint8_t)pin_check == (uint8_t)input_pins[i]) {
+      return true; // Valid pin found
+    }
+  }
+  
+  #ifdef DEBUG
+  Serial.println(F("Invalid pin detected!"));
+  #endif
+  
+  return false; // Pin not
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
