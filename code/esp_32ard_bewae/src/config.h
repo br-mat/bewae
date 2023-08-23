@@ -12,8 +12,6 @@
 #define __CONFIG_H__
 
 
-#define BME280 1
-//#define SD_log 1
 #define RasPi 1
 
 #ifndef CONFIG_FILE_PATH
@@ -97,63 +95,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Pin configuration
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    #ifndef sw_sens
-    #define sw_sens 4 //switch mux, SD etc.
-    #endif
 
-    #ifndef en_mux_1
-    #define en_mux_1 5 //mux enable
-    #endif
-
-    #ifndef chip_select
-    #define chip_select 15 //SPI cs pin
-    #endif
-
-    #ifndef s3_mux_1
-    #define s3_mux_1 16 //mux controll pin & s3_mux_1
-    #endif
-
-    #ifndef s2_mux_1
-    #define s2_mux_1 17 //mux controll pin & s2_mux_1
-    #endif
-
-    #ifndef s1_mux_1
-    #define s1_mux_1 18 //mux controll pin & s1_mux_1
-    #endif
-
-    #ifndef s0_mux_1
-    #define s0_mux_1 19 //mux controll pin & s0_mux_1
-    #endif
-
-    //hardware defined IIC pin     SDA    GPIO21()
-    //hardware defined IIC pin     SCL    GPIO22()
-    #ifndef sw_3_3v
-    #define sw_3_3v 23 //switch 3.3v output (with shift bme, rtc)
-    #endif
-
-    #ifndef sw_sens2
-    #define sw_sens2 25 //switch sensor rail IMPORTANT: PIN moved to 25 layout board 1 v3 !!!!!
-    #endif
-
-    #ifndef st_cp_shft
-    #define st_cp_shft 26 //74hc595 ST_CP LATCH pin
-    #endif
-
-    #ifndef sh_cp_shft
-    #define sh_cp_shft 27 //74hc595 SH_CP CLK pin
-    #endif
-
-    #ifndef vent_pwm
-    #define vent_pwm 32 //vent pwm output
-    #endif
-
-    #ifndef data_shft
-    #define data_shft 33 //74hc595 Data
-    #endif
-
-    #ifndef sig_mux_1
-    #define sig_mux_1 39 //mux sig in
-    #endif
 
     #ifndef max_groups
     #define max_groups 16 //number of possible solenoids (v-pins)
@@ -161,10 +103,6 @@
 
     #ifndef oneWireBus
     #define oneWireBus 5 // GPIO where the DS18B20 is connected to
-    #endif
-
-    #ifndef MAX_PUMPS
-    #define MAX_PUMPS 2 //number of possible pumps (v-pins)
     #endif
 
     #ifndef measure_intervall
