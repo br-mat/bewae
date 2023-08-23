@@ -56,7 +56,7 @@
 class BasicSensor {
   public:
     // Basic constructor that takes the name of the sensor as an argument
-    BasicSensor(HelperBase* helper, Adafruit_BME280 bmeClass, DallasTemperature DallasTemp);
+    BasicSensor(HelperBase* helper, Adafruit_BME280* bmeClass, DallasTemperature DallasTemp);
 
     // Basic Destructor
     virtual ~BasicSensor();
@@ -95,7 +95,7 @@ class BasicSensor {
     uint8_t bmeaddr;
     uint8_t ds18b20pin;
 
-    Adafruit_BME280 bmeModule; // BME280 sensor instance
+    Adafruit_BME280* bmeModule; // BME280 sensor instance
     DallasTemperature ds18b20Module;
 };
 #endif
