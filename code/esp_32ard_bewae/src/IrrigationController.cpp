@@ -248,105 +248,6 @@ void IrrigationController::reset() {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TODO CHANGE TO WORK WITH PIN ARRAY
-void IrrigationController::activatePWM(int time) {
-  // Function description: Controlls the watering procedure on valves and pump
-  // Careful with interupts! To avoid unwanted flooding.
-  // FUNCTION PARAMETER:
-  // time        -- time in seconds, max 60 seconds                                    int
-  //------------------------------------------------------------------------------------------------
-  // check if time is within range
-  int time_s = 0;
-  time_s = max(0, time);
-  time_s = min(time_s, max_active_time_sec);
-
-  //initialize state
-  digitalWrite(sw_3_3v, LOW);
-  digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
-  digitalWrite(st_cp_shft, LOW);
-  digitalWrite(data_shft, LOW);
-  #ifdef DEBUG
-  Serial.print(F("uint time controll statement:")); Serial.println(time_s);
-  #endif
-  digitalWrite(sw_3_3v, HIGH);
-  unsigned long time_ms = (unsigned long)time_s * 1000UL;
-  if (time_ms > (unsigned long)max_active_time_sec * 1000UL){
-    time_ms = (unsigned long)max_active_time_sec * 1000UL;
-    #ifdef DEBUG
-    Serial.println(F("time warning: time exceeds sec"));
-    #endif
-  }
-
-  // seting shiftregister to 0
-  HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
-
-  // perform actual function
-  unsigned long value = 0;  // Initialize the value to 0
-  // iterate over driver_pins and set them
-  for (int pin : this->driver_pins) {
-    value |= (1 << pin);  // Set the bit at the pin number to 1 using bitwise OR
-  }
-
-  // set start point of active phase
-  unsigned long activephase = millis();
-
-  #ifdef DEBUG
-  Serial.print(F("Watering group: "));
-  Serial.println(this->name); Serial.print(F("time in ms: ")); Serial.println(time_ms);
-  Serial.print(F("shiftout value: ")); Serial.println(value);
-  #endif
-
-  // activate pins
-  HWHelper.shiftvalue(value, max_groups, INVERT_SHIFTOUT);
-  delay(100); //balance load after pump switches on
-
-  // control PWM pin by changing the duty cycle:
-  // perform linear decay of duty cycle to save power
-  unsigned long start_decay = millis();
-  int decay_time = 1000; // decay time in milliseconds
-  float dutyCycle = 1.0;
-  float targetDutyCycle = 0.85;
-  float decrement = 0.05;
-  int numSteps = (float)(dutyCycle - targetDutyCycle) / decrement;
-  int delayTime = decay_time / numSteps;
-  Serial.println(numSteps);
-  Serial.println(delayTime);
-
-  for (int i = 0; i <= numSteps; i++) {
-      ledcWrite(pwm_ch0, pow(2.0, pwm_ch0_res) * dutyCycle);
-      dutyCycle -= decrement;
-      // break if unexpected happened
-      if ((start_decay + decay_time + 500) < millis()){
-        #ifdef DEBUG
-        Serial.println(F("Warning: Somthing unexpected happend during linear decay of PWM rate."));
-        #endif
-        break;
-      }
-      delay(delayTime);
-  }
-
-  // IMPORTANT: wait until process finished, DO NOT manipulate shiftout pins,
-  // use function with long runtime or long delays and be careful with interupts.
-  // This could cause unexpected and unwanted behaviour
-  while (activephase + time_ms > millis())
-  {
-  // wait for calculated time and do something
-  delay(1);
-  }
-
-  // reset
-  // seting shiftregister to 0
-  HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
-
-  digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
-  digitalWrite(st_cp_shft, LOW);
-  digitalWrite(data_shft, LOW);
-  digitalWrite(sw_3_3v, LOW);
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// TODO CHANGE FUNCTION TO WORK WITH NEW PIN ARRAY
-// TODO CHANGE FUNCTION TO WORK WITH NEW PIN ARRAY
 void IrrigationController::activate(int time_s) {
   // Function description: Controlls the watering procedure on valves and pump
   // Careful with interupts! To avoid unwanted flooding.
@@ -357,15 +258,10 @@ void IrrigationController::activate(int time_s) {
   time_s = max(0, time_s);
   time_s = min(time_s, max_active_time_sec);
 
-  //initialize state
-  digitalWrite(sw_3_3v, LOW);
-  digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
-  digitalWrite(st_cp_shft, LOW);
-  digitalWrite(data_shft, LOW);
   #ifdef DEBUG
   Serial.print(F("uint time:")); Serial.println(time_s);
   #endif
-  digitalWrite(sw_3_3v, HIGH);
+
   unsigned long time_ms = (unsigned long)time_s * 1000UL;
   if (time_ms > (unsigned long)max_active_time_sec * 1000UL){
     time_ms = (unsigned long)max_active_time_sec * 1000UL;
@@ -409,17 +305,18 @@ void IrrigationController::activate(int time_s) {
   // seting shiftregister to 0
   HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
 
-  digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
-  digitalWrite(st_cp_shft, LOW);
-  digitalWrite(data_shft, LOW);
-  digitalWrite(sw_3_3v, LOW);
+// TODO: Test if block below is not needed if, -> remove!
+//  digitalWrite(sh_cp_shft, LOW); //make sure clock is low so rising-edge triggers
+//  digitalWrite(st_cp_shft, LOW);
+//  digitalWrite(data_shft, LOW);
+//  digitalWrite(sw_3_3v, LOW);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Public function: Handling watering process calling related functionality, seting variables saving config
-int IrrigationController::watering_task_handler(int hour, int day) {
+int IrrigationController::watering_task_handler() {
   // Function description: Starts the irrigation procedure after checking if the hardware is ready
   // FUNCTION PARAMETER:
   // currentHour - the active hour to check the with the timetable
@@ -427,6 +324,8 @@ int IrrigationController::watering_task_handler(int hour, int day) {
   // returns - int 1 if not finished and 0 if finished
   // call this function at least once an hour to update information on what is already done  
   // check for hour change and shift water_time base value into watering value to be processed
+  byte second, minute, hour, weekday, day, month, year;
+  HWHelper.readTime(&second, &minute, &hour, &weekday, &day, &month, &year);
 
   // if not set return early
   if(!this->is_set){
@@ -458,7 +357,7 @@ int IrrigationController::watering_task_handler(int hour, int day) {
     this->lastDay = day;
     this->lastHour = hour;
 
-    // writte water_time to watering to start watering process
+    // write water_time to watering when starting watering process
     this->watering = this->water_time; // multiply with factor to adjust wheater conditons when raspi not reachable?
   }
 
