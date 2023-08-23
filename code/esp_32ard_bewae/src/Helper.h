@@ -37,41 +37,77 @@
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
 #include <connection.h>
+#include <Crypto.h>
 
 class HelperBase{
 public:
+    // return timestamp as string
     String timestamp();
-    void copy(int* src, int* dst, int len); // copy string from dest to src
-    byte dec_bcd(byte val); // Convert normal decimal numbers to binary coded decimal 
-    byte bcd_dec(byte val); // Convert binary coded decimal to normal decimal numbers
+    // copy string from dest to src
+    void copy(int* src, int* dst, int len);
+    // Convert normal decimal numbers to binary coded decimal 
+    byte dec_bcd(byte val);
+    // Convert binary coded decimal to normal decimal numbers 
+    byte bcd_dec(byte val);
+    // set Time on RTC module
     void set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year);
+    // read Time procedure default (old)
     void read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year);
+    // read Time procedure testing (new)
+    bool readTime(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year);
+    // Analog measurment routine returning read value as int
     int readAnalogRoutine(uint8_t gpiopin);
-    bool disableWiFi(); // disables Wifi
-    bool connectWifi(); // enables Wifi and connect
-    void setModemSleep(); // disable wifi and reduce clock speed
-    void wakeModemSleep(); // enable wifi and set clock to normal speed
+    // disables Wifi module saving power
+    bool disableWiFi();
+    // enables Wifi & connect to configured Wifi
+    bool connectWifi();
+    // disable wifi and reduce clock speed
+    void setModemSleep();
+    // enable wifi and set clock to normal speed
+    void wakeModemSleep();
+    // disabling Bluetooth module (not used currently)
     void disableBluetooth();
+    // funciton searches an array for provided element returns true on hit
     bool find_element(int *array, int item);
     // Loads the config file and sets the values of the member variables
     DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
     // Saves the values of the member variables to the config file
     bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
-    bool pubInfluxData(InfluxDBClient* influx_client, String sensor_name, String field_name, float value); // send data to influxdb, return true when everything is ok
-    void blinkOnBoard(String howLong, int times); // blink onboard led to signal something
-    JsonObject getJsonObjects(const char* key, const char* filepath); // returns requestet JSON object (key) of specified file
-    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath); 
-    bool updateConfig(const char* path); // check for config file updates from raspberrypi
+    // send data to influxdb, return true when everything is ok
+    bool pubInfluxData(InfluxDBClient* influx_client, String sensor_name, String field_name, float value);
+    // blink onboard led for visual signals
+    void blinkOnBoard(String howLong, int times);
+    // returns requestet JSON object (key) of specified file
+    JsonObject getJsonObjects(const char* key, const char* filepath);
+    // HTTP GET request to the a configured server retrieving JSON data
+    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath);
+    // This function calculates the SHA-256 hash of the input content and returns the hash as a hexadecimal string.
+    String sha256(String content);
+    // This function verifies the integrity of received JSON data by comparing its checksum with a calculated checksum.
+    bool verifyChecksum(DynamicJsonDocument& JSONdata);
+    // routine to check and update config file (from raspberrypi server)
+    bool updateConfig(const char* path);
 
     // virtual functions
-    virtual void shiftvalue8b(uint8_t val, bool invert = false); // set shift register to value (8 bit)
-    virtual void shiftvalue(uint32_t val, uint8_t numBits, bool invert = false); // set shift register with more bits (32 bit)
-    virtual void system_sleep(); // prepare low power mode (currently without light or deepsleep; TODO!)
+
+    // set shift register to value (8 bit)
+    virtual void shiftvalue8b(uint8_t val, bool invert = false);
+    // set shift register with more bits (32 bit)
+    virtual void shiftvalue(uint32_t val, uint8_t numBits, bool invert = false);
+    // prepare low power mode (currently without light or deepsleep; TODO!)
+    virtual void system_sleep();
+    // dummy function
     virtual void controll_mux(uint8_t channel, String mode, int *val);
-    virtual void enablePeripherals(); // enable 3v3 and others to other devices
-    virtual void disablePeripherals(); // disable 3v3 and others to other devices
-    virtual void enableSensor(); // enable 3v3 and others to other devices
-    virtual void disableSensor(); // disable 3v3 and others to other devices
+    // enable 3v3 and others to other devices
+    virtual void enablePeripherals();
+    // disable 3v3 and others to other devices
+    virtual void disablePeripherals();
+    // enable 3v3 and others to other devices
+    virtual void enableSensor();
+    // disable 3v3 and others to other devices
+    virtual void disableSensor();
+    // check if passed pin is valid
+    virtual bool checkAnalogPin(int pin_check);
 };
 
 // Hardware configuration 1 (Board 1) main
@@ -91,6 +127,7 @@ public:
     void enableSensor() override; // enable 3v3 and others to other devices
     void disableSensor() override; // disable 3v3 and others to other devices
     void setPinModes(); // set pinmode of all enum elements to OUT/INPUT
+    bool checkAnalogPin(int pin_check) override; // config specific function call
 
 private:
     enum Pins {
@@ -126,6 +163,7 @@ public:
     void enableSensor() override; // enable 3v3 and others to other devices
     void disableSensor() override; // disable 3v3 and others to other devices
     void setPinModes();
+    bool checkAnalogPin(int pin_check) override; // config specific function call
 
 private:
     enum Pins {
@@ -145,6 +183,6 @@ private:
 };
 
 // allowing to use HelperClass without having to create an instance of the class
-extern Helper_config1_Board5v5 HWHelper;
+extern Helper_config1_Board1v3838 HWHelper;
 
 #endif

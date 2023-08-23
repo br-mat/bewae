@@ -233,6 +233,8 @@ bool HelperBase::connectWifi(){
   Serial.println(F("WiFi connected"));
   Serial.print(F("IP address: "));
   Serial.println(WiFi.localIP());
+  Serial.print(F("RSSI: "));
+  Serial.print(WiFi.RSSI()); Serial.println(" dBm");
   #endif
   return true;
 }
@@ -453,37 +455,108 @@ JsonObject HelperBase::getJsonObjects(const char* key, const char* filepath) {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // HTTP GET request to the Raspberry Pi server
+// HTTP GET request to the Raspberry Pi server
 DynamicJsonDocument HelperBase::getJSONData(const char* server, int serverPort, const char* serverPath) {
   // create buffer file
-  DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
-  HTTPClient http;
-  http.begin(String("http://") + server + ":" + serverPort + serverPath);
-  int httpCode = http.GET();
+  int max_retries = 3;
+  int retries = 0;
+  while (retries < max_retries) {
+    DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
+    HTTPClient http;
+    http.begin(String("http://") + server + ":" + serverPort + serverPath);
+    int httpCode = http.GET();
 
-  // Check the status code
-  if (httpCode == HTTP_CODE_OK) {
-    // Parse the JSON data
-    DeserializationError error = deserializeJson(JSONdata, http.getString());
+    // Check the status code
+    if (httpCode == HTTP_CODE_OK) {
+      // Parse the JSON data
+      // check for error in JSON format
+      DeserializationError error = deserializeJson(JSONdata, http.getString());
+      // veryfy content of file using sha256 hash
+      bool verification = verifyChecksum(JSONdata);
 
-    if (error) {
-      #ifdef DEBUG
-      Serial.println(F("Error parsing JSON data"));
-      #endif
-      return JSONdata;
+      if (error && !verification) {
+        #ifdef DEBUG
+        Serial.println(F("Warning: Problem when parsing JSON data"));
+        #endif
+      } else {
+        return JSONdata;
+      }
     } else {
-      return JSONdata;
+      #ifdef DEBUG
+      Serial.println(F("Warning: Sending request to server went wrong"));
+      #endif
     }
-  } else {
-    #ifdef DEBUG
-    Serial.println(F("Error sending request to server"));
-    #endif
-    return JSONdata;
+    http.end();
+    retries++;
+  }
+  #ifdef DEBUG
+  Serial.println(F("Error: An error occurred while retrieving the JSON data! Exiting, returned empty doc."));
+  #endif
+  DynamicJsonDocument empty(CONF_FILE_SIZE);
+  return empty;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// This function calculates the SHA-256 hash of the input content and returns the hash as a hexadecimal string.
+String HelperBase::sha256(String content) {
+  // Create an instance of the SHA256 hasher
+  SHA256 hasher;
+  // Update the hasher with the content's data
+  hasher.doUpdate(content.c_str(), content.length());
+  // Prepare an array to hold the resulting hash
+  byte hash[SHA256_SIZE];
+  // Finalize the hash calculation and store it in the 'hash' array
+  hasher.doFinal(hash);
+
+  String result = "";
+  // Convert each byte of the hash to a two-digit hexadecimal representation
+  for (byte i = 0; i < SHA256_SIZE; i++) {
+    // If the current byte's value is less than 0x10 (16 in decimal), add a leading '0'
+    if (hash[i] < 0x10) {
+      result += '0';
+    }
+    result += String(hash[i], HEX);
   }
 
-  http.end();
-  return JSONdata;
+  // Return the calculated SHA-256 hash as a hexadecimal string
+  return result;
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// This function verifies the integrity of received JSON data by comparing its checksum with a calculated checksum.
+bool HelperBase::verifyChecksum(DynamicJsonDocument& JSONdata) {
+  if(JSONdata.containsKey("dmmy")){
+    #ifdef DEBUG
+    Serial.println(F("Warning: No checksum found in file! Continuing."));
+    #endif
+    return true; // print warning and set true to make it optional
+  }
+
+  // Extract the received checksum from the JSON data
+  String receivedChecksum = JSONdata["checksum"];
+
+  // Remove the checksum field from the JSON data to prepare for checksum calculation
+  JSONdata.remove("checksum");
+  // Serialize the modified JSON data to a string
+  String content = "";
+  serializeJson(JSONdata, content);
+
+  // Calculate the SHA-256 checksum of the serialized JSON data
+  String calculatedChecksum = sha256(content);
+  // Compare the received checksum with the calculated checksum
+  if (receivedChecksum != calculatedChecksum) {
+    #ifdef DEBUG
+    Serial.println(F("Checksum verification failed"));
+    #endif
+
+    return false;
+  }
+
+  // Return true to indicate successful verification
+  return true;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // The updateConfig function retrieves new JSON data from a server and updates the config file,
