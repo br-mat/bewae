@@ -61,14 +61,12 @@ using namespace std;
 //---- GLOBAL VARIABLES AND DEFINITIONS --------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 //######################################################################################################################
-
-
 //important global variables
-byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_;
+byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_; // containing time variables
 unsigned long up_time = 0;    //general estimated uptime
-unsigned long last_activation = 0; //timemark variable
+unsigned long last_activation = 0; //timestamp variable
+unsigned long nextActionTime = 0; //timestamp variable
 bool thirsty = false; //marks if a watering cycle is finished
-bool config = false;  //handle wireless configuration
 
 // Setup a oneWire instance to communicate with any OneWire device
 OneWire oneWireGlobal(oneWireBus);
@@ -78,26 +76,13 @@ DallasTemperature soilsensorGlobal(&oneWireGlobal);
 
 Adafruit_BME280 bme; // use I2C interface
 
-Helper_config1_Board5v5 HWHelper; // define Helper config
+Helper_config1_Board1v3838 HWHelper; // define Helper config
 
 // Create a BasicSensor instance
-BasicSensor Sensors(&HWHelper, bme, soilsensorGlobal);
+BasicSensor Sensors(&HWHelper, &bme, soilsensorGlobal);
 
 // Create an instance of the InfluxDBClient class with the specified URL, database name and token
 InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLUXDB_TOKEN);
-
-// initialize Hardware configuration with Helper class
-//Helper_config1_main HWHelper;
-
-//limitations & watering & other
-//group limits and watering (some hardcoded stuff)                          
-//          type                  amount of plant/brushes    estimated water amount in liter per day (average hot +30*C)
-//group 1 - große tom             5 brushes                  ~8l
-//group 2 - Chilli, Paprika       5 brushes                  ~1.5l
-//group 3 - Kräuter (trocken)     4 brushes                  ~0.2l
-//group 4 - Hochbeet2             10 brushes                 ~4l
-//group 5 - kleine tom            4 brushes                  ~3.5l
-//group 6 - leer 4 brushes +3 small?        ~0.5l
 
 //timetable example
 //                                             2523211917151311 9 7 5 3 1
@@ -117,9 +102,14 @@ unsigned long int timetable = 0; // holding info at which hour system needs to d
 // Initialise the WiFi and MQTT Client objects
 WiFiClient wificlient;
 
-// for now definitions can be found on bottom of code (TODO: move them later in seperate file afther testing)
-long irrigationHandler(); // perform irrigation returns timestamp of next event
-long sensoringHandler(); // perfurm sensoring returns timestamp of next event
+// Task implementation can be found on bottom of code
+
+// containing irrigation implementation, returns false if irrigation finished else true
+bool irrigationTask();
+// sensoring implementation, returns timestamp of next event in UL
+long sensoringTask();
+// powering down system, returning false when theres something to do else true!
+bool checkSleepTask();
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -134,35 +124,10 @@ void setup() {
   //setCpuFrequencyMhz(80);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// configure pin mode                                                             ESP32 port
+// configure pin mode
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  HWHelper.setPinModes();
 
-HWHelper.setPinModes();
-
-/*
-  pinMode(sw_sens, OUTPUT);       //switch mux, SD etc.                           GPIO04()
-  pinMode(sw_sens2, OUTPUT);      //switch sensor rail                            GPIO25()
-  pinMode(sw_3_3v, OUTPUT);       //switch 3.3v output (with shift bme, rtc)      GPIO23()
-  pinMode(s0_mux_1, OUTPUT);      //mux controll pin & s0_mux_1                   GPIO19()
-  pinMode(s1_mux_1, OUTPUT);      //mux controll pin & s1_mux_1                   GPIO18()
-  pinMode(s2_mux_1, OUTPUT);      //mux controll pin & s2_mux_1                   GPIO17()
-  pinMode(s3_mux_1, OUTPUT);      //mux controll pin & s3_mux_1                   GPIO16()
-  pinMode(sh_cp_shft, OUTPUT);    //74hc595 SH_CP                                 GPIO27()
-  pinMode(st_cp_shft, OUTPUT);    //74hc595 ST_CP                                 GPIO26()
-  pinMode(data_shft, OUTPUT);     //74hc595 Data                                  GPIO33()
-  pinMode(vent_pwm, OUTPUT);      //vent pwm output                               GPIO32()
-  //pinMode(chip_select, OUTPUT);   //SPI CS                                        GPIO15()
-  //hardware defined SPI pin        //SPI MOSI                                      GPIO13()
-  //hardware defined SPI pin        //SPI MISO                                      GPIO12()
-  //hardware defined SPI pin        //SPI CLK                                       GPIO14()
-  //pinMode(A0, INPUT);             //analog in?                                  GPIO()
-  pinMode(sig_mux_1, INPUT);      //mux sig in                                    GPIO39()
-  pinMode(en_mux_1, OUTPUT);      //mux enable                                    GPIO05() bei boot nicht high!
-  //hardware defined IIC pin      //A4  SDA                                       GPIO21()
-  //hardware defined IIC pin      //A5  SCL                                       GPIO22()
-  //input only                                                                    (N)GPIO22(34)
-  //input only 
-*/
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize serial
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -189,11 +154,12 @@ HWHelper.setPinModes();
   file.close();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// initialize bme280 sensor
+// initialize bme280 & ds18b20 sensor
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   HWHelper.enablePeripherals();
   HWHelper.enableSensor();
 
+  // test bme280
   delay(300); // giving some time to handle powerup of devices
 
   #ifdef DEBUG
@@ -205,23 +171,20 @@ HWHelper.setPinModes();
     float temp_test = bme.readTemperature();
     Serial.print(F("Temperature reading: ")); Serial.println(temp_test);
   }
-  #endif
+  delay(10);
 
+  // test ds18b20
+  soilsensorGlobal.begin();
   delay(100);
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// initialize PWM:
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Request temperature
+  soilsensorGlobal.requestTemperatures();
+  delay(5);
+  // Read temperature from DS18B20 sensor
+  float temperatureC = soilsensorGlobal.getTempCByIndex(0);
+  Serial.print("Test DS18B20: "); Serial.println(temperatureC);
 
-  //Configure this PWM Channel with the selected frequency & resolution using this function:
-  // ledcSetup(PWM_Ch, PWM_Freq, PWM_Res);
-  ledcSetup(pwm_ch0, 21000, pwm_ch0_res);
-
-  //  ledcAttachPin(GPIO_pin, PWM_channel);
-  ledcAttachPin(vent_pwm, pwm_ch0);
-
-  // PWM changing the duty cycle:
-  // ledcWrite(pwm_ch0, pow(2, pwm_ch0_res) * fac);
+  #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // init time and date
@@ -236,24 +199,7 @@ HWHelper.setPinModes();
   delay(100);
   //initialize global time
   HWHelper.read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
-
   delay(30);
-  
-  soilsensorGlobal.begin();
-  delay(100);
-
-
-
-
-// TODO: TEST ds18b20
-// Request temperature
-soilsensorGlobal.requestTemperatures();
-delay(5);
-// Read temperature from DS18B20 sensor
-float temperatureC = soilsensorGlobal.getTempCByIndex(0);
-
-Serial.print("Test DS18B20: "); Serial.println(temperatureC);
-
 
   HWHelper.system_sleep(); //power down prepare sleep
   delay(100);
@@ -261,21 +207,19 @@ Serial.print("Test DS18B20: "); Serial.println(temperatureC);
   // configure low power timer
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //init Irrigation Controller instance and update config
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  #ifdef RasPi
-  HWHelper.wakeModemSleep();
-  delay(1);
-  // update the config file stored in spiffs
-  // in order to work a RasPi with node-red and configured flow is needed
-  HWHelper.updateConfig(CONFIG_FILE_PATH);
-  #endif
-  //hour_ = 0;
-  //disableWiFi();
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//init Irrigation Controller instance and update config
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    HWHelper.wakeModemSleep();
+    delay(1);
+    // update the config file stored in spiffs
+    // in order to work a RasPi with node-red and configured flow is needed
+    HWHelper.updateConfig(CONFIG_FILE_PATH);
+  
+    //hour_ = 0;
+    //disableWiFi();
 
-  HWHelper.system_sleep(); //power down prepare sleep
-
+    HWHelper.system_sleep(); //power down prepare sleep
 }
 
 //######################################################################################################################
@@ -283,119 +227,14 @@ Serial.print("Test DS18B20: "); Serial.println(temperatureC);
 //---- MAIN PROGRAM LOOP -----------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 //######################################################################################################################
-
-unsigned long startLoop = millis();
 void loop(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// start loop
+// start & sleep loop
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// deactivate 3.3v supply
-HWHelper.enablePeripherals();
-
-#ifdef DEBUG
-Serial.println(F("start loop setup"));
-#endif
-
-// check real time clock module
-Wire.beginTransmission(DS3231_I2C_ADDRESS);
-byte rtc_status = Wire.endTransmission();
-byte sec1, min1, hour1, day_w1, day_m1, mon1 , y1;
-
-// check return status
-if(rtc_status != 0){
-  #ifdef DEBUG
-  Serial.println(F("Error: rtc device not available!"));
-  #endif
-  int i = 0;
-  while(rtc_status != 0){
-    //loop as long as the rtc module is unavailable!
-    #ifdef DEBUG
-    Serial.print(F(". "));
-    #endif
-    Wire.beginTransmission(DS3231_I2C_ADDRESS);
-    rtc_status = Wire.endTransmission();
-
-    if(i == (int)5){
-      //reactivate 3.3v supply
-      HWHelper.enablePeripherals();
-    }
-
-    if(i > (int)20){
-      break;
-    }
-    delay(100);
-    i++;
-  }
-  //store into variable available for all following functions
+while(checkSleepTask()){
 }
-else{
-  #ifdef DEBUG
-  Serial.println(F("rtc found"));
-  #endif
-}
-
-// get time
-if (!(bool)rtc_status)
-{
-  //HWHelper.enablePeripherals(); //reactivate 3.3v supply
-  //delay(30);
-  HWHelper.read_time(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
-}
-
-// update configuration
-SwitchController status_switches(&HWHelper);
+SwitchController status_switches(&HWHelper); // initialize switch class
 status_switches.updateSwitches();
-
-// check for hour change and update config
-//if((hour_ != hour1) & (!(bool)rtc_status)){
-if(true){
-  // check for hour change
-  up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); // refresh the up_time every hour, no need for extra function or lib to calculate the up time
-  HWHelper.read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_); // update long time timestamp
-
-  #ifdef RasPi
-  // look for config updates
-  HWHelper.wakeModemSleep();
-  delay(1);
-
-  // update whole config
-  // in order to work a RasPi with node-red and configured flow is needed
-  HWHelper.updateConfig(CONFIG_FILE_PATH);
-  #endif
-
-  // setup empty class instance & check timetables
-  IrrigationController controller;
-  delay(30);
-
-  // combine timetables
-  timetable = controller.combineTimetables();
-
-  #ifdef DEBUG
-  Serial.print(F("Combined timetable:"));
-  Serial.println(timetable, BIN);
-  #endif
-
-  // check if current hour is in timetable
-  //if(true){
-  if(bitRead(timetable, hour1)){
-
-    #ifdef DEBUG
-    if(status_switches.getIrrigationSystemSwitch())
-    {
-      thirsty = true; //initialize watering phase
-      Serial.println(F("Watering ON"));
-    }
-    else{
-      thirsty = false;
-      Serial.println(F("Watering OFF"));
-    }
-    #endif
-    
-  }
-}
-
-// deactivate 3.3v supply
-HWHelper.disablePeripherals();
 
 #ifdef DEBUG
 Serial.println(F("Config: ")); Serial.print(F("Main switch: ")); Serial.println(status_switches.getMainSwitch());
@@ -406,21 +245,51 @@ Serial.print(F("Timetable: ")); Serial.println(timetable, BIN);
 
 //update global time related variables
 unsigned long loop_t = millis();
-unsigned long actual_time = (unsigned long)up_time+(unsigned long)sec1*1000+(unsigned long)min1*60000UL; //time in ms, comming from rtc module
-                                                                                                //give acurate values despite temperature changes
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // collect & send data
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef DEBUG
-Serial.print(F("Datalogphase: ")); Serial.println(actual_time-last_activation > measure_intervall);
-Serial.println(actual_time); Serial.println(last_activation); Serial.println(measure_intervall-500000UL);
-Serial.println((float)((float)actual_time-(float)last_activation)); Serial.println(up_time);
+Serial.print(F("Datalogphase: ")); Serial.println(millis() > nextActionTime);
+Serial.print(F("Next action time: ")); Serial.println(nextActionTime);
 #endif
-//if(((unsigned long)(actual_time-last_activation) > (unsigned long)(measure_intervall)) && (status_switches.getDatalogingSwitch()))
-if((status_switches.getDatalogingSwitch()) && (actual_time - last_activation > measure_intervall)) // TODO FIX condition and work with status switches
+//if(true)
+if((status_switches.getDatalogingSwitch()) && (millis() > nextActionTime)) // TODO FIX condition and work with status switches
 {
-  last_activation = actual_time; //first action refresh the time
+  // Sensoring implementation
+  nextActionTime = sensoringTask() + measure_intervall;
+
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// watering - return true if finished
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timing is handled by irrigation class
+  irrigationTask();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// end loop
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef DEBUG
+Serial.println(F("End loop!"));
+#endif
+}
+
+//######################################################################################################################
+//----------------------------------------------------------------------------------------------------------------------
+//---- MAIN PROGRAM END -------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+//######################################################################################################################
+
+
+// Task Implementation - to keep main loop readable
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// sensoring - returns timestamp of next event
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+long sensoringTask(){
   #ifdef DEBUG
   Serial.println(F("enter datalog phase"));
   #endif
@@ -432,19 +301,42 @@ if((status_switches.getDatalogingSwitch()) && (actual_time - last_activation > m
   HWHelper.disableWiFi();
   delay(500); // give time to balance load
 
-  // Sensoring implementation
-  sensoringHandler();
+  DynamicJsonDocument sensors(CONF_FILE_SIZE);
+  sensors = HWHelper.readConfigFile(CONFIG_FILE_PATH);
+  JsonObject obj;
+
+  float test = Sensors.onewirehandler();
+Serial.print("ds18b20 temp: "); Serial.println(test);
+  // handle analog pins
+Serial.println();
+  obj = sensors["sensor"].as<JsonObject>();
+
+  if(obj){
+    Serial.println("obj found: ");
+    for (JsonObject::iterator it = obj.begin(); it != obj.end(); ++it){
+      String name = it->key().c_str();
+      JsonObject sensorConfig = it->value().as<JsonObject>();
+Serial.print("Obj name: "); Serial.println(name);
+      float val;
+      val = Sensors.measure(&HWHelper, name, sensorConfig);
+      Sensors.pubData(&influx_client, val);
+    }
+  }
 
   // shut down addidional systems
   HWHelper.disablePeripherals();
   HWHelper.disableSensor();
+
+  return millis(); // finishing timestamp
 }
 
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// watering
+// watering - return true if NOT fnished
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool irrigationTask(){
 //thirsty = true; //uncoment for testing only
-if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timing is handled by irrigation class
   HWHelper.enablePeripherals();
 
   #ifdef DEBUG
@@ -511,27 +403,26 @@ if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timin
   //         pause procedure when measure events needs to happen
   //         NEVER INTERUPT WHILE WATERING!
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  while((loop_t + measure_intervall > millis()) & (thirsty)){
+  while((nextActionTime > millis()) && (thirsty)){
     // process will trigger multiple loop iterations until thirsty is set false
     // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
     delay(15);
 
     // Iterate over all irrigation controller objects in the Group array
     // This process will trigger multiple loop iterations until thirsty is set false
-    int status = 0;
+    int finStatus = 0;
     for(int i = 0; i < numgroups; i++){
       // ACTIVATE SELECTED GROUP
-      // it will check if the instance is ready for watering (or on cooldown)
-
-      //hour1 = 19 // uncomment for testing
+      //hour1 = 19 // change for testing
 
       // start watering selected group
-      status += Group[i].watering_task_handler(hour1, day_m1);
+      // it will check if the instance is ready for watering (or on cooldown)
+      finStatus += Group[i].watering_task_handler();
       delay(500); // give little delay
     }
 
     // check if all groups are finished and reset status
-    if(!status){
+    if(!finStatus){
       thirsty = false;
     }
     esp_light_sleep_start(); // sleep one period
@@ -539,66 +430,103 @@ if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timin
 
   HWHelper.disablePeripherals();
   HWHelper.disableSensor();
+
+  return thirsty;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// sleep
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// start low power mode if not thirsty and not exceeding measure intervall
-if (((loop_t + measure_intervall) > millis()) && (!thirsty)){
 
-  //sleep till next measure point
-  int sleepCycles  = (unsigned long)(loop_t + measure_intervall - millis())/(1000UL * TIME_TO_SLEEP);
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// loop setup
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool checkSleepTask(){ // TODO REWORK TO WHILE LOOP!
   #ifdef DEBUG
-  if(sleepCycles >  (int)measure_intervall / (TIME_TO_SLEEP * 1000)){
-  Serial.println(F("Warning: sleep time calculation went wrong value too high!"));
-  }
-  Serial.print(F("sleep in s: ")); Serial.println((float)sleepCycles  * TIME_TO_SLEEP);
+  Serial.println(F("Start loop"));
   #endif
 
-  for(int i = 0; i < sleepCycles ; i++){
-    HWHelper.system_sleep(); //turn off all external transistors
-    esp_light_sleep_start();
-    if(loop_t + measure_intervall < millis()){
-      break; //break loop to start measuring
+  // activate 3.3v supply
+  HWHelper.enablePeripherals();
+
+  // check real time clock module
+  byte sec1, min1, hour1, day_w1, day_m1, mon1 , y1;
+  // check return status
+  byte rtc_status = HWHelper.readTime(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
+
+  // update configuration
+  SwitchController controller_switches(&HWHelper);
+  controller_switches.updateSwitches();
+
+  // check for hour change and update config
+  //if(true){
+  if((hour_ != hour1) && (!(bool)rtc_status) && (controller_switches.getMainSwitch())){
+    // check for hour change
+    up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); // refresh the up_time every hour, no need for extra function or lib to calculate the up time
+    HWHelper.readTime(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_); // update long time timestamp
+
+    // look for config updates once an hour should be good
+    HWHelper.wakeModemSleep();
+    delay(1);
+    // update config
+    // in order to work a RasPi with node-red and configured flow is needed
+    HWHelper.updateConfig(CONFIG_FILE_PATH);
+    // setup empty class instance & check timetables
+    IrrigationController controller;
+    delay(30);
+    // combine timetables
+    timetable = controller.combineTimetables();
+
+    #ifdef DEBUG
+    Serial.print(F("Combined timetable:"));
+    Serial.println(timetable, BIN);
+    #endif
+
+    // check if current hour is in timetable
+    //if(true){
+    if(bitRead(timetable, hour1)){
+      #ifdef DEBUG
+      if(controller_switches.getIrrigationSystemSwitch())
+      {
+        thirsty = true; //initialize watering phase
+        Serial.println(F("Watering ON"));
+      }
+      else{
+        thirsty = false;
+        Serial.println(F("Watering OFF"));
+      }
+      #endif
     }
   }
-}
 
-#ifdef DEBUG
-Serial.println(F("End loop!"));
-#endif
-}
+  // deactivate 3.3v supply
+  HWHelper.disablePeripherals();
 
+  // prepare sleep
+  unsigned long breakTime = 0;
+  if(nextActionTime > 600000UL + millis()){
+    breakTime = millis() + 600000UL; // reduce time to once per hour if intervall is bigger
+  }
+  else{
+    breakTime = nextActionTime;
+  }
 
-
-// perform sensoring returns timestamp of next event
-long sensoringHandler(){
-    // TODO UPDATE WHOLE PROCEDURE
-    // idea:
-    // unified class with handlers, measure then triggers handlers
-    // maybe set up a data structure to publish it all at once later so i dont need to disconnect and connect wifi on each measurement
-    // test CODE HERE:
-    DynamicJsonDocument sensors(CONF_FILE_SIZE);
-    sensors = HWHelper.readConfigFile(CONFIG_FILE_PATH);
-    JsonObject obj;
-
-    float test = Sensors.onewirehandler();
-Serial.print("ds18b20 temp: "); Serial.println(test);
-  // handle analog pins
-Serial.println();
-    obj = sensors["sensor"].as<JsonObject>();
-
-    if(obj){
-        Serial.println("obj found: ");
-        for (JsonObject::iterator it = obj.begin(); it != obj.end(); ++it){
-            String name = it->key().c_str();
-            JsonObject sensorConfig = it->value().as<JsonObject>();
-          Serial.print("Obj name: "); Serial.println(name);
-            Sensors.measure(&HWHelper, name, sensorConfig);
-      }
-
+  while(true){ // sleep until break
+    if(breakTime < millis()){
+      #ifdef DEBUG
+      Serial.println(F("Break loop!"));
+      #endif
+      break; //break loop to start doing stuff
     }
-    return 0;
+    Serial.print("millis: "); Serial.println(millis());
+    Serial.print("break time: "); Serial.println(breakTime);
+    HWHelper.system_sleep(); //turn off all external transistors
+    delayMicroseconds(500);
+    esp_light_sleep_start();
+  }
+
+  // exit whole loop only if system is switched ON
+  if(controller_switches.getMainSwitch()){ // condition get checked with little delay!
+    return false;
+  }
+
+  return true; // default
 }
