@@ -1,28 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// br-mat (c) 2022
+// br-mat (c) 2023
 // email: matthiasbraun@gmx.at
 //
 // This is the main source file for the irrigation system. It is responsible for monitoring all sensor values,
 // handling the watering procedure, and communicating with the Raspberry Pi to get and send data.
-//
-// Dependencies:
-// - Arduino.h
-// - Wire.h
-// - SPI.h
-// - SD.h
-// - SPIFFS.h
-// - Adafruit_Sensor.h
-// - Adafruit_BME280.h
-// - WiFi.h
-// - PubSubClient.h
-// - ArduinoJson.h
-// - connection.h
-// - Helper.h
-// - IrrigationController.h
-// - SensorController.h
-// - SwitchController.h
-// - config.h
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -141,13 +123,17 @@ void setup() {
 // initialize SPIFFS
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if(!SPIFFS.begin(true)){
+    #ifdef DEBUG
     Serial.println("An Error has occurred while mounting SPIFFS");
+    #endif
     return;
   }
   
   fs::File file = SPIFFS.open(CONFIG_FILE_PATH);
   if(!file){
+    #ifdef DEBUG
     Serial.println("Failed to open file for reading");
+    #endif
     return;
   }
 
@@ -183,7 +169,6 @@ void setup() {
   // Read temperature from DS18B20 sensor
   float temperatureC = soilsensorGlobal.getTempCByIndex(0);
   Serial.print("Test DS18B20: "); Serial.println(temperatureC);
-
   #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -254,11 +239,10 @@ Serial.print(F("Datalogphase: ")); Serial.println(millis() > nextActionTime);
 Serial.print(F("Next action time: ")); Serial.println(nextActionTime);
 #endif
 //if(true)
-if((status_switches.getDatalogingSwitch()) && (millis() > nextActionTime)) // TODO FIX condition and work with status switches
+if((status_switches.getDatalogingSwitch()) && (millis() > nextActionTime))
 {
   // Sensoring implementation
   nextActionTime = sensoringTask() + measure_intervall;
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -305,10 +289,10 @@ long sensoringTask(){
   sensors = HWHelper.readConfigFile(CONFIG_FILE_PATH);
   JsonObject obj;
 
-  float test = Sensors.onewirehandler();
-Serial.print("ds18b20 temp: "); Serial.println(test);
+  //float test = Sensors.onewirehandler();
+  //Serial.print("ds18b20 temp: "); Serial.println(test);
+
   // handle analog pins
-Serial.println();
   obj = sensors["sensor"].as<JsonObject>();
 
   if(obj){
@@ -316,13 +300,11 @@ Serial.println();
     for (JsonObject::iterator it = obj.begin(); it != obj.end(); ++it){
       String name = it->key().c_str();
       JsonObject sensorConfig = it->value().as<JsonObject>();
-Serial.print("Obj name: "); Serial.println(name);
       float val;
       val = Sensors.measure(&HWHelper, name, sensorConfig);
       Sensors.pubData(&influx_client, val);
     }
   }
-
   // shut down addidional systems
   HWHelper.disablePeripherals();
   HWHelper.disableSensor();
@@ -439,7 +421,8 @@ bool irrigationTask(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // loop setup
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool checkSleepTask(){ // TODO REWORK TO WHILE LOOP!
+// this function should be usable in a while loop returning true most of the time and false if there is something
+bool checkSleepTask(){
   #ifdef DEBUG
   Serial.println(F("Start loop"));
   #endif
@@ -516,8 +499,6 @@ bool checkSleepTask(){ // TODO REWORK TO WHILE LOOP!
       #endif
       break; //break loop to start doing stuff
     }
-    Serial.print("millis: "); Serial.println(millis());
-    Serial.print("break time: "); Serial.println(breakTime);
     HWHelper.system_sleep(); //turn off all external transistors
     delayMicroseconds(500);
     esp_light_sleep_start();

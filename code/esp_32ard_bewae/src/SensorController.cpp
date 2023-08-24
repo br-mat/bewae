@@ -7,19 +7,6 @@
 // generating measurments of all sensors, interacting
 // with various hardware components, and reading config files.
 //
-// Dependencies:
-// - Arduino.h
-// - Wire.h
-// - ArduinoJson.h
-// - HTTPClient.h
-// - SPIFFS.h
-// - config.h
-// - connection.h
-// - Helper.h
-// - WiFi.h
-// - Adafruit_Sensor.h
-// - Adafruit_BME280.h
-//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "SensorController.h"
@@ -35,7 +22,6 @@ BasicSensor::BasicSensor(HelperBase* helper, Adafruit_BME280* bmeClass, DallasTe
 BasicSensor::~BasicSensor() {}
 
 bool BasicSensor::pubData(InfluxDBClient* influx_client, float value){
-// TODO
     return helper->pubInfluxData(influx_client, this->sensorName, INFLUXDB_FIELD, value);
 }
 
@@ -45,10 +31,8 @@ float BasicSensor::analoghandler(uint8_t hardwarePin){
     helper->enablePeripherals();
     helper->enableSensor();
     delay(3);
-
-    float resultm = helper->readAnalogRoutine(hardwarePin); // Read the value from the specified pin
-
-Serial.print("raw: "); Serial.println(resultm);
+    // Read the value from the specified pin
+    float resultm = helper->readAnalogRoutine(hardwarePin);
 
     return resultm;
 }
@@ -62,8 +46,6 @@ float BasicSensor::analogVhandler(uint8_t virtualPin){
     // measurement performed either default or relative (in %)
     int resultm = 0;
     helper->controll_mux(virtualPin, "read", &resultm); // use virtualPin on MUX and read its value
-Serial.print("Pin wanted: "); Serial.println(virtualPin);
-Serial.print("raw: "); Serial.println(resultm);
 
     // return result (float)
     return resultm;
@@ -87,7 +69,9 @@ float BasicSensor::onewirehandler(){
 
 float BasicSensor::bmetemphandler(){
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
+        #ifdef DEBUG
         Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
+        #endif
         return 0;
     }
     float val = 0;
@@ -97,7 +81,9 @@ float BasicSensor::bmetemphandler(){
 
 float BasicSensor::bmehumhandler(){
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
+        #ifdef DEBUG
         Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
+        #endif
         return 0;
     }
     float val = 0;
@@ -107,7 +93,9 @@ float BasicSensor::bmehumhandler(){
 
 float BasicSensor::bmepresshandler(){
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
+        #ifdef DEBUG
         Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
+        #endif
         return 0;
     }
     float val = 0;
@@ -195,11 +183,13 @@ float BasicSensor::measure(HelperBase* helper, const String& name, const JsonObj
         measurmentPub = map(result_, low_limit_, high_limit_, 1000, 0) / 10;
         return measurmentPub;
     }
-    Serial.print("raw: "); Serial.println(measurmentraw);
-
     measurmentPub = factor_ * measurmentraw + additive_;
-Serial.print("float: "); Serial.println(measurmentPub);
-Serial.print("factor: "); Serial.println(factor_);
+    #ifdef DEBUG
+    Serial.println(F("Reading Sensor values:"));
+    Serial.print("raw: "); Serial.println(measurmentraw);
+    Serial.print("float: "); Serial.println(measurmentPub);
+    Serial.print("factor: "); Serial.println(factor_);
+    #endif
 
     // set class variable
     result = measurmentPub;
@@ -207,8 +197,6 @@ Serial.print("factor: "); Serial.println(factor_);
     // return result
     return measurmentPub;
 }
-
-
 
 
 

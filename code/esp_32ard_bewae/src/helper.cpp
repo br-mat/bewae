@@ -5,16 +5,6 @@
 //
 // This file containes the implementation of the Heleper Classes
 //
-// Dependencies:
-// - Arduino.h
-// - Wire.h
-// - SPI.h
-// - SD.h
-// - Adafruit_Sensor.h
-// - Adafruit_BME280.h
-// - WiFi.h
-// - Helper.h
-//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Standard
@@ -636,10 +626,8 @@ bool HelperBase::verifyChecksum(DynamicJsonDocument& JSONdata) {
     #ifdef DEBUG
     Serial.println(F("Checksum verification failed"));
     #endif
-
     return false;
   }
-
   // Return true to indicate successful verification
   return true;
 }
@@ -829,7 +817,6 @@ void Helper_config1_Board1v3838::system_sleep(){
 //val           -- pointer to reading value; &value in function call;                 int (&pointer)   
 //------------------------------------------------------------------------------------------------
 void Helper_config1_Board1v3838::controll_mux(uint8_t channel, String mode, int *val){
-Serial.println("start measuring virtual analog");
   // shutdown wifi to avoid conflicts wif ADC2
   disableWiFi(); // make sure to free adc2
   enableSensor();
@@ -907,17 +894,12 @@ Serial.println("start measuring virtual analog");
   }
   //"read" mode
   if(mode == String("read")){
-//Serial.print("Read v pin: "); Serial.println(channel);
     pinMode(sipsop, INPUT); //make sure its on input
     digitalWrite(enable, LOW);
-//Serial.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
     delay(250); //give time to stabilize reading
-//delay(3000);
+
     int meas = readAnalogRoutine(sipsop);
     *val=meas;
-
-//Serial.print(meas); Serial.print(" ");
-//delay(10000);
 
     delayMicroseconds(10);
     digitalWrite(enable, HIGH);
@@ -973,7 +955,6 @@ bool Helper_config1_Board1v3838::checkAnalogPin(int pin_check)
       return true; // Valid pin found
     }
   }
-  
   #ifdef DEBUG
   Serial.println(F("Invalid pin detected!"));
   #endif

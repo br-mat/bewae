@@ -107,7 +107,7 @@ int IrrigationController::readyToWater() {
   unsigned long currentMillis = millis();
 
   // Accessing the elements of driver_pins using a range-based for loop
-  for (const auto& pinValue : this->driver_pins) { // TODO: UNSIGNED INT FOR PINS FIX THIS LATER
+  for (const auto& pinValue : this->driver_pins) {
       // Check each pin
       if (pinValue > static_cast<int>(max_groups)) {
           #ifdef DEBUG

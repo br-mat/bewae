@@ -1,20 +1,11 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// br-mat (c) 2022
+// br-mat (c) 2023
 // email: matthiasbraun@gmx.at
 //
 // This file contains the declaration for the IrrigationController class, which is responsible for managing and
 // controlling an irrigation system. It includes functions for creating and configuring irrigation controllers,
 // updating the controller based on current conditions, and determining when it is time to water.
-//
-// Dependencies:
-// - Arduino.h
-// - ArduinoJson.h
-// - HTTPClient.h
-// - SPIFFS.h
-// - config.h
-// - connection.h
-// - Helper.h
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -67,7 +58,7 @@ class IrrigationController {
   private:
     // PRIVATE VARIABLES
     // New
-    std::vector<int> driver_pins; // vector of driver pins
+    std::vector<unsigned int> driver_pins; // vector of driver pins
 
     bool is_set; //activate deactivate group, value will get saved to config
     char name[MAX_GROUP_LENGTH]; //name of the group, value will get saved to config

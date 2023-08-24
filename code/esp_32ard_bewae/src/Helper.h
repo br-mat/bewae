@@ -8,14 +8,6 @@
 // controlling solenoids and pumps, reading and writing to config files and 
 // interacting with various hardware components.
 //
-// Dependencies:
-// - Arduino.h
-// - driver/adc.h
-// - config.h
-// - ArduinoJson.h
-// - SPIFFS.h
-// - connection.h
-//
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef __Helper_H__
@@ -94,7 +86,7 @@ public:
     virtual void shiftvalue8b(uint8_t val, bool invert = false);
     // set shift register with more bits (32 bit)
     virtual void shiftvalue(uint32_t val, uint8_t numBits, bool invert = false);
-    // prepare low power mode (currently without light or deepsleep; TODO!)
+    // prepare low power mode (currently without light or deepsleep)
     virtual void system_sleep();
     // dummy function
     virtual void controll_mux(uint8_t channel, String mode, int *val);
@@ -118,16 +110,26 @@ class Helper_config1_main : public HelperBase{
 // Hardware configuration 1 (Board 1) alternative
 class Helper_config1_Board1v3838 : public HelperBase{
 public:
-    void shiftvalue8b(uint8_t val, bool invert = false) override; // set shift register to value (8 bit)
-    void shiftvalue(uint32_t val, uint8_t numBits, bool invert = false) override; // set shift register with more bits (32 bit)
-    void system_sleep() override; // prepare low power mode (currently without light or deepsleep; TODO!)
+    // set shift register to value (8 bit)
+    void shiftvalue8b(uint8_t val, bool invert = false) override;
+    // set shift register with more bits (32 bit)
+    void shiftvalue(uint32_t val, uint8_t numBits, bool invert = false) override;
+    // prepare low power mode (currently without light or deepsleep)
+    void system_sleep() override;
+    // controlls multiplexer to extend GPIO pins
     void controll_mux(uint8_t channel, String mode, int *val) override;
-    void enablePeripherals() override; // enable 3v3 and others to other devices
-    void disablePeripherals() override; // disable 3v3 and others to other devices
-    void enableSensor() override; // enable 3v3 and others to other devices
-    void disableSensor() override; // disable 3v3 and others to other devices
-    void setPinModes(); // set pinmode of all enum elements to OUT/INPUT
-    bool checkAnalogPin(int pin_check) override; // config specific function call
+    // enable 3v3 and others to other devices
+    void enablePeripherals() override;
+    // disable 3v3 and others to other devices
+    void disablePeripherals() override;
+    // enable 3v3 and others to other devices
+    void enableSensor() override;
+    // disable 3v3 and others to other devices
+    void disableSensor() override;
+    // set pinmode of all registered pins elements to OUT/INPUT   
+    void setPinModes();
+    // config specific function call
+    bool checkAnalogPin(int pin_check) override;
 
 private:
     enum Pins {
@@ -154,16 +156,24 @@ private:
 // Hardware configuration 2 (Board 5)
 class Helper_config1_Board5v5 : public HelperBase{
 public:
-    void shiftvalue8b(uint8_t val, bool invert = false) override; // set shift register to value (8 bit)
-    void shiftvalue(uint32_t val, uint8_t numBits, bool invert = false) override; // set shift register with more bits (32 bit)
-    void system_sleep() override; // prepare low power mode (currently without light or deepsleep; TODO!)
-    //void controll_mux(uint8_t channel, String mode, int *val) override; // keep empty
-    void enablePeripherals() override; // enable 3v3 and others to other devices
-    void disablePeripherals() override; // disable 3v3 and others to other devices
-    void enableSensor() override; // enable 3v3 and others to other devices
-    void disableSensor() override; // disable 3v3 and others to other devices
+    // set shift register to value (8 bit)
+    void shiftvalue8b(uint8_t val, bool invert = false) override;
+    // set shift register with more bits (32 bit)
+    void shiftvalue(uint32_t val, uint8_t numBits, bool invert = false) override;
+    // prepare low power mode (currently without light or deepsleep)
+    void system_sleep() override;
+    // enable 3v3 and others to other devices
+    void enablePeripherals() override;
+    // disable 3v3 and others to other devices
+    void disablePeripherals() override;
+    // enable 3v3 and others to other devices
+    void enableSensor() override;
+    // disable 3v3 and others to other devices
+    void disableSensor() override;
+    // set pinmode of all registered pins elements to OUT/INPUT
     void setPinModes();
-    bool checkAnalogPin(int pin_check) override; // config specific function call
+    // config specific function call
+    bool checkAnalogPin(int pin_check) override;
 
 private:
     enum Pins {
@@ -171,7 +181,6 @@ private:
         SW_SENS = 4,
         SW_SENS2 = 25,
         SW_3_3V = 23,
-        //SIG_MUX_1 = 39, // input pins
         ST_CP_SHFT = 17,
         DATA_SHFT = 13,
         SH_CP_SHFT = 16

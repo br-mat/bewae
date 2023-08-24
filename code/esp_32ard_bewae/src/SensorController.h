@@ -7,19 +7,6 @@
 // generating measurments of all sensors, interacting
 // with various hardware components, and reading config files.
 //
-// Dependencies:
-// - Arduino.h
-// - Wire.h
-// - ArduinoJson.h
-// - HTTPClient.h
-// - SPIFFS.h
-// - config.h
-// - connection.h
-// - Helper.h
-// - WiFi.h
-// - Adafruit_Sensor.h
-// - Adafruit_BME280.h
-//
 // The goal is to store all the virtual pins we want to measure in a configuration file.
 // Then use the helper function to retrieve all the keys from the virtual pin group
 // and initialize the corresponding sensor classes when we want to take measurements.
