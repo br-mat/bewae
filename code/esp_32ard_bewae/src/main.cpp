@@ -45,26 +45,8 @@ using namespace std;
 //######################################################################################################################
 //important global variables
 byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_; // containing time variables
-unsigned long up_time = 0;    //general estimated uptime
-unsigned long last_activation = 0; //timestamp variable
 unsigned long nextActionTime = 0; //timestamp variable
 bool thirsty = false; //marks if a watering cycle is finished
-
-// Setup a oneWire instance to communicate with any OneWire device
-OneWire oneWireGlobal(oneWireBus);
-
-// Pass our oneWire reference to Dallas Temperature sensor 
-DallasTemperature soilsensorGlobal(&oneWireGlobal);
-
-Adafruit_BME280 bme; // use I2C interface
-
-Helper_config1_Board1v3838 HWHelper; // define Helper config
-
-// Create a BasicSensor instance
-BasicSensor Sensors(&HWHelper, &bme, soilsensorGlobal);
-
-// Create an instance of the InfluxDBClient class with the specified URL, database name and token
-InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLUXDB_TOKEN);
 
 //timetable example
 //                                             2523211917151311 9 7 5 3 1
@@ -72,17 +54,34 @@ InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLU
 //unsigned long int timetable_default = 0b00000000000000000000010000000000;
 //                                               | | | | | | | | | | | | |
 //                                              2422201816141210 8 6 4 2 0
-
 unsigned long int timetable = 0; // holding info at which hour system needs to do something
+
+// Setup a oneWire instance to communicate with any OneWire device
+OneWire oneWireGlobal(oneWireBus);
+
+// Pass our oneWire reference to Dallas Temperature sensor 
+DallasTemperature soilsensorGlobal(&oneWireGlobal);
+
+// use I2C interface
+Adafruit_BME280 bme;
+
+// initialise WiFi
+WiFiClient wificlient;
+
+// initialise Hardware Helper class
+Helper_config1_Board1v3838 HWHelper;
+
+// Create a BasicSensor instance
+BasicSensor Sensors(&HWHelper, &bme, soilsensorGlobal);
+
+// Create an instance of the InfluxDBClient class with the specified URL, database name and token
+InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLUXDB_TOKEN);
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
 //---- SOME ADDITIONAL FUNCTIONS ---------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 //######################################################################################################################
-
-// Initialise the WiFi and MQTT Client objects
-WiFiClient wificlient;
 
 // Task implementation can be found on bottom of code
 
@@ -195,16 +194,16 @@ void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //init Irrigation Controller instance and update config
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    HWHelper.wakeModemSleep();
-    delay(1);
-    // update the config file stored in spiffs
-    // in order to work a RasPi with node-red and configured flow is needed
-    HWHelper.updateConfig(CONFIG_FILE_PATH);
-  
-    //hour_ = 0;
-    //disableWiFi();
+  HWHelper.wakeModemSleep();
+  delay(1);
+  // update the config file stored in spiffs
+  // in order to work a RasPi with node-red and configured flow is needed
+  HWHelper.updateConfig(CONFIG_FILE_PATH); //TODO: comment to test
 
-    HWHelper.system_sleep(); //power down prepare sleep
+  //hour_ = 0;
+  //disableWiFi();
+
+  HWHelper.system_sleep(); //power down prepare sleep
 }
 
 //######################################################################################################################
@@ -221,15 +220,13 @@ while(checkSleepTask()){
 SwitchController status_switches(&HWHelper); // initialize switch class
 status_switches.updateSwitches();
 
+// print system status
 #ifdef DEBUG
 Serial.println(F("Config: ")); Serial.print(F("Main switch: ")); Serial.println(status_switches.getMainSwitch());
 Serial.print(F("Irrigation switch: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
 Serial.print(F("Measurement switch: ")); Serial.println(status_switches.getDatalogingSwitch());
 Serial.print(F("Timetable: ")); Serial.println(timetable, BIN);
 #endif
-
-//update global time related variables
-unsigned long loop_t = millis();
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // collect & send data
@@ -242,7 +239,10 @@ Serial.print(F("Next action time: ")); Serial.println(nextActionTime);
 if((status_switches.getDatalogingSwitch()) && (millis() > nextActionTime))
 {
   // Sensoring implementation
-  nextActionTime = sensoringTask() + measure_intervall;
+  nextActionTime = sensoringTask() + measure_intervall; // sensoring task returns finishing timestamp
+}
+else{
+  nextActionTime = millis() + measure_intervall *2; // set a min delay (2 times longer)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -268,7 +268,7 @@ Serial.println(F("End loop!"));
 //######################################################################################################################
 
 
-// Task Implementation - to keep main loop readable
+// Task Implementation - keeping main loop readable
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // sensoring - returns timestamp of next event
@@ -284,6 +284,10 @@ long sensoringTask(){
   // shutdown wifi to free up adc2 pins!
   HWHelper.disableWiFi();
   delay(500); // give time to balance load
+
+  // Create data vector to collect and publish later
+  std::vector<SensorData> dataVec;
+  std::vector<SensorData> dataVecTest;
 
   DynamicJsonDocument sensors(CONF_FILE_SIZE);
   sensors = HWHelper.readConfigFile(CONFIG_FILE_PATH);
@@ -301,10 +305,37 @@ long sensoringTask(){
       String name = it->key().c_str();
       JsonObject sensorConfig = it->value().as<JsonObject>();
       float val;
-      val = Sensors.measure(&HWHelper, name, sensorConfig);
-      Sensors.pubData(&influx_client, val);
+      val = Sensors.measuref(&HWHelper, sensorConfig);
+      //Sensors.pubData(&influx_client, val);
+      // create & fill data
+      SensorData data;
+      data.name = name;
+      data.field = INFLUXDB_FIELD;
+      data.data = Sensors.measuref(&HWHelper, sensorConfig);
+      // Add the new SensorData object to the vector
+      dataVec.push_back(data);
+
+      // TODO: TEST NEW IMPLEMENTATION:
+      // new idea is to get and publish whole datapoints reducing bloaty code in main and make it more readable
+      // now sensors are initialized via id not via name! name becomes a value same for field!
+      SensorData dataTest = Sensors.measurePoint(&HWHelper, name, sensorConfig);
+      dataVecTest.push_back(dataTest);
     }
   }
+
+  // reconnect to wifi
+  HWHelper.connectWifi();
+  // Publish data vector
+  bool success = Sensors.pubVector(&influx_client, dataVec);
+  #ifdef DEBUG
+  if(success){
+    Serial.println(F("All data published!"));
+  }
+  else{
+    Serial.println(F("Warning: Problem occured while publishing ata vector!"));
+  }
+  #endif
+
   // shut down addidional systems
   HWHelper.disablePeripherals();
   HWHelper.disableSensor();
@@ -429,11 +460,16 @@ bool checkSleepTask(){
 
   // activate 3.3v supply
   HWHelper.enablePeripherals();
+  delay(10);
 
   // check real time clock module
   byte sec1, min1, hour1, day_w1, day_m1, mon1 , y1;
   // check return status
   byte rtc_status = HWHelper.readTime(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
+
+  #ifdef DEBUG
+  Serial.print(F("Rtc Status: ")); Serial.println(!rtc_status);
+  #endif
 
   // update configuration
   SwitchController controller_switches(&HWHelper);
@@ -443,7 +479,6 @@ bool checkSleepTask(){
   //if(true){
   if((hour_ != hour1) && (!(bool)rtc_status) && (controller_switches.getMainSwitch())){
     // check for hour change
-    up_time = up_time + (unsigned long)(60UL* 60UL * 1000UL); // refresh the up_time every hour, no need for extra function or lib to calculate the up time
     HWHelper.readTime(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_); // update long time timestamp
 
     // look for config updates once an hour should be good
@@ -451,7 +486,7 @@ bool checkSleepTask(){
     delay(1);
     // update config
     // in order to work a RasPi with node-red and configured flow is needed
-    HWHelper.updateConfig(CONFIG_FILE_PATH);
+    HWHelper.updateConfig(CONFIG_FILE_PATH); // TODO: commented to test
     // setup empty class instance & check timetables
     IrrigationController controller;
     delay(30);
