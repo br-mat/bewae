@@ -21,9 +21,21 @@ BasicSensor::BasicSensor(HelperBase* helper, Adafruit_BME280* bmeClass, DallasTe
 // Basic Destructor
 BasicSensor::~BasicSensor() {}
 
+// function to publish a data point
 bool BasicSensor::pubData(InfluxDBClient* influx_client, float value){
-    return helper->pubInfluxData(influx_client, this->sensorName, INFLUXDB_FIELD, value);
+    return HWHelper.pubInfluxData(influx_client, this->sensorName, INFLUXDB_FIELD, value);
 }
+
+// funciton to publish a whole data vector
+bool BasicSensor::pubVector(InfluxDBClient* influx_client, const std::vector<SensorData>& sensors) {
+    // Publish data from the internal vector
+    bool success = false;
+    for (const SensorData& sensor : sensors) {
+        success |= HWHelper.pubInfluxData(influx_client, sensor.name, sensor.field, sensor.data);
+    }
+    return success;
+}
+
 
 // handlers
 float BasicSensor::analoghandler(uint8_t hardwarePin){
@@ -103,7 +115,7 @@ float BasicSensor::bmepresshandler(){
     return val;
 }
 
-float BasicSensor::measure(HelperBase* helper, const String& name, const JsonObject& sensorConfig) {
+float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) {
     int additive_;
     float factor_;
     int high_limit_;
@@ -197,6 +209,41 @@ float BasicSensor::measure(HelperBase* helper, const String& name, const JsonObj
     // return result
     return measurmentPub;
 }
+
+SensorData BasicSensor::measurePoint(HelperBase* helper, const String& id, const JsonObject& sensorConfig){
+    String name_;
+    String field_;
+
+    // check passed name and field
+    if (sensorConfig.containsKey("name")) {
+        name_ = sensorConfig["name"].as<String>();
+    }
+    else{
+        #ifdef DEBUG
+        Serial.print(F("Warning: No name found in Sensor Configuration, Id:"));
+        Serial.println(id);
+        #endif
+    }
+    if (sensorConfig.containsKey("field")) {
+        field_ = sensorConfig["field"].as<String>();
+    }
+    else{
+        field_ = INFLUXDB_FIELD;
+        #ifdef DEBUG
+        Serial.print(F("Warning: Field not found! set to default, Id:"));
+        Serial.println(id);
+        #endif
+    }
+
+    // create and fill dataPoint
+    SensorData dataPoint;
+    dataPoint.data = measuref(helper, sensorConfig);
+    dataPoint.name = name_;
+    dataPoint.field = field_;
+    return dataPoint;
+}
+
+
 
 
 

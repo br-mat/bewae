@@ -36,6 +36,17 @@
 //DallasTemperature sensors(&WireBus);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Data structure
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// basic data structure with name and value
+struct SensorData {
+    String name;
+    String field;
+    float data;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // BasicSensor
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -49,7 +60,11 @@ class BasicSensor {
     virtual ~BasicSensor();
 
     // Publishing Data
-    virtual bool pubData(InfluxDBClient* influx_client, float value);
+
+    // function to publish a data point
+    bool pubData(InfluxDBClient* influx_client, float value);
+    // funciton to publish a whole data vector
+    bool pubVector(InfluxDBClient* influx_client, const std::vector<SensorData>& sensors);
 
     // handlers
     float analoghandler(uint8_t hardwarePin);
@@ -60,7 +75,8 @@ class BasicSensor {
     float bmepresshandler();
 
     // measure function 
-    float measure(HelperBase* helper, const String& name, const JsonObject& sensorConfig);
+    float measuref(HelperBase* helper, const JsonObject& sensorConfig);
+    SensorData measurePoint(HelperBase* helper, const String& id, const JsonObject& sensorConfig);
 
     // setters & getters
     String getSensorName() const;
