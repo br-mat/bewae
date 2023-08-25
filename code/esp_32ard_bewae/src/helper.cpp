@@ -409,6 +409,7 @@ DynamicJsonDocument HelperBase::readConfigFile(const char path[PATH_LENGTH]) {
     jsonDoc.clear();
     return jsonDoc;
   }
+
   return jsonDoc;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -419,7 +420,7 @@ DynamicJsonDocument HelperBase::readConfigFile(const char path[PATH_LENGTH]) {
 bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
   if (path == nullptr) { // check for valid path, a function could possibly use this and set a nullptr as path
     #ifdef DEBUG
-    Serial.println(F("Invalid file path"));
+    Serial.println(F("Path nullptr not allowed!"));
     #endif
     return false;
   }
@@ -432,6 +433,35 @@ bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PA
     newFile.close();
     return false; // error occured
   }
+  
+  //
+  DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
+  DeserializationError error = deserializeJson(JSONdata, newFile);
+  if(error){
+    #ifdef DEBUG
+    Serial.println(F("Error: Problem when try to save file: could not be read properly!"));
+    #endif
+    return false;
+  }
+  if(!JSONdata.containsKey("checksum")){
+    #ifdef DEBUG
+    Serial.println(F("Error: Problem when try to save file: No checksum hash!"));
+    #endif
+    return false;
+  }
+
+  String oldhash = calculateJSONHash(JSONdata);
+  String newhash = calculateJSONHash(jsonDoc);
+
+  if(!(oldhash != newhash)){
+    #ifdef DEBUG
+    Serial.println(F("Not Saving file: File unchanged!"));
+    #endif
+    return true;
+  }
+
+  // update hash
+  jsonDoc["checksum"] = newhash;
 
   // Write the JSON data to the config file
   serializeJson(jsonDoc, newFile);
@@ -454,8 +484,12 @@ bool HelperBase::pubInfluxData(InfluxDBClient* influx_client, String sensor_name
     return false;
   }
 
-  Point point(sensor_name);
-  point.addField(field_name, value);  // Add temperature field to the Point object
+  //Point point(sensor_name);
+  //point.addField(field_name, value);  // Add temperature field to the Point object
+
+//TODO: TEST publishing
+Point point("test");
+point.addField("test", 0);  // Add temperature field to the Point object
 
   // Write the Point object to InfluxDB
   if (!influx_client->writePoint(point)) {
@@ -533,7 +567,7 @@ JsonObject HelperBase::getJsonObjects(const char* key, const char* filepath) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // HTTP GET request to the Raspberry Pi server
-DynamicJsonDocument HelperBase::getJSONData(const char* server, int serverPort, const char* serverPath) {
+DynamicJsonDocument HelperBase::getJSONConfig(const char* server, int serverPort, const char* serverPath) {
   // create buffer file
   int max_retries = 3;
   int retries = 0;
@@ -548,12 +582,18 @@ DynamicJsonDocument HelperBase::getJSONData(const char* server, int serverPort, 
       // Parse the JSON data
       // check for error in JSON format
       DeserializationError error = deserializeJson(JSONdata, http.getString());
+
       // veryfy content of file using sha256 hash
       bool verification = verifyChecksum(JSONdata);
+      if(!verification){
+        #ifdef DEBUG
+        Serial.println(F("Warning: File verification went wrong!"));
+        #endif
+      }
 
       if (error && !verification) {
         #ifdef DEBUG
-        Serial.println(F("Warning: Problem when parsing JSON data"));
+        Serial.println(F("Error: Problem when parsing JSON data"));
         #endif
       } else {
         return JSONdata;
@@ -603,24 +643,24 @@ String HelperBase::sha256(String content) {
 
 // This function verifies the integrity of received JSON data by comparing its checksum with a calculated checksum.
 bool HelperBase::verifyChecksum(DynamicJsonDocument& JSONdata) {
-  if(JSONdata.containsKey("dmmy")){
+  // to make it easier when editing the file manually:
+  // if no hash is provided (checksum) it will be callculated and apended, however a warning will be printed
+  if(!JSONdata.containsKey("checksum")){
+    // generate hash if not contained
+    String calculatedChecksum = calculateJSONHash(JSONdata);
     #ifdef DEBUG
-    Serial.println(F("Warning: No checksum found in file! Continuing."));
+    Serial.println(F("Warning: File could not be verified. No checksum hash found in file!"));
+    Serial.println(F("Added file hash to file:"));
+    Serial.print(F("Sha256 file hash:")); Serial.println(calculatedChecksum);
     #endif
     return true; // print warning and set true to make it optional
   }
 
   // Extract the received checksum from the JSON data
-  String receivedChecksum = JSONdata["checksum"];
+  String receivedChecksum = JSONdata["checksum"].as<String>();
 
-  // Remove the checksum field from the JSON data to prepare for checksum calculation
-  JSONdata.remove("checksum");
-  // Serialize the modified JSON data to a string
-  String content = "";
-  serializeJson(JSONdata, content);
+  String calculatedChecksum = calculateJSONHash(JSONdata);
 
-  // Calculate the SHA-256 checksum of the serialized JSON data
-  String calculatedChecksum = sha256(content);
   // Compare the received checksum with the calculated checksum
   if (receivedChecksum != calculatedChecksum) {
     #ifdef DEBUG
@@ -628,10 +668,30 @@ bool HelperBase::verifyChecksum(DynamicJsonDocument& JSONdata) {
     #endif
     return false;
   }
+
   // Return true to indicate successful verification
   return true;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// calculate hash of a json doc without optional contained hash value ("checksum")
+String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
+  bool containsHash = false;
+  // prepare hash
+  if(JSONdata.containsKey("checksum")){
+    JSONdata.remove("checksum");
+    containsHash = true;
+  }
+  String fileStr = "";
+  serializeJson(JSONdata, fileStr);
+  // calculate hash
+  String hash = sha256(fileStr);
+  // Add the checksum field back to the original JSON data
+  if(containsHash){
+    JSONdata["checksum"] = hash;
+  }
+  return hash;
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // The updateConfig function retrieves new JSON data from a server and updates the config file,
@@ -640,11 +700,10 @@ bool HelperBase::verifyChecksum(DynamicJsonDocument& JSONdata) {
 // The function takes in a const char* type argument named path which specifies the path to retrieve new JSON data from the server.
 // Returns a bool value indicating the success of updating the config file with new JSON data from the server.
 bool HelperBase::updateConfig(const char* path){
-
   // Check if the device is connected to WiFi
   if (WiFi.status() == WL_CONNECTED) {
     // Retrieve new JSON data from the server
-    DynamicJsonDocument newdoc = HelperBase::getJSONData(SERVER, SERVER_PORT, path);
+    DynamicJsonDocument newdoc = HelperBase::getJSONConfig(SERVER, SERVER_PORT, path);
     // Check if the retrieved data is not null
     if(newdoc.isNull()){
       #ifdef DEBUG

@@ -71,12 +71,14 @@ public:
     void blinkOnBoard(String howLong, int times);
     // returns requestet JSON object (key) of specified file
     JsonObject getJsonObjects(const char* key, const char* filepath);
-    // HTTP GET request to the a configured server retrieving JSON data
-    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath);
+    // HTTP GET request to the a configured server retrieving JSON config data
+    DynamicJsonDocument getJSONConfig(const char* server, int serverPort, const char* serverPath);
     // This function calculates the SHA-256 hash of the input content and returns the hash as a hexadecimal string.
     String sha256(String content);
     // This function verifies the integrity of received JSON data by comparing its checksum with a calculated checksum.
     bool verifyChecksum(DynamicJsonDocument& JSONdata);
+    // calculate hash of a json doc without optional contained hash value ("checksum")
+    String calculateJSONHash(DynamicJsonDocument& JSONdata);
     // routine to check and update config file (from raspberrypi server)
     bool updateConfig(const char* path);
 
