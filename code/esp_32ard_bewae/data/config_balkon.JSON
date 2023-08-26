@@ -1,0 +1,190 @@
+{
+  "group": {
+    "mastr": {
+      "is_set": 0,
+      "vpins": [
+        0
+      ],
+      "lastup": [
+        0,
+        0
+      ],
+      "watering": 0,
+      "water-time": 0,
+      "timetable": 0
+    },
+    "Tom1": {
+      "is_set": 1,
+      "vpins": [
+        1,
+        10
+      ],
+      "lastup": [
+        0,
+        0
+      ],
+      "watering": 0,
+      "water-time": 20,
+      "timetable": 2304
+    },
+    "Tom2": {
+      "is_set": 1,
+      "vpins": [
+        1,
+        9
+      ],
+      "lastup": [
+        0,
+        0
+      ],
+      "watering": 0,
+      "water-time": 8,
+      "timetable": 2304
+    },
+    "Gewa": {
+      "is_set": 1,
+      "vpins": [
+        1,
+        2
+      ],
+      "lastup": [
+        0,
+        0
+      ],
+      "watering": 0,
+      "water-time": 10,
+      "timetable": 256
+    },
+    "Krtr": {
+      "is_set": 1,
+      "vpins": [
+        1,
+        11
+      ],
+      "lastup": [
+        0,
+        0
+      ],
+      "watering": 0,
+      "water-time": 6,
+      "timetable": 512
+    },
+    "Basi": {
+      "is_set": 1,
+      "vpins": [
+        1,
+        3
+      ],
+      "lastup": [
+        0,
+        0
+      ],
+      "watering": 0,
+      "water-time": 10,
+      "timetable": 2304
+    },
+    "Erdb": {
+      "is_set": 1,
+      "vpins": [
+        1,
+        8
+      ],
+      "lastup": [
+        0,
+        0
+      ],
+      "watering": 0,
+      "water-time": 10,
+      "timetable": 2304
+    }
+  },
+  "sensor": {
+    "temp": {
+      "mode": "bmetemp"
+    },
+    "hum": {
+      "mode": "bmehum"
+    },
+    "press": {
+      "mode": "bmepress"
+    },
+    "vpin0": {
+      "mode": "vanalog",
+      "vpin": 0
+    },
+    "vpin1": {
+      "mode": "vanalog",
+      "vpin": 1
+    },
+    "vpin2": {
+      "mode": "vanalog",
+      "vpin": 2
+    },
+    "vpin3": {
+      "mode": "vanalog",
+      "vpin": 3
+    },
+    "vpin4": {
+      "mode": "vanalog",
+      "vpin": 4
+    },
+    "vpin5": {
+      "mode": "vanalog",
+      "vpin": 5
+    },
+    "vpin6": {
+      "mode": "vanalog",
+      "vpin": 6
+    },
+    "vpin7": {
+      "mode": "vanalog",
+      "vpin": 7
+    },
+    "vpin8": {
+      "mode": "vanalog",
+      "vpin": 8
+    },
+    "vpin9": {
+      "mode": "vanalog",
+      "vpin": 9
+    },
+    "vpin10": {
+      "mode": "vanalog",
+      "vpin": 10
+    },
+    "vpin11": {
+      "mode": "vanalog",
+      "vpin": 11
+    },
+    "vpin12": {
+      "mode": "vanalog",
+      "vpin": 12
+    },
+    "vpin13": {
+      "mode": "vanalog",
+      "vpin": 13
+    },
+    "vpin14": {
+      "mode": "vanalog",
+      "vpin": 14
+    },
+    "moist15": {
+      "mode": "vanalog",
+      "vpin": 15
+    }
+  },
+  "switch": {
+    "main": {
+      "value": 1
+    },
+    "irig": {
+      "value": 1
+    },
+    "mssr": {
+      "value": 1
+    },
+    "dmmy": {
+      "value": 0
+    }
+  }
+}

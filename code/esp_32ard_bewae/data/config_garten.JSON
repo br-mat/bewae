@@ -61,9 +61,7 @@
     },
     "moist2": {
       "mode": "analog",
-      "pin": 26,
-      "llim": 300,
-      "hlim": 570
+      "pin": 26
     }
   },
   "switch": {
