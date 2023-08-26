@@ -198,7 +198,7 @@ void setup() {
   delay(1);
   // update the config file stored in spiffs
   // in order to work a RasPi with node-red and configured flow is needed
-  HWHelper.updateConfig(CONFIG_FILE_PATH); //TODO: comment to test
+  HWHelper.updateConfig(CONFIG_FILE_PATH);
 
   //hour_ = 0;
   //disableWiFi();
@@ -289,44 +289,33 @@ long sensoringTask(){
   std::vector<SensorData> dataVec;
   std::vector<SensorData> dataVecTest;
 
-  DynamicJsonDocument sensors(CONF_FILE_SIZE);
-  sensors = HWHelper.readConfigFile(CONFIG_FILE_PATH);
+  DynamicJsonDocument configf(CONF_FILE_SIZE);
+  configf = HWHelper.readConfigFile(CONFIG_FILE_PATH);
   JsonObject obj;
 
   //float test = Sensors.onewirehandler();
   //Serial.print("ds18b20 temp: "); Serial.println(test);
 
   // handle analog pins
-  obj = sensors["sensor"].as<JsonObject>();
+  obj = configf["sensor"].as<JsonObject>();
 
   if(obj){
-    Serial.println("obj found: ");
     for (JsonObject::iterator it = obj.begin(); it != obj.end(); ++it){
-      String name = it->key().c_str();
+      String id = it->key().c_str();
       JsonObject sensorConfig = it->value().as<JsonObject>();
       float val;
       val = Sensors.measuref(&HWHelper, sensorConfig);
-      //Sensors.pubData(&influx_client, val);
       // create & fill data
-      SensorData data;
-      data.name = name;
-      data.field = INFLUXDB_FIELD;
-      data.data = Sensors.measuref(&HWHelper, sensorConfig);
+      SensorData data = Sensors.measurePoint(&HWHelper, id, sensorConfig);
       // Add the new SensorData object to the vector
-      dataVec.push_back(data);
-
-      // TODO: TEST NEW IMPLEMENTATION:
-      // new idea is to get and publish whole datapoints reducing bloaty code in main and make it more readable
-      // now sensors are initialized via id not via name! name becomes a value same for field!
-      SensorData dataTest = Sensors.measurePoint(&HWHelper, name, sensorConfig);
-      dataVecTest.push_back(dataTest);
+      dataVecTest.push_back(data);
     }
   }
 
   // reconnect to wifi
   HWHelper.connectWifi();
   // Publish data vector
-  bool success = Sensors.pubVector(&influx_client, dataVec);
+  bool success = Sensors.pubVector(&influx_client, dataVecTest);
   #ifdef DEBUG
   if(success){
     Serial.println(F("All data published!"));
@@ -486,7 +475,7 @@ bool checkSleepTask(){
     delay(1);
     // update config
     // in order to work a RasPi with node-red and configured flow is needed
-    HWHelper.updateConfig(CONFIG_FILE_PATH); // TODO: commented to test
+    HWHelper.updateConfig(CONFIG_FILE_PATH);
     // setup empty class instance & check timetables
     IrrigationController controller;
     delay(30);

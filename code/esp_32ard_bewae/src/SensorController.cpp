@@ -22,8 +22,8 @@ BasicSensor::BasicSensor(HelperBase* helper, Adafruit_BME280* bmeClass, DallasTe
 BasicSensor::~BasicSensor() {}
 
 // function to publish a data point
-bool BasicSensor::pubData(InfluxDBClient* influx_client, float value){
-    return HWHelper.pubInfluxData(influx_client, this->sensorName, INFLUXDB_FIELD, value);
+bool BasicSensor::pubData(InfluxDBClient* influx_client, String name, String field, float value){
+    return HWHelper.pubInfluxData(influx_client, name, field, value);
 }
 
 // funciton to publish a whole data vector
@@ -265,7 +265,7 @@ void BasicSensor::setStatus(bool status) {
 }
 
 float BasicSensor::getValue() const {
-    return status;
+    return result;
 }
 
 void BasicSensor::setValue(float result) {

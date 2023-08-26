@@ -62,7 +62,7 @@ class BasicSensor {
     // Publishing Data
 
     // function to publish a data point
-    bool pubData(InfluxDBClient* influx_client, float value);
+    bool pubData(InfluxDBClient* influx_client, String name, String field, float value);
     // funciton to publish a whole data vector
     bool pubVector(InfluxDBClient* influx_client, const std::vector<SensorData>& sensors);
 
@@ -92,8 +92,8 @@ class BasicSensor {
     HelperBase* helper;
 
   private:
-    String sensorName; // Name of the sensor
-    bool status;       // Status of the sensor (true = on, false = off)
+    String sensorName; // Name of the sensor (currently unused)
+    bool status;       // Status of the sensor (true = on, false = off) (currently unused)
     float result;      // result value
     uint8_t bmeaddr;
     uint8_t ds18b20pin;
