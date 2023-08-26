@@ -56,12 +56,14 @@
       "mode": "soiltemp"
     },
     "moist1": {
-      "mode": "analog",
-      "pin": 27
+      "mode": "vanalog",
+      "pin": 14
     },
     "moist2": {
-      "mode": "analog",
-      "pin": 26
+      "mode": "vanalog",
+      "pin": 15,
+      "llim": 300,
+      "hlim": 570
     }
   },
   "switch": {

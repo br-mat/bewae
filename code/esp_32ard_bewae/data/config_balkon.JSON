@@ -24,7 +24,7 @@
         0
       ],
       "watering": 0,
-      "water-time": 20,
+      "water-time": 35,
       "timetable": 2304
     },
     "Tom2": {
@@ -38,7 +38,7 @@
         0
       ],
       "watering": 0,
-      "water-time": 8,
+      "water-time": 25,
       "timetable": 2304
     },
     "Gewa": {
@@ -52,7 +52,7 @@
         0
       ],
       "watering": 0,
-      "water-time": 10,
+      "water-time": 20,
       "timetable": 256
     },
     "Krtr": {
@@ -66,7 +66,7 @@
         0
       ],
       "watering": 0,
-      "water-time": 6,
+      "water-time": 15,
       "timetable": 512
     },
     "Basi": {
@@ -80,7 +80,7 @@
         0
       ],
       "watering": 0,
-      "water-time": 10,
+      "water-time": 25,
       "timetable": 2304
     },
     "Erdb": {
@@ -94,7 +94,7 @@
         0
       ],
       "watering": 0,
-      "water-time": 10,
+      "water-time": 30,
       "timetable": 2304
     }
   },
@@ -164,11 +164,12 @@
       "mode": "vanalog",
       "vpin": 13
     },
-    "vpin14": {
+    "12VBat": {
       "mode": "vanalog",
-      "vpin": 14
+      "vpin": 14,
+      "fac": 0.012953
     },
-    "moist15": {
+    "vpin15": {
       "mode": "vanalog",
       "vpin": 15
     }
