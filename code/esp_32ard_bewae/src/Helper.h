@@ -73,6 +73,8 @@ public:
     JsonObject getJsonObjects(const char* key, const char* filepath);
     // HTTP GET request to the a configured server retrieving JSON config data
     DynamicJsonDocument getJSONConfig(const char* server, int serverPort, const char* serverPath);
+    // OLD HTTP GET
+    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath);
     // This function calculates the SHA-256 hash of the input content and returns the hash as a hexadecimal string.
     String sha256(String content);
     // This function verifies the integrity of received JSON data by comparing its checksum with a calculated checksum.
