@@ -173,11 +173,11 @@ bool HelperBase::readTime(byte *second,byte *minute,byte *hour,byte *dayOfWeek,b
     *dayOfMonth = bcd_dec(Wire.read());
     *month = bcd_dec(Wire.read());
     *year = bcd_dec(Wire.read());
-    #ifdef DEBUG
-    char timestamp[20];
-    sprintf(timestamp, "%02d.%02d.%02d %02d:%02d:%02d", *dayOfMonth, *month, *year, *hour, *minute, *second);
-    Serial.println(timestamp);
-    #endif
+    //#ifdef DEBUG
+    //char timestamp[20];
+    //sprintf(timestamp, "%02d.%02d.%02d %02d:%02d:%02d", *dayOfMonth, *month, *year, *hour, *minute, *second);
+    //Serial.println(timestamp);
+    //#endif
     return true; // all good
   } else { // error occurred
     // set all values to zero
@@ -336,10 +336,7 @@ bool HelperBase::disableWiFi(){
   // Disconnect from the WiFi network.
   WiFi.disconnect(true);  
   // Set the WiFi mode to off.
-  WiFi.mode(WIFI_OFF);    
-  #ifdef DEBUG
-  Serial.print(F("Wifi status: ")); Serial.println(WiFi.status());
-  #endif
+  WiFi.mode(WIFI_OFF);
   return true;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -865,7 +862,7 @@ void Helper_config1_Board1v3838::shiftvalue(uint32_t val, uint8_t numBits, bool 
     val = ~val;  // Invert the value if the invert flag is set
   }
 
-  #ifdef DEBUG
+  #ifdef DEBUG_SPAM
   Serial.print(F("Shifting '"));
   Serial.print(val, BIN); Serial.println(F("'"));
   #endif
@@ -900,12 +897,7 @@ void Helper_config1_Board1v3838::system_sleep(){
   digitalWrite(Pins::S2_MUX_1, HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
   digitalWrite(Pins::S3_MUX_1 , HIGH);    // pull high to avoid leakage over mux controll pins (which happens for some reason?!)
 
-
   disableWiFi();
-  //esp_light_sleep_start();
-  #ifdef DEBUG
-  Serial.println(F("Output on standby"));
-  #endif
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1109,7 +1101,7 @@ void Helper_config1_Board5v5::shiftvalue(uint32_t val, uint8_t numBits, bool inv
     val = ~val;  // Invert the value if the invert flag is set
   }
 
-  #ifdef DEBUG
+  #ifdef DEBUG_SPAM
   Serial.println();
   Serial.print(F("Shifting '"));
   Serial.print(val, BIN); Serial.println(F("'"));
@@ -1140,10 +1132,6 @@ void Helper_config1_Board5v5::system_sleep() {
   delay(1);
 
   disableWiFi();
-  //esp_light_sleep_start();
-  #ifdef DEBUG
-  Serial.println(F("Output on standby"));
-  #endif
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

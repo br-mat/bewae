@@ -64,6 +64,7 @@ float BasicSensor::analogVhandler(uint8_t virtualPin){
 }
 
 float BasicSensor::onewirehandler(){
+    HWHelper.enablePeripherals();
     this->ds18b20Module.begin();
     delayMicroseconds(10); // give sensor time to start up
 
@@ -80,6 +81,7 @@ float BasicSensor::onewirehandler(){
 }
 
 float BasicSensor::bmetemphandler(){
+    HWHelper.enablePeripherals();
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
         #ifdef DEBUG
         Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
@@ -92,6 +94,7 @@ float BasicSensor::bmetemphandler(){
 }
 
 float BasicSensor::bmehumhandler(){
+    HWHelper.enablePeripherals();
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
         #ifdef DEBUG
         Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
@@ -104,6 +107,7 @@ float BasicSensor::bmehumhandler(){
 }
 
 float BasicSensor::bmepresshandler(){
+    HWHelper.enablePeripherals();
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
         #ifdef DEBUG
         Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
@@ -185,22 +189,22 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
     if ((high_limit_ != 0) && (low_limit_ != 0)) {
         float temp = (float)measurmentraw;
         float result_;
-        #ifdef DEBUG
-        Serial.print(F("raw read:")); Serial.println(result);
-        Serial.print(F("raw read int:")); Serial.println((int)temp);
-        #endif
         temp = measurmentraw + 0.5; // cast remporary float to int and round
         result_ = constrain(temp, low_limit_, high_limit_); //x within borders else x = border value; (example 1221 wet; 3176 dry [in mV])
                                                         //avoid using other functions inside the brackets of constrain
         measurmentPub = map(result_, low_limit_, high_limit_, 1000, 0) / 10;
+        #ifdef DEBUG
+        Serial.print(F("Reading Sensor (relative): ")); Serial.println(sensorConfig["name"].as<String>());
+        Serial.print(F("raw: ")); Serial.println(measurmentraw);
+        Serial.print(F("return: ")); Serial.println(measurmentPub);
+        #endif
         return measurmentPub;
     }
     measurmentPub = factor_ * measurmentraw + additive_;
     #ifdef DEBUG
-    Serial.println(F("Reading Sensor values:"));
+    Serial.print(F("Reading Sensor: ")); Serial.println(sensorConfig["name"].as<String>());
     Serial.print("raw: "); Serial.println(measurmentraw);
-    Serial.print("float: "); Serial.println(measurmentPub);
-    Serial.print("factor: "); Serial.println(factor_);
+    Serial.print("return: "); Serial.println(measurmentPub);
     #endif
 
     // set class variable

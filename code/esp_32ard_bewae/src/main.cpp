@@ -174,7 +174,7 @@ void setup() {
 // init time and date
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //uncomment if want to set the time (NOTE: only need to do this once not every time!)
-  //set_time(00,38,15,03,6,7,23);
+  //HWHelper.set_time(00,45,16,06,28,8,23);
 
   //seting time (second,minute,hour,weekday,date_day,date_month,year)
   //set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
@@ -200,9 +200,6 @@ void setup() {
   // in order to work a RasPi with node-red and configured flow is needed
   HWHelper.updateConfig(CONFIG_FILE_PATH);
 
-  //hour_ = 0;
-  //disableWiFi();
-
   HWHelper.system_sleep(); //power down prepare sleep
 }
 
@@ -215,6 +212,8 @@ void loop(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // start & sleep loop
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// manage sleep and updating of configuration
 while(checkSleepTask()){
 }
 SwitchController status_switches(&HWHelper); // initialize switch class
@@ -257,7 +256,7 @@ if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timin
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef DEBUG
-Serial.println(F("End loop!"));
+Serial.println(F("--- End loop! ---"));
 #endif
 }
 
@@ -275,6 +274,7 @@ Serial.println(F("End loop!"));
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 long sensoringTask(){
   #ifdef DEBUG
+  Serial.println();
   Serial.println(F("enter datalog phase"));
   #endif
 
@@ -303,8 +303,8 @@ long sensoringTask(){
     for (JsonObject::iterator it = obj.begin(); it != obj.end(); ++it){
       String id = it->key().c_str();
       JsonObject sensorConfig = it->value().as<JsonObject>();
-      float val;
-      val = Sensors.measuref(&HWHelper, sensorConfig);
+      //float val;
+      //val = Sensors.measuref(&HWHelper, sensorConfig);
       // create & fill data
       SensorData data = Sensors.measurePoint(&HWHelper, id, sensorConfig);
       // Add the new SensorData object to the vector
@@ -316,6 +316,7 @@ long sensoringTask(){
   HWHelper.connectWifi();
   // Publish data vector
   bool success = Sensors.pubVector(&influx_client, dataVecTest);
+  //bool success = false; //DEBUG
   #ifdef DEBUG
   if(success){
     Serial.println(F("All data published!"));
@@ -444,7 +445,7 @@ bool irrigationTask(){
 // this function should be usable in a while loop returning true most of the time and false if there is something
 bool checkSleepTask(){
   #ifdef DEBUG
-  Serial.println(F("Start loop"));
+  Serial.println(F("--- Start loop! ---"));
   #endif
 
   // activate 3.3v supply
@@ -456,26 +457,32 @@ bool checkSleepTask(){
   // check return status
   byte rtc_status = HWHelper.readTime(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
 
-  #ifdef DEBUG
+  #ifdef DEBUG_SPAM
   Serial.print(F("Rtc Status: ")); Serial.println(!rtc_status);
   #endif
+  #ifdef DEBUG
+  String time = HWHelper.timestamp();
+  Serial.println(time);
+  #endif
 
-  // update configuration
+  // look for config updates once an hour should be good
+  HWHelper.wakeModemSleep();
+  delay(1);
+  // update config
+  // in order to work a RasPi with node-red and configured flow is needed
+  HWHelper.updateConfig(CONFIG_FILE_PATH);
+
+  // load update configuration
   SwitchController controller_switches(&HWHelper);
   controller_switches.updateSwitches();
 
+  hour_ = 0; //DEBUG
   // check for hour change and update config
   //if(true){
-  if((hour_ != hour1) && (!(bool)rtc_status) && (controller_switches.getMainSwitch())){
+  if((hour_ != hour1) && (rtc_status) && (controller_switches.getMainSwitch())){
     // check for hour change
     HWHelper.readTime(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_); // update long time timestamp
 
-    // look for config updates once an hour should be good
-    HWHelper.wakeModemSleep();
-    delay(1);
-    // update config
-    // in order to work a RasPi with node-red and configured flow is needed
-    HWHelper.updateConfig(CONFIG_FILE_PATH);
     // setup empty class instance & check timetables
     IrrigationController controller;
     delay(30);
@@ -516,6 +523,7 @@ bool checkSleepTask(){
     breakTime = nextActionTime;
   }
 
+  delay(3);
   while(true){ // sleep until break
     if(breakTime < millis()){
       #ifdef DEBUG
@@ -526,6 +534,9 @@ bool checkSleepTask(){
     HWHelper.system_sleep(); //turn off all external transistors
     delayMicroseconds(500);
     esp_light_sleep_start();
+    #ifdef DEBUG_SPAM
+    Serial.print(F("Sleeping: Wifi status: ")); Serial.println(WiFi.status());
+    #endif
   }
 
   // exit whole loop only if system is switched ON
