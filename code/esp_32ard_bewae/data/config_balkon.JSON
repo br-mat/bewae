@@ -99,79 +99,43 @@
     }
   },
   "sensor": {
-    "temp": {
+    "id00": {
+      "name": "bme280",
+      "field": "temp",
       "mode": "bmetemp"
     },
-    "hum": {
+    "id01": {
+      "name": "bme280",
+      "field": "hum",
       "mode": "bmehum"
     },
-    "press": {
+    "id02": {
+      "name": "bme280",
+      "field": "press",
       "mode": "bmepress"
     },
-    "vpin0": {
+    "id08": {
+      "name": "Hochbeet",
+      "field": "analog",
       "mode": "vanalog",
-      "vpin": 0
+      "vpin": 5,
+      "hlim": 750,
+      "llim": 450
     },
-    "vpin1": {
+    "id09": {
+      "name": "Tomate Groß",
+      "field": "analog",
       "mode": "vanalog",
-      "vpin": 1
+      "vpin": 6,
+      "hlim": 550,
+      "llim": 250
     },
-    "vpin2": {
-      "mode": "vanalog",
-      "vpin": 2
-    },
-    "vpin3": {
-      "mode": "vanalog",
-      "vpin": 3
-    },
-    "vpin4": {
-      "mode": "vanalog",
-      "vpin": 4
-    },
-    "vpin5": {
-      "mode": "vanalog",
-      "vpin": 5
-    },
-    "vpin6": {
-      "mode": "vanalog",
-      "vpin": 6
-    },
-    "vpin7": {
-      "mode": "vanalog",
-      "vpin": 7
-    },
-    "vpin8": {
-      "mode": "vanalog",
-      "vpin": 8
-    },
-    "vpin9": {
-      "mode": "vanalog",
-      "vpin": 9
-    },
-    "vpin10": {
-      "mode": "vanalog",
-      "vpin": 10
-    },
-    "vpin11": {
-      "mode": "vanalog",
-      "vpin": 11
-    },
-    "vpin12": {
-      "mode": "vanalog",
-      "vpin": 12
-    },
-    "vpin13": {
-      "mode": "vanalog",
-      "vpin": 13
-    },
-    "12VBat": {
+    "id17": {
+      "name": "12VBat",
+      "field": "analog",
       "mode": "vanalog",
       "vpin": 14,
       "fac": 0.012953
-    },
-    "vpin15": {
-      "mode": "vanalog",
-      "vpin": 15
     }
   },
   "switch": {

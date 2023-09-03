@@ -70,6 +70,7 @@ WiFiClient wificlient;
 
 // initialise Hardware Helper class
 Helper_config1_Board1v3838 HWHelper;
+//Helper_config1_Board5v5 HWHelper;
 
 // Create a BasicSensor instance
 BasicSensor Sensors(&HWHelper, &bme, soilsensorGlobal);
@@ -322,7 +323,7 @@ long sensoringTask(){
     Serial.println(F("All data published!"));
   }
   else{
-    Serial.println(F("Warning: Problem occured while publishing ata vector!"));
+    Serial.println(F("Warning: Problem occured while publishing data vector!"));
   }
   #endif
 

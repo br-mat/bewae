@@ -43,27 +43,33 @@
     }
   },
   "sensor": {
-    "temp": {
+    "id00": {
+      "name": "bme280",
+      "field": "temp",
       "mode": "bmetemp"
     },
-    "hum": {
+    "id01": {
+      "name": "bme280",
+      "field": "hum",
       "mode": "bmehum"
     },
-    "press": {
+    "id02": {
+      "name": "bme280",
+      "field": "press",
       "mode": "bmepress"
     },
-    "soiltemp": {
+    "id03": {
+      "name": "Soil",
+      "field": "temp",
       "mode": "soiltemp"
     },
-    "moist1": {
-      "mode": "vanalog",
-      "pin": 14
-    },
-    "moist2": {
-      "mode": "vanalog",
-      "pin": 15,
-      "llim": 300,
-      "hlim": 570
+    "id08": {
+      "name": "Soil",
+      "field": "moiture",
+      "mode": "analog",
+      "vpin": 15,
+      "hlim": 600,
+      "llim": 250
     }
   },
   "switch": {
@@ -71,7 +77,7 @@
       "value": 1
     },
     "irig": {
-      "value": 1
+      "value": 0
     },
     "mssr": {
       "value": 1

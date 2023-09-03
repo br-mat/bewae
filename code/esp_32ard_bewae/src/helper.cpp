@@ -472,6 +472,10 @@ bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PA
 
 // send data to influxdb, return true when everything is ok
 bool HelperBase::pubInfluxData(InfluxDBClient* influx_client, String sensor_name, String field_name, float value) {
+  #ifdef DEBUG
+  Serial.print(F("Publishing sensor: ")); Serial.println(sensor_name);
+  Serial.print(F("Field: ")); Serial.println(field_name);
+  #endif
 
   bool cond = HelperBase::connectWifi();
   if (!cond) {
