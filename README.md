@@ -59,9 +59,15 @@ Das System ist mit einem kleinen PV-Modul, einem Blei-Akku und einem kleinen 100
 - 12 Ah 12V Bleiakku
 - Solarladeregler
 
-## Steuerung der Bewässerung
+## Steuerung des Systems
 
-## Steuerung der Bewässerung
+### config.JSON:
+
+In dieser Datei befinden sich alle relevanten Einstellungen. Auf dem Controller wird dieses File im Flash hinterlegt. Um auf Änderungen einfacher reagieren zu können kann mit Node-Red (auf einem RaspberryPi) innerhalb des Netzwerks diese Datei zur Verfügung gestellt werden. Hierfür muss die Adresse in der connection.h angepasst werden. <br>
+
+Hinweis: Es ist auch möglich ohne verbindung zu einem RaspberryPi dieses File zu verwenden allerdings muss es für Änderungen dann wieder neu aufgespielt werden.
+
+### Steuerung der Bewässerung
 
 Die Bewässerung wird mit den Einstellungen in der config.JSON-Datei gesteuert. Dabei werden 2 Variablen verwendet - timetable und water-time:
 
@@ -71,23 +77,22 @@ Die Bewässerung wird mit den Einstellungen in der config.JSON-Datei gesteuert. 
 <br>
 
 ```cpp
-// Beispiel-Zeitplan                      23211917151311 9 7 5 3 1
-//                                       | | | | | | | | | | | |
+// Beispiel-Zeitplan                           23211917151311 9 7 5 3 1
+//                                              | | | | | | | | | | | |
 unsigned long int timetable_default = 0b00000000000100000000010000000000;
-//                                       | | | | | | | | | | | |
-// Dezimale Darstellung: 1049600        22201816141210 8 6 4 2 0
+//                                               | | | | | | | | | | | |
+// Dezimale Darstellung: 1049600                22201816141210 8 6 4 2 0
 //
 ```
 
 Die Steuerung selbst kann auf folgenden Arten erfolgen:
 
-- MQTT über W-LAN (Telefon oder Pi) (noch nicht wieder implementiert)
-- Config-Datei im Flash (SPIFFS) wenn kein Netzwerk gefunden wurde
+- Config-Datei: Entweder lokal im Flash (SPIFFS), oder über Node-red bereitgestellt
+- (currently not implemented) MQTT über W-LAN (App oder Pi) (noch nicht wieder implementiert)
 
-### config.JSON:
+<br>
 
-In dieser Datei befinden sich alle relevanten Einstellungen. Diese wird dank Node-Red vom Raspberry Pi innerhalb des Netzwerks zur Verfügung gestellt und kann vom Mikrocontroller abgefragt werden. Hierfür muss die Adresse in der connection.h angepasst werden. <br>
-Somit kann über Änderungen der beiden genannten Variablen in die Bewässerung eingegriffen werden.
+Im file kann die bewässrung wie im Beispiel unten konfiguriert werden:
 
 ```json
 // JSON group template
@@ -107,13 +112,68 @@ Somit kann über Änderungen der beiden genannten Variablen in die Bewässerung 
 }
 ```
 
+### Konfiguration der Sensoren:
+<br>
+Die Sensoren können mithilfe des 'config.JSON' zu jeder Zeit verändert werden. Dabei sind einige Messfunktionen mit gänigen Sensoren Implementiert. Es können auch noch Änderungen vorgenommen werden um zurückgegebenen Werte zu modifizieren oder auch relative Messwerte (%) ausgegeben werden. Hierzu wie im Beispiel nach bedarf konfigurieren:
+
+```json
+  "sensor": {
+    "id00": {
+      "name": "bme280",
+      "field": "temp",
+      "mode": "bmetemp"
+    },
+    .
+    .
+    .
+    "id03": {
+      "name": "Soil",
+      "field": "temp",
+      "mode": "soiltemp"
+    },
+    .
+    .
+    .
+    "id08": {
+      "name": "Soil",
+      "field": "moisture",
+      "mode": "vanalog",
+      "vpin": 15,
+      "hlim": 600,
+      "llim": 250
+    }
+  },
+  .
+  .
+  .
+```
+
+Konfiguration & Modifikatoren:
+| Property     | Description        |
+|--------------|--------------------|
+| `add`        | Addieren einer konstanten zum Ergebnis, optional wird nur bei >0     |
+| `fac`        | Multiplizieren einer konstanten zum Ergebnis, optional wird nur bei >0     |
+| `hlim`       | Obergrenze für relative Messung (%), optional wird nur bei >0 berücksichtigt   |
+| `llim`       | Untergrenze für relative Messung (%), optional wird nur bei >0 berücksichtigt    |
+| `vpin`       | Definiert Virtuellen Pin als input, für erweiterte Messfunktionen notwendig    |
+| `pin`        | Definiert Normalen analogen Pin als input    |
+<br>
+
+Messfunktionen: <br>
+| Measuring Mode | Description            |
+|----------------|------------------------|
+| `analog`       | reads analog pin, requires  configured 'pin'       |
+| `vanalog`      | reads virtual analog pin, requires  configured 'vpin'      |
+| `bmetemp`      | reads temperature from bme280 Sensor on Default address      |
+| `bmehum`       | reads humidity from bme280 Sensor on Default address       |
+| `bmepress`     | reads pressure from bme280 Sensor on Default address`     |
+| `soiltemp`     | reads temperature from ds18b20 sensor from default 1 wire pin     |
+<br>
+
 ### Node-Red flow:
 
 Der verwendete Node-Red-Flow befindet sich im Ordner node-red-flows. Gegebenenfalls Adresse bzw. Pfad zur Datei ändern.
 
-## Konfiguration der Sensoren:
-
-TODO: complete documentation
 
 <br>
 
@@ -137,20 +197,22 @@ Als Erweiterung gedacht. Hat den Zweck, Steckplätze für Sensoren und weitere V
 Kleinere Hauptplatine. Verzichtet auf eine große Anzahl an Sensoranschlüssen. Platz für 2x 5V Sensoren, 2x 3V Sensoren, 1x LDR, I2C-Bus, 1-Wire-Bus. BME280- und RTC-Modul sind ebenfalls vorgesehen.<br>
 
 
-## Code ESP32
+## SETUP
 [Arduino-Nano Code](/code/bewae_main_nano/bewae_v3_nano/src/main.cpp)
 <br>
 
 ### Installation des codes:
-Stellen Sie zunächst sicher, dass PlatformIO in Visual Studio Code installiert ist. Öffnen Sie dann den Projektordner in VS Code. Schließen Sie als Nächstes Ihren ESP-32-Controller an und klicken Sie auf das Pfeilsymbol in der PlatformIO-Taskleiste, um Ihren Code hochzuladen. Das Gerät sollte automatisch erkannt werden. <br>
 
-Bevor Sie das Programm auf dem Controller ausführen, überprüft es, ob einige Geräte antworten. Stellen Sie daher sicher, dass sie ordnungsgemäß verbunden sind. <br>
+[Esp32 Code](/code/bewae_main_nano/bewae_v3_nano) <br>
+Stellen Sie zunächst sicher, dass PlatformIO in Visual Studio Code installiert ist. Öffnen Sie dann den Projektordner in VS Code. Schließen Sie als Nächstes Ihren ESP-32-Controller an und klicken Sie auf das Pfeilsymbol in der PlatformIO-Taskleiste, um Ihren Code hochzuladen. Das Gerät sollte automatisch erkannt werden, es kann nötig sein das die Boot Taste während des Upload vorgangs zu drücken. Weiters ist es wichtig das 'Filesystem' hochzuladen, dies kann mit dem unterpunkt 'Upload Filesystem Image' von Platformio gemacht werden. <br>
+
+Stellen Sie daher sicher, dass alle weiteren Bauteile ordnungsgemäß verbunden sind. <br>
 
 Vergessen Sie nicht, Ihre Verbindungseinstellungen zu aktualisieren. Ändern Sie einfach die Datei 'connection.h' im Ordner 'src', um sie an Ihre (Netzwerk-)Konfiguration anzupassen. <br>
 
 ### ändern der Zeit am RTC Modul:
 
-Stellen Sie sicher, dass Sie die Zeit des RTC einstellen, entweder durch Einrichten eines Codebeispiels für dieses Gerät oder durch Kommentieren meiner Funktion im Setup. Wenn meine Methode verwendet wird, vergessen Sie nicht, sie erneut auszukommentieren, da sonst die Zeit bei jedem Neustart zurückgesetzt wird. <br>
+Um die korrekte Uhrzeit am RTC-Modul einzustellen, kann man entweder eines der Codebeispiele für das Modul oder die funktion 'setTime' verwenden. Diese muss nur einmal ausgeführt werden. Dafür habe ich im 'Setup' des 'main.cpp' die Nötige funktion als Kommentar hinzugefügt. (Wichtig: Dannach wieder Kommentieren und Programm erneut hochladen) <br>
 
 ## Raspberrypi
 
@@ -161,55 +223,6 @@ TODO: complete documentation
 ### InfluxDB 2.0
 
 TODO: complete documentation
-
-### Grafana (TODO: Update docs)
-![grafana dashboard example](/docs/pictures/grafanarainyday.png "Grafana rainy day") <br>
-
-[[Tutorials]](https://grafana.com/tutorials/install-grafana-on-raspberry-pi/) Grafana kann genutzt werden um die gesammelten Daten in schönen plots darzustellen. Somit ist eine Überwachung der Feuchtigkeitswerte der Pflanzen sehr leicht möglich. <br>
-
-Sobald Grafana installiert ist kann das [json](/grafana_dashboard/bewaeMonitor.json) export (OUTDATED!!) über das Webinterface importiert werden. <br>
-
-Unter 'Configuration' muss man nun die 'Datasources' eintragen. Hierbei muss man nun darauf achten die gleichen Datenbanken zu verwenden die man erstellt und in der die Daten abgespeichert werden. In meinem Fall wäre das z.B ***main*** für alle Daten der Bewässerung. Sowie ***pidb*** für die CPU Temperatur am RaspberryPi die im Import mit dabei ist, da dies rein optional und nichts mit der Bewässerung zu tun hat werde ich nicht weiter darauf eingehen. Die Panels wenn sie nicht genutzt werden kann man einfach entfernen. <br>
-
-![Datasource configuration](/docs/pictures/datasources.png "Datasource configuration example") <br>
-
-### MQTT (OUTDATED!)
-**MQTT** (Message Queuing Telemetry Transport) Ist ein offenes Netzwerkprotokoll für Machine-to-Machine-Kommunikation (M2M), das die Übertragung von Telemetriedaten in Form von Nachrichten zwischen Geräten ermöglicht. Wie es funktioniert [(link)](http://www.steves-internet-guide.com/mqtt-works/). <br>
-Die versendeten Messages setzen sich aus topic und payload zusammen. Topics dienen der einfachen Zuordnung und haben in meinem Fall eine fixe Struktur:
-```
-#topic:
-exampletopic=home/location/measurement
-```
-Zusätzlich zu diesem topic werden im Payload die Daten angehängt, der Inhalt als String. Auflistung relevanter topics:
-```
-#example topics to publish data on
-  humidity_topic_sens2 = "home/sens2/humidity";
-  #bme280 sensor read
-
-  temperature_topic_sens2 = "home/sens2/temperature";
-  #bme280 sensor read
-
-  pressure_topic_sens2 = "home/sens2/pressure";
-  #bme280 sensor read
-
-  config_status = "home/bewae/config_status";
-  #signaling RaspberryPi to repost relevant data so ESP can receive it
-
-#subsciption topics to receive data
-  watering_topic = "home/bewae/config";
-  #bewae config recive watering instructions (as csv)
-```
-
-#### Installation
-Auch hier gibt es einen [link](https://pimylifeup.com/raspberry-pi-mosquitto-mqtt-server/).
-Benutzername und Passwort müssen im Code wieder an allen Stellen angepasst werden.
-
-#### mqttdash app (OUTDATED!)
-
-Auf mein **Android** Smartphone habe ich die App mqttdash geladen. Diese ist sehr einfach und intuitiv zu verwenden man muss Adresse Nutzer und Passwort die oben angelegt wurden eintragen und kann dann die Topics konfigurieren. 
-
-Ein Beispiel Screenshot aus der App, die Zahlen stehen für die Zeit (s) in der das jeweilige Ventil geöffnet ist und Wasser gepumpt wird (ca. 0.7l/min):
-![mqttdash app](/docs/pictures/mqttdash.jpg) <br>
 
 ## Bilder & Entstehung
 
