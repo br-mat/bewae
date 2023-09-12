@@ -30,23 +30,28 @@
 #include <SPIFFS.h>
 #include <connection.h>
 #include <Crypto.h>
+#include "time.h"
 
 class HelperBase{
 public:
     // return timestamp as string
     String timestamp();
+    // return timestamp as string
+    String timestampNTP();
     // copy string from dest to src
     void copy(int* src, int* dst, int len);
     // Convert normal decimal numbers to binary coded decimal 
     byte dec_bcd(byte val);
     // Convert binary coded decimal to normal decimal numbers 
     byte bcd_dec(byte val);
-    // set Time on RTC module
+    // set Time on RTC module (old)
     void set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year);
-    // read Time procedure default (old)
-    void read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year);
+    // set time on RTC Module
+    bool setTime(struct tm timeinfo);
     // read Time procedure testing (new)
     bool readTime(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year);
+    // get local network time
+    struct tm readlocalTime();
     // Analog measurment routine returning read value as int
     int readAnalogRoutine(uint8_t gpiopin);
     // disables Wifi module saving power

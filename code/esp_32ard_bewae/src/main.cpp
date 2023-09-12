@@ -175,16 +175,21 @@ void setup() {
 // init time and date
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //uncomment if want to set the time (NOTE: only need to do this once not every time!)
-  //HWHelper.set_time(00,45,16,06,28,8,23);
-
+  //HWHelper.set_time(00,56,18,01,11,9,23);
   //seting time (second,minute,hour,weekday,date_day,date_month,year)
-  //set_time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
-  //  sec,min,h,day_w,day_m,month,ear
+  struct tm localTime = HWHelper.readlocalTime();
+  
 
   delay(100);
   //initialize global time
-  HWHelper.read_time(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
+  HWHelper.readTime(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
   delay(30);
+
+  // automatically set time (requires WIFI access!!)
+  if(year_ < 10){
+    struct tm local = HWHelper.readlocalTime();
+    HWHelper.setTime(local);
+  }
 
   HWHelper.system_sleep(); //power down prepare sleep
   delay(100);
@@ -477,7 +482,7 @@ bool checkSleepTask(){
   SwitchController controller_switches(&HWHelper);
   controller_switches.updateSwitches();
 
-  hour_ = 0; //DEBUG
+  //hour_ = 0; //DEBUG
   // check for hour change and update config
   //if(true){
   if((hour_ != hour1) && (rtc_status) && (controller_switches.getMainSwitch())){

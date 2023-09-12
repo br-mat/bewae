@@ -83,59 +83,50 @@ void HelperBase::set_time(byte second, byte minute, byte hour, byte dayOfWeek, b
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//Function: read the time on the rtc module (iic)
-//FUNCTION PARAMETERS:
-//second     --                   seconds -- byte
-//minute     --                   minutes -- byte
-//hour       --                   hours   -- byte
-//dayofweek  --         weekday as number -- byte
-//dayofmonrh --    day of month as number -- byte
-//month      --                     month -- byte
-//year       --   year as number 2 digits -- byte
-void HelperBase::read_time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
+//Function: sets the time on the rtc module (iic)
+bool HelperBase::setTime(struct tm timeinfo)
 {
-  Wire.beginTransmission(DS3231_I2C_ADDRESS);
-  Wire.write(0); // set DS3231 register pointer to 00h
-  byte status = Wire.endTransmission(); // check if the transmission was successful
-  if (status == 0) { // no error
-    Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
-    // request seven bytes of data from DS3231 starting from register 00h
-    *second = bcd_dec(Wire.read() & 0x7f);
-    *minute = bcd_dec(Wire.read());
-    *hour = bcd_dec(Wire.read() & 0x3f);
-    *dayOfWeek = bcd_dec(Wire.read());
-    *dayOfMonth = bcd_dec(Wire.read());
-    *month = bcd_dec(Wire.read());
-    *year = bcd_dec(Wire.read());
-    #ifdef DEBUG
-    char timestamp[20];
-    sprintf(timestamp, "%02d.%02d.%02d %02d:%02d:%02d", *dayOfMonth, *month, *year, *hour, *minute, *second);
-    Serial.println(timestamp);
-    #endif
-  } else { // error occurred
-    // set all values to zero
-    *second = 0;
-    *minute = 0;
-    *hour = 0;
-    *dayOfWeek = 0;
-    *dayOfMonth = 0;
-    *month = 0;
-    *year = 0;
-    #ifdef DEBUG
-    Serial.println(F("Warning: DS3231 not connected"));
-    #endif
+  // check timeinfo
+  if (timeinfo.tm_sec == 0 && timeinfo.tm_min == 0 && timeinfo.tm_hour == 0 &&
+      timeinfo.tm_wday == 0 && timeinfo.tm_mday == 0 && timeinfo.tm_mon == 0 &&
+      timeinfo.tm_year == 0) {
+    Serial.println(F("ERROR: Time not valid!"));
+    return false;
   }
+
+  // check connection
+  Wire.beginTransmission(DS3231_I2C_ADDRESS);
+  byte status = Wire.endTransmission();
+  if (status != 0) {
+    // Fehler: DS3231 nicht verbunden
+    Serial.println(F("ERROR: DS3231 not connected"));
+    return false;
+  }
+
+  // DS3231 ist verbunden, setze Zeit und Datum
+  Wire.beginTransmission(DS3231_I2C_ADDRESS);
+  Wire.write(0); // set next input to start at the seconds register
+  Wire.write(dec_bcd(timeinfo.tm_sec)); // set seconds
+  Wire.write(dec_bcd(timeinfo.tm_min)); // set minutes
+  Wire.write(dec_bcd(timeinfo.tm_hour)); // set hours
+  Wire.write(dec_bcd(timeinfo.tm_wday)); // set day of week (1=Sunday, 7=Saturday)
+  Wire.write(dec_bcd(timeinfo.tm_mday)); // set date (1 to 31)
+  Wire.write(dec_bcd(timeinfo.tm_mon + 1)); // set month
+  Wire.write(dec_bcd(timeinfo.tm_year - 100)); // set year (0 to 99)
+  status = Wire.endTransmission();
+
+  if (status != 0) {
+    // Fehler beim Schreiben zur DS3231
+    #ifdef DEBUG
+    Serial.println(F("Error: While writting DS3231"));
+    #endif
+    return false;
+  }
+  return true;
 }
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Function: read the time on the rtc module improved error handling
-//FUNCTION PARAMETERS:                      (i2c)
-//second     --                   seconds -- byte
-//minute     --                   minutes -- byte
-//hour       --                   hours   -- byte
-//dayofweek  --         weekday as number -- byte
-//dayofmonrh --    day of month as number -- byte
-//month      --                     month -- byte
-//year       --   year as number 2 digits -- byte
 bool HelperBase::readTime(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
 {
   // enable rtc module
@@ -197,6 +188,83 @@ bool HelperBase::readTime(byte *second,byte *minute,byte *hour,byte *dayOfWeek,b
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/* // new implementation using tm struct
+struct tm HelperBase::readTime()
+{
+  struct tm timeinfo;
+  memset(&timeinfo, 0, sizeof(struct tm)); // set all values to zero
+
+  // enable rtc module
+  HWHelper.enablePeripherals();
+  delayMicroseconds(300);
+
+  // set up transmission
+  Wire.beginTransmission(DS3231_I2C_ADDRESS);
+  Wire.write(0); // set DS3231 register pointer to 00h
+  byte status = Wire.endTransmission(); // check if the transmission was successful
+
+  // catch error case
+  int i = 0;
+  while(status != 0){
+    //loop as long as the rtc module is unavailable!
+    #ifdef DEBUG
+    Serial.print(F(". "));
+    #endif
+    Wire.beginTransmission(DS3231_I2C_ADDRESS); // init
+    status = Wire.endTransmission(); // check
+    if (i == static_cast<int>(5)) HWHelper.enablePeripherals(); // reactivate power
+    if (i > static_cast<int>(10)) break; // break loop
+    delay(100); // give time
+    i++;
+  }
+
+  // read time
+  if (status == 0) { // no error
+    Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
+    // request seven bytes of data from DS3231 starting from register 00h
+    timeinfo.tm_sec = bcd_dec(Wire.read() & 0x7f);
+    timeinfo.tm_min = bcd_dec(Wire.read());
+    timeinfo.tm_hour = bcd_dec(Wire.read() & 0x3f);
+    timeinfo.tm_wday = bcd_dec(Wire.read());
+    timeinfo.tm_mday = bcd_dec(Wire.read());
+    timeinfo.tm_mon = bcd_dec(Wire.read()) - 1; // tm_mon is months since January, in the range 0 to 11
+    timeinfo.tm_year = bcd_dec(Wire.read()) + 100; // tm_year is years since 1900
+    #ifdef DEBUG
+    char timestamp[20];
+    strftime(timestamp, sizeof(timestamp), "%d.%m.%y %H:%M:%S", &timeinfo);
+    Serial.println(timestamp);
+    #endif
+  } else { // error occurred
+    #ifdef DEBUG
+    Serial.println(F("Warning: DS3231 not connected"));
+    #endif
+  }
+
+  return timeinfo;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
+// Function: get local time from network
+struct tm HelperBase::readlocalTime()
+{
+  // Verbindung zum WLAN herstellen
+  HWHelper.connectWifi();
+
+  // Zeitkonfiguration
+  configTime(gmtOffset_hours * SECONDS_PER_HOUR, daylightOffset_hours * SECONDS_PER_HOUR, NTP_Server);
+
+  struct tm timeinfo;
+  if(!getLocalTime(&timeinfo)){
+    #ifdef DEBUG
+    Serial.println(F("Fehler beim Abrufen der Zeit"));
+    #endif
+    return timeinfo;
+  }
+  return timeinfo;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 //Function: check if give pin is valid
 bool HelperBase::checkAnalogPin(int pin_check) // check if passed pin is valid
 {
@@ -245,8 +313,7 @@ String HelperBase::timestamp(){
   String time_data="";
   byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
   // retrieve data from DS3231
-  read_time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month,
-  &year);
+  readTime(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
   time_data += String(hour, DEC);
   time_data += String(F(","));
   time_data += String(minute, DEC);
@@ -259,6 +326,19 @@ String HelperBase::timestamp(){
   return time_data;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Function: give back timestamp as string
+String HelperBase::timestampNTP(){
+  struct tm timeinfo;
+  
+  // retrieve data from DS3231
+  timeinfo = readlocalTime();
+  
+  char timestamp[20];
+  strftime(timestamp, sizeof(timestamp), "%H,%M,%S,%d,%m", &timeinfo);
+  
+  return String(timestamp);
+}
 
 // Attempts to enable the WiFi and connect to a specified network.
 // Returns true if the connection was successful, false if not.

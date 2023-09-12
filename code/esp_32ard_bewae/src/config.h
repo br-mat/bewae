@@ -30,79 +30,38 @@
 #define SENSOR_FILE_SIZE 5000 // estimate at https://arduinojson.org/v6/assistant/#/step1
 #endif
 
-#ifndef DS3231_I2C_ADDRESS
-#define DS3231_I2C_ADDRESS 0x68 //adress rtc module
-#endif
-
-#ifndef BME280_I2C_ADDRESS
-#define BME280_I2C_ADDRESS 0x76 //adress bme module
-#endif
-
-#ifndef MAX_MSG_LEN
-#define MAX_MSG_LEN 128 //MQTT msg length
-#endif
-
 #ifndef MAX_GROUP_LENGTH
 #define MAX_GROUP_LENGTH 5 //Max Group length
 #endif
 
-#ifndef uS_TO_S_FACTOR
-#define uS_TO_S_FACTOR 1000000 //Conversion factor for micro seconds to seconds
-#endif
-#ifndef TIME_TO_SLEEP
-#define TIME_TO_SLEEP  8 //Time ESP32 will go to sleep (in seconds)
-#endif
-
-#ifndef measurement_LSB
-#define measurement_LSB 0.01008018 //LSB in Volt! - REPLACE with your specific value, derives from voltage devider and
-                                            //resolution of adc
-#endif
-
-#ifndef measurement_LSB5V
-#define measurement_LSB5V 0.00151581243 //LSB in Volt! - REPLACE with your specific value, derives from voltage devider and
-                                            //resolution of adc
-#endif
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// MQTT topics
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    #ifndef cliendID
-    #define clientID "client_test2"
-    #endif
-
-    //mqtt topics
-    #ifndef topic_prefix
-    #define topic_prefix "home/bewae_data/"
-    #endif
-
-    #ifndef config_status
-    #define config_status "home/bewae/config_status" //signal Pi that system is up and listening for instructions
-    #endif
-
-    //subsciption topics
-    #ifndef watering_topic
-    #define watering_topic "home/bewae/config" //bewae config and config status indicate things not passed to influx recive watering instructions
-    #endif
-    #ifndef testing
-    #define testing "home/test/tester"
-    #endif
-    #ifndef comms
-    #define comms "home/bewae/comms" //get command from raspberrypi
-    #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Pin configuration
+// Pin & Adress configuration
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    #ifndef DS3231_I2C_ADDRESS
+    #define DS3231_I2C_ADDRESS 0x68 //adress rtc module
+    #endif
 
-
-    #ifndef max_groups
-    #define max_groups 16 //number of possible solenoids (v-pins)
+    #ifndef BME280_I2C_ADDRESS
+    #define BME280_I2C_ADDRESS 0x76 //adress bme module
     #endif
 
     #ifndef oneWireBus
     #define oneWireBus 5 // GPIO where the DS18B20 is connected to
+    #endif
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// default variable definitions & constants
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // reverse shiftregister output in case of optocoupler (v-pins)
+    #ifndef INVERT_SHIFTOUT
+    #define INVERT_SHIFTOUT false // set true if using negative logic relais
+    #endif
+
+    // pump & transistor max on time
+    #ifndef max_active_time_sec
+    #define max_active_time_sec 40 //max time active of each solenoid ==> SECOND
     #endif
 
     #ifndef measure_intervall
@@ -116,25 +75,66 @@
     #ifndef DRIVER_COOLDOWN
     #define DRIVER_COOLDOWN 50000UL // min cooldown of drivers and hardware (somewhat depending on max_active_time_sec)
     #endif
-    
-    //pump & transistor max on time
-    #ifndef max_active_time_sec
-    #define max_active_time_sec 40 //max time active of each solenoid ==> SECOND
+
+    // number of possible solenoids (v-pins)
+    #ifndef max_groups
+    #define max_groups 16
     #endif
 
-    #ifndef pwm_ch0
-    #define pwm_ch0 0 //pwm channel
+    // time factors
+    #ifndef uS_TO_S_FACTOR
+    #define uS_TO_S_FACTOR 1000000 //Conversion factor for micro seconds to seconds
     #endif
 
-    #ifndef pwm_ch0_res
-    #define pwm_ch0_res 8 //pwm resolution in bit (1-15)
+    #ifndef TIME_TO_SLEEP
+    #define TIME_TO_SLEEP  8 //Time ESP32 will go to sleep (in seconds)
     #endif
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// default static variable definitions & virtual pins (shift register)shiftvalue
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // reverse shiftregister output in case of optocoupler
-    #ifndef INVERT_SHIFTOUT
-    #define INVERT_SHIFTOUT false // set true if using negative logic relais
+    #ifndef measurement_LSB
+    #define measurement_LSB 0.01008018 //LSB in Volt! - REPLACE with your specific value, derives from voltage devider and
+                                                //resolution of adc
+    #endif
+
+    #ifndef measurement_LSB5V
+    #define measurement_LSB5V 0.00151581243 //LSB in Volt! - REPLACE with your specific value, derives from voltage devider and
+                                                //resolution of adc
+    #endif
+
+    // time & timezonerelated stuff
+    const int SECONDS_PER_HOUR = 3600;
+    const int gmtOffset_hours = 1;
+    const int daylightOffset_hours = 1;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// MQTT topics (unused)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    #ifndef cliendID
+    #define clientID "client_test2"
+    #endif
+
+    // MQTT msg length
+    #ifndef MAX_MSG_LEN
+    #define MAX_MSG_LEN 128
+    #endif
+
+    // mqtt topics
+    #ifndef topic_prefix
+    #define topic_prefix "home/bewae_data/"
+    #endif
+
+    #ifndef config_status
+    #define config_status "home/bewae/config_status" //signal Pi that system is up and listening for instructions
+    #endif
+
+    // subsciption topics
+    #ifndef watering_topic
+    #define watering_topic "home/bewae/config" //bewae config and config status indicate things not passed to influx recive watering instructions
+    #endif
+    #ifndef testing
+    #define testing "home/test/tester"
+    #endif
+    #ifndef comms
+    #define comms "home/bewae/comms" //get command from raspberrypi
     #endif
 #endif
