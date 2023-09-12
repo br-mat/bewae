@@ -61,7 +61,7 @@ Das System ist mit einem kleinen PV-Modul, einem Blei-Akku und einem kleinen 100
 
 ## Steuerung des Systems
 
-### config.JSON:
+### config.JSON
 
 In dieser Datei befinden sich alle relevanten Einstellungen. Auf dem Controller wird dieses File im Flash hinterlegt. Um auf Änderungen einfacher reagieren zu können kann mit Node-Red (auf einem RaspberryPi) innerhalb des Netzwerks diese Datei zur Verfügung gestellt werden. Hierfür muss die Adresse in der connection.h angepasst werden. <br>
 
@@ -71,8 +71,8 @@ Hinweis: Es ist auch möglich ohne verbindung zu einem RaspberryPi dieses File z
 
 Die Bewässerung wird mit den Einstellungen in der config.JSON-Datei gesteuert. Dabei werden 2 Variablen verwendet - timetable und water-time:
 
-- timetable: Wird durch die ersten 24 Bit einer Integer-Zahl repräsentiert, wobei jedes Bit für eine Stunde des Tages steht. Um Platz zu sparen, wird es als Long Integer abgespeichert.
-- watertime: Ist die Zeit (in Sekunden), die die jeweilige Gruppe bewässert wird. Hierbei können mehrere Ventile oder Ventil + Pumpe gleichzeitig gesetzt werden.
+- 'timetable': Wird durch die ersten 24 Bit einer Integer-Zahl repräsentiert, wobei jedes Bit für eine Stunde des Tages steht. Um Platz zu sparen, wird es als Long Integer abgespeichert.
+- 'water-time': Ist die Zeit (in Sekunden), die die jeweilige Gruppe bewässert wird. Hierbei können mehrere Ventile oder Ventil + Pumpe gleichzeitig gesetzt werden.
 
 <br>
 
@@ -100,10 +100,10 @@ Im file kann die bewässrung wie im Beispiel unten konfiguriert werden:
     "Tomatoes": {         // name of grp
     "is_set":1,           // indicates status
     "vpins":[0,5],        // list of pins bound to group
-    "lastup":[0,0],       // runtime variable - dont touch!
-    "watering":0,         // runtime variable - dont touch!
     "water-time":10,      // water time in seconds
-    "timetable":1049600   // timetable (first 24 bit)
+    "timetable":1049600,  // timetable (first 24 bit)
+    "lastup":[0,0],       // runtime variable - dont touch!
+    "watering":0          // runtime variable - dont touch!
     },
     .
     .
@@ -114,7 +114,9 @@ Im file kann die bewässrung wie im Beispiel unten konfiguriert werden:
 
 ### Konfiguration der Sensoren:
 <br>
-Die Sensoren können mithilfe des 'config.JSON' zu jeder Zeit verändert werden. Dabei sind einige Messfunktionen mit gänigen Sensoren Implementiert. Es können auch noch Änderungen vorgenommen werden um zurückgegebenen Werte zu modifizieren oder auch relative Messwerte (%) ausgegeben werden. Hierzu wie im Beispiel nach bedarf konfigurieren:
+Die Sensoren können mithilfe des 'config.JSON' zu jeder Zeit verändert werden. Dabei sind einige Messfunktionen mit gänigen Sensoren Implementiert. Es können auch noch Änderungen vorgenommen werden um zurückgegebenen Werte zu modifizieren oder auch relative Messwerte (%) ausgegeben werden.
+<br>
+Beispielkonfiguration:
 
 ```json
   "sensor": {
@@ -168,14 +170,34 @@ Messfunktionen: <br>
 | `bmehum`       | reads humidity from bme280 Sensor on Default address       |
 | `bmepress`     | reads pressure from bme280 Sensor on Default address`     |
 | `soiltemp`     | reads temperature from ds18b20 sensor from default 1 wire pin     |
-<br>
-
-### Node-Red flow:
-
-Der verwendete Node-Red-Flow befindet sich im Ordner node-red-flows. Gegebenenfalls Adresse bzw. Pfad zur Datei ändern.
-
 
 <br>
+
+# SETUP
+
+### Installation des codes:
+
+[Esp32 Code](./code/esp_32ard_bewae/) <br>
+Stellen Sie zunächst sicher, dass PlatformIO in Visual Studio Code installiert ist. Öffnen Sie dann den Projektordner in VS Code. Schließen Sie als Nächstes Ihren ESP-32-Controller an und klicken Sie auf das Pfeilsymbol in der PlatformIO-Taskleiste, um Ihren Code hochzuladen. Das Gerät sollte automatisch erkannt werden, es kann nötig sein das die Boot Taste während des Upload vorgangs zu drücken. Weiters ist es wichtig das 'Filesystem' hochzuladen, dies kann mit dem unterpunkt 'Upload Filesystem Image' von Platformio gemacht werden. <br>
+
+Hinweise:
+- Verbindungseinstellungen aktualisieren! Relevante Daten in der Datei 'connection.h' eintragen <br>
+- Verbindung und Funktion weiterer Bauteile & Sensoren Prüfen <br>
+- RTC-Modul Uhrzeit ändern <br>
+
+#### ändern der Zeit am RTC Modul:
+
+Um die korrekte Uhrzeit am RTC-Modul einzustellen, kann man entweder eines der Codebeispiele für das Modul oder die funktion 'setTime' verwenden. Diese muss nur einmal ausgeführt werden. Dafür habe ich im 'Setup' des 'main.cpp' die Nötige funktion als Kommentar hinzugefügt. (Wichtig: Dannach wieder Kommentieren und Programm erneut hochladen) <br>
+
+## Raspberrypi
+
+### Node-Red
+
+TODO: complete documentation
+
+### InfluxDB 2.0
+
+TODO: complete documentation
 
 # Details
 
@@ -196,33 +218,6 @@ Als Erweiterung gedacht. Hat den Zweck, Steckplätze für Sensoren und weitere V
 ### **bewae3_3_board5v5_final.fzz** als Hauptplatine (PCB)
 Kleinere Hauptplatine. Verzichtet auf eine große Anzahl an Sensoranschlüssen. Platz für 2x 5V Sensoren, 2x 3V Sensoren, 1x LDR, I2C-Bus, 1-Wire-Bus. BME280- und RTC-Modul sind ebenfalls vorgesehen.<br>
 
-
-## SETUP
-[Arduino-Nano Code](/code/bewae_main_nano/bewae_v3_nano/src/main.cpp)
-<br>
-
-### Installation des codes:
-
-[Esp32 Code](/code/bewae_main_nano/bewae_v3_nano) <br>
-Stellen Sie zunächst sicher, dass PlatformIO in Visual Studio Code installiert ist. Öffnen Sie dann den Projektordner in VS Code. Schließen Sie als Nächstes Ihren ESP-32-Controller an und klicken Sie auf das Pfeilsymbol in der PlatformIO-Taskleiste, um Ihren Code hochzuladen. Das Gerät sollte automatisch erkannt werden, es kann nötig sein das die Boot Taste während des Upload vorgangs zu drücken. Weiters ist es wichtig das 'Filesystem' hochzuladen, dies kann mit dem unterpunkt 'Upload Filesystem Image' von Platformio gemacht werden. <br>
-
-Stellen Sie daher sicher, dass alle weiteren Bauteile ordnungsgemäß verbunden sind. <br>
-
-Vergessen Sie nicht, Ihre Verbindungseinstellungen zu aktualisieren. Ändern Sie einfach die Datei 'connection.h' im Ordner 'src', um sie an Ihre (Netzwerk-)Konfiguration anzupassen. <br>
-
-### ändern der Zeit am RTC Modul:
-
-Um die korrekte Uhrzeit am RTC-Modul einzustellen, kann man entweder eines der Codebeispiele für das Modul oder die funktion 'setTime' verwenden. Diese muss nur einmal ausgeführt werden. Dafür habe ich im 'Setup' des 'main.cpp' die Nötige funktion als Kommentar hinzugefügt. (Wichtig: Dannach wieder Kommentieren und Programm erneut hochladen) <br>
-
-## Raspberrypi
-
-### Node-Red
-
-TODO: complete documentation
-
-### InfluxDB 2.0
-
-TODO: complete documentation
 
 ## Bilder & Entstehung
 
