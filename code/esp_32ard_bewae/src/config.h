@@ -59,9 +59,19 @@
     #define INVERT_SHIFTOUT false // set true if using negative logic relais
     #endif
 
-    // publish data flag
+    // publish data flag (DEBUG FLAG)
     #ifndef PUBDATA
-    #define PUBDATA false // not pub data
+    #define PUBDATA true // set true if you dont want to pub data
+    #endif
+
+    // debug flag
+    #ifndef DEBUG
+    #define DEBUG 1
+    #endif
+
+    // debug spam flag (show all logged info)
+    #ifndef DEBUG_SPAM
+    //#define DEBUG_SPAM 1
     #endif
 
     // pump & transistor max on time
