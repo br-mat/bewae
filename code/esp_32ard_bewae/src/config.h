@@ -59,6 +59,11 @@
     #define INVERT_SHIFTOUT false // set true if using negative logic relais
     #endif
 
+    // publish data flag
+    #ifndef PUBDATA
+    #define PUBDATA false // not pub data
+    #endif
+
     // pump & transistor max on time
     #ifndef max_active_time_sec
     #define max_active_time_sec 40 //max time active of each solenoid ==> SECOND

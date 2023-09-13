@@ -44,7 +44,8 @@ using namespace std;
 //----------------------------------------------------------------------------------------------------------------------
 //######################################################################################################################
 //important global variables
-byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_; // containing time variables
+//byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_; // containing time variables
+struct tm oldtimeMark;
 unsigned long nextActionTime = 0; //timestamp variable
 bool thirsty = false; //marks if a watering cycle is finished
 
@@ -177,17 +178,16 @@ void setup() {
   //uncomment if want to set the time (NOTE: only need to do this once not every time!)
   //HWHelper.set_time(00,56,18,01,11,9,23);
   //seting time (second,minute,hour,weekday,date_day,date_month,year)
-  struct tm localTime = HWHelper.readlocalTime();
-  
+  struct tm localTime = HWHelper.readTimeNTP();
 
   delay(100);
   //initialize global time
-  HWHelper.readTime(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_);
+  bool condition = HWHelper.readTime(&oldtimeMark);
   delay(30);
 
   // automatically set time (requires WIFI access!!)
-  if(year_ < 10){
-    struct tm local = HWHelper.readlocalTime();
+  if(oldtimeMark.tm_year < 10){
+    struct tm local = HWHelper.readTimeNTP();
     HWHelper.setTime(local);
   }
 
@@ -283,6 +283,14 @@ long sensoringTask(){
   Serial.println();
   Serial.println(F("enter datalog phase"));
   #endif
+
+  if(!PUBDATA){
+    #ifdef DEBUG
+    Serial.println();
+    Serial.println(F("Not mearuring Data! Flag set to false."));
+    #endif
+    return millis();
+  }
 
   // turn on additional systems
   HWHelper.enablePeripherals();
@@ -459,15 +467,16 @@ bool checkSleepTask(){
   delay(10);
 
   // check real time clock module
-  byte sec1, min1, hour1, day_w1, day_m1, mon1 , y1;
+  struct tm newtimeMark;
+
   // check return status
-  byte rtc_status = HWHelper.readTime(&sec1, &min1, &hour1, &day_w1, &day_m1, &mon1, &y1); // update current timestamp
+  byte rtc_status = HWHelper.readTime(&newtimeMark); // update current timestamp
 
   #ifdef DEBUG_SPAM
   Serial.print(F("Rtc Status: ")); Serial.println(!rtc_status);
   #endif
   #ifdef DEBUG
-  String time = HWHelper.timestamp();
+  String time = HWHelper.timestampNTP();
   Serial.println(time);
   #endif
 
@@ -485,9 +494,9 @@ bool checkSleepTask(){
   //hour_ = 0; //DEBUG
   // check for hour change and update config
   //if(true){
-  if((hour_ != hour1) && (rtc_status) && (controller_switches.getMainSwitch())){
+  if((newtimeMark.tm_hour != oldtimeMark.tm_hour) && (rtc_status) && (controller_switches.getMainSwitch())){
     // check for hour change
-    HWHelper.readTime(&sec_, &min_, &hour_, &day_w_, &day_m_, &mon_, &year_); // update long time timestamp
+    HWHelper.readTime(&oldtimeMark); // update long time timestamp
 
     // setup empty class instance & check timetables
     IrrigationController controller;
@@ -502,7 +511,7 @@ bool checkSleepTask(){
 
     // check if current hour is in timetable
     //if(true){
-    if(bitRead(timetable, hour1)){
+    if(bitRead(timetable, newtimeMark.tm_hour)){
       #ifdef DEBUG
       if(controller_switches.getIrrigationSystemSwitch())
       {

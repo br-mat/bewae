@@ -324,8 +324,9 @@ int IrrigationController::watering_task_handler() {
   // returns - int 1 if not finished and 0 if finished
   // call this function at least once an hour to update information on what is already done  
   // check for hour change and shift water_time base value into watering value to be processed
-  byte second, minute, hour, weekday, day, month, year;
-  HWHelper.readTime(&second, &minute, &hour, &weekday, &day, &month, &year);
+  struct tm localTime;
+  bool status = HWHelper.readTime(&localTime);
+  byte minute = localTime.tm_min, hour = localTime.tm_hour, day = localTime.tm_mday;
 
   // if not set return early
   if(!this->is_set){

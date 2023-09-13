@@ -35,7 +35,7 @@
 class HelperBase{
 public:
     // return timestamp as string
-    String timestamp();
+    String timestamp(struct tm timedata);
     // return timestamp as string
     String timestampNTP();
     // copy string from dest to src
@@ -49,9 +49,11 @@ public:
     // set time on RTC Module
     bool setTime(struct tm timeinfo);
     // read Time procedure testing (new)
-    bool readTime(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year);
-    // get local network time
-    struct tm readlocalTime();
+    bool readTime(struct tm* timeinfo);
+    // rtc method get time
+    struct tm readTimeRTC();
+    // ntp method get time
+    struct tm readTimeNTP();
     // Analog measurment routine returning read value as int
     int readAnalogRoutine(uint8_t gpiopin);
     // disables Wifi module saving power
@@ -84,6 +86,8 @@ public:
     String sha256(String content);
     // This function verifies the integrity of received JSON data by comparing its checksum with a calculated checksum.
     bool verifyChecksum(DynamicJsonDocument& JSONdata);
+    // check struct, return true when all good
+    bool verifyTM(struct tm timeinfo);
     // calculate hash of a json doc without optional contained hash value ("checksum")
     String calculateJSONHash(DynamicJsonDocument& JSONdata);
     // routine to check and update config file (from raspberrypi server)
