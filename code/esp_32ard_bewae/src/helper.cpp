@@ -579,7 +579,7 @@ JsonObject HelperBase::getJsonObjects(const char* key, const char* filepath) {
   delay(1);
   doc.clear();
 
-  #ifdef DEBUG
+  #ifdef DEBUG_SPAM
   String jsonString;
   serializeJson(jsonobj, jsonString);
   Serial.println(F("JsonObj:"));

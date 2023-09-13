@@ -34,10 +34,6 @@
 
 using namespace std;
 
-#ifndef DEBUG
-#define DEBUG 1
-#endif
-
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
 //---- GLOBAL VARIABLES AND DEFINITIONS --------------------------------------------------------------------------------
@@ -186,8 +182,11 @@ void setup() {
   delay(30);
 
   // automatically set time (requires WIFI access!!)
-  if(oldtimeMark.tm_year < 10){
-    struct tm local = HWHelper.readTimeNTP();
+  struct tm local = HWHelper.readTimeNTP();
+  if(HWHelper.verifyTM(local)){
+    #ifdef DEBUG
+    Serial.println(F("Info: Synched time!"));
+    #endif
     HWHelper.setTime(local);
   }
 
@@ -265,7 +264,6 @@ if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timin
 Serial.println(F("--- End loop! ---"));
 #endif
 }
-
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
 //---- MAIN PROGRAM END -------------------------------------------------------------------------------------------------
@@ -273,7 +271,6 @@ Serial.println(F("--- End loop! ---"));
 //######################################################################################################################
 
 
-// Task Implementation - keeping main loop readable
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // sensoring - returns timestamp of next event
@@ -317,8 +314,6 @@ long sensoringTask(){
     for (JsonObject::iterator it = obj.begin(); it != obj.end(); ++it){
       String id = it->key().c_str();
       JsonObject sensorConfig = it->value().as<JsonObject>();
-      //float val;
-      //val = Sensors.measuref(&HWHelper, sensorConfig);
       // create & fill data
       SensorData data = Sensors.measurePoint(&HWHelper, id, sensorConfig);
       // Add the new SensorData object to the vector
@@ -528,6 +523,11 @@ bool checkSleepTask(){
 
   // deactivate 3.3v supply
   HWHelper.disablePeripherals();
+
+  #ifdef DEBUG
+  Serial.println(F("Info: Sleeping!"));
+  delay(10);
+  #endif
 
   // prepare sleep
   unsigned long breakTime = 0;
