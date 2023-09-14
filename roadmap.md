@@ -8,12 +8,11 @@ To-do:
 
 Open problems:
 - Sensor rail needs 5V, not 3V! (Currently hooked onto logic switch)
-- Backup SD card module malfunctioning
 
 Future ideas:
 - Add display and interface menu
 - Using machine learning to controll watering process based on collected data
-- Implement an app for configuration and visualizing basic data
+- Implement an app (configuration of sensors and groups)
 - Add option to upload config file via bluetooth
 
 Changes:
@@ -29,3 +28,4 @@ Changes:
 - Added Node-RED flow to provide config file
 - Reworked circuit boards included new ones
 - fixed reverse voltage protection
+- Removed SD slot
