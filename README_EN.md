@@ -54,7 +54,7 @@ Note: It is also possible to use this file without connecting to a Raspberry Pi,
 
 ### Irrigation Control
 
-Irrigation is controlled using the settings in the config.JSON file. Two variables are used - timetable and water-time:
+Irrigation is controlled using the settings in the `config.JSON` file. Two variables are used - timetable and water-time:
 
 - 'timetable': Represented by the first 24 bits of an integer, with each bit representing an hour of the day. To save space, it is stored as a long integer.
 - 'water-time': The time (in seconds) that the respective group is irrigated. Multiple valves or valve + pump can be set simultaneously.
@@ -99,7 +99,7 @@ In the file, irrigation can be configured as shown in the example below:
 
 ### Sensor Configuration:
 
-Sensors can be modified at any time using 'config.JSON'. Several measurement functions with common sensors are implemented. You can also make changes to modify returned values or output relative measurement values (%). <br>
+Sensors can be modified at any time using `config.JSON`. Several measurement functions with common sensors are implemented. You can also make changes to modify returned values or output relative measurement values (%). <br>
 
 To correctly configure a sensor, it is necessary to use a unique ID as a JSON key. Under this key, 'name', 'field', and 'mode' must be assigned. 'name' and 'field' correspond to the entry in the database where the measurement value can be found in InfluxDB. Implemented 'mode' variants can be found in the table below; it may be necessary to include additional items such as 'pin', etc.
 
@@ -178,14 +178,33 @@ Then, open the project folder 'bewae' in VS Code. Next, connect your ESP-32 cont
 
 #### Config & WIFI (Optional)
 
-Now, it's essential to enter your credentials for the local network in the 'connection.h' files. <br>
+Now, it's essential to enter your credentials for the local network in the `connection.h` files. <br>
 Also, you would need to update the IP of the system where Node-Red and the database are installed, along with the associated data. <br>
 Additionally, the address of the time server may need to be changed.  <br>
 
-In case nothing has been entered, the program should still work. However, adjusting the settings would be more challenging since the FileSystem needs to be re-uploaded each time there are changes. Additionally, the time must be set manually! For this purpose, there is a 'set_time' function in the helper class. <br>
+In case no network connection can be established, the program should still work. However, adjusting the settings would be more challenging since the FileSystem needs to be re-uploaded each time there are changes. Additionally, the time must be set manually! For this purpose, there is a 'set_time' function in the helper class. <br>
 
-Notes:
-Don't forget to configure the hardware. To do this, adapt the used helper class to the hardware board used in 'Helper.h' and 'main.cpp'. <br>
+#### Config Hardware
+
+For the various PCB layouts, there are different hardware classes. These are derived from the Helper class and create an abstraction of the hardware used. This will make it easier in the future to integrate other boards and even microcontrollers into the system.
+
+To change the configuration, please adjust the following lines to your used board:
+
+##### ``main.cpp``
+```cpp
+// Initialisierung der Hardware Helper-Klasse
+Helper_ExampleBoard HWHelper;
+//Helper_config1_Board5v5 HWHelper;
+```
+
+
+##### ``Helper.h``
+```cpp
+// allowing to use HelperClass without having to create an instance of the class
+extern ExampleBoard HWHelper;
+```
+
+You can find the available boards with their specifications further down.
 
 ### Raspberry Pi
 
@@ -218,13 +237,13 @@ Permissions for buckets can be easily configured through the UI, and a token can
 - In the 'Load Data' option, click on 'API TOKENS'
 - Click on 'Generate API TOKEN' -> Custom API Token
 - Enter a token description and choose permissions (Write) -> Click 'Generate'
-- Replace the InfluxDB token in the 'connection.h' file
+- Replace the InfluxDB token in the `connection.h` file
 
 ---
 
-Now everything should be prepared. The configuration file ('config.JSON) can be adjusted as needed by configuring the required functions (see tables) as shown in the example. <br>
+Now everything should be prepared. The configuration file (`config.JSON`) can be adjusted as needed by configuring the required functions (see tables) as shown in the example. <br>
 
-If a relay module is used with inverted logic, there is an option to invert the outputs of the shift register by setting INVERT_SHIFTOUT to true in the 'config.h' file. Additionally, flags can be set to facilitate debugging. <br>
+If a relay module is used with inverted logic, there is an option to invert the outputs of the shift register by setting INVERT_SHIFTOUT to true in the `config.h` file. Additionally, flags can be set to facilitate debugging. <br>
 
 ## Details
 

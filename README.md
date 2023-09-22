@@ -55,7 +55,7 @@ Hinweis: Es ist auch möglich, ohne Verbindung zu einem RaspberryPi diese Datei 
 
 ### Steuerung der Bewässerung
 
-Die Bewässerung wird mit den Einstellungen in der config.JSON-Datei gesteuert. Dabei werden zwei Variablen verwendet - timetable und water-time:
+Die Bewässerung wird mit den Einstellungen in der `config.JSON`-Datei gesteuert. Dabei werden zwei Variablen verwendet - timetable und water-time:
 
 - 'timetable': Wird durch die ersten 24 Bit einer Integer-Zahl repräsentiert, wobei jedes Bit für eine Stunde des Tages steht. Um Platz zu sparen, wird es als Long Integer abgespeichert.
 - 'water-time': Ist die Zeit (in Sekunden), die die jeweilige Gruppe bewässert wird. Hierbei können mehrere Ventile oder Ventil + Pumpe gleichzeitig gesetzt werden.
@@ -100,7 +100,7 @@ Im File kann die Bewässerung wie im Beispiel unten konfiguriert werden:
 
 ### Konfiguration der Sensoren:
 
-Die Sensoren können mithilfe des ‘config.JSON’ zu jeder Zeit verändert werden. Dabei sind einige Messfunktionen mit gängigen Sensoren implementiert. Es können auch noch Änderungen vorgenommen werden, um zurückgegebenen Werte zu modifizieren oder auch relative Messwerte (%) ausgegeben werden. <br>
+Die Sensoren können mithilfe des `config.JSON` zu jeder Zeit verändert werden. Dabei sind einige Messfunktionen mit gängigen Sensoren implementiert. Es können auch noch Änderungen vorgenommen werden, um zurückgegebenen Werte zu modifizieren oder auch relative Messwerte (%) ausgegeben werden. <br>
 
 Um einen Sensor korrekt zu konfigurieren ist es Notwendig eine Einzigartige ID als Json Key zu verwenden. Unter Diesem Key müssen noch 'name', 'field' und 'mode' vergeben werden. 'name' und 'field' entspricht dabei dem Eintrag in der DB unter dem der Messwert in InfluxDB zu finden ist. Implementierte 'mode' varianten können unten in der Tabelle entnommen werden, es kann erforderlich sein das noch weitere Dinge wie 'pin' etc. vorhanden sind.
 
@@ -179,14 +179,33 @@ Stellen Sie zunächst sicher, dass PlatformIO in Visual Studio Code installiert 
 
 #### Config & WIFI (Optional)
 
-Nun ist es wichtig, in den Dateien 'connection.h' seine Zugangsdaten für das lokale Netzwerk einzutragen. <br>
+Nun ist es wichtig, in den Dateien `connection.h` seine Zugangsdaten für das lokale Netzwerk einzutragen. <br>
 Ebenfalls wären die IP des Systems worauf Node-red und die Datenbank installiert zu ändern. Sowie die dazugehörigen Daten. <br>
 Weiters könnte noch die Adresse des Zeitservers zu ändern sein.  <br>
 
-Für den Fall, dass nichts eingetragen wurde, sollte das Programm trotzdem funktionieren. Die Anpassung der Einstellungen ist dann allerdings schwieriger, da jedes Mal bei Änderungen das FileSystem neu hochgeladen werden muss. Außerdem muss die Zeit dann ebenfalls manuell gesetzt werden! Hierzu gibt es in der Helferklasse eine Funktion 'set_time'. <br>
+Für den Fall, dass keine Netzwerkverbindung möglich ist, sollte das Programm trotzdem funktionieren. Die Anpassung der Einstellungen ist dann allerdings schwieriger, da jedes Mal bei Änderungen das FileSystem neu hochgeladen werden muss. Außerdem muss die Zeit dann ebenfalls manuell gesetzt werden! Hierzu gibt es in der Helferklasse eine Funktion set_time. <br>
 
-Hinweise:
-Vergessen Sie nicht auf die Konfiguration der Hardware. Dazu passen Sie in 'Helper.h' sowie 'main.cpp' die verwendete Helper-Klasse an das genutzte Hardware-Board an. <br>
+#### Config Hardware
+
+Für die verschiedenen PCB-Layouts existieren unterschiedliche Hardware-Klassen. Diese leiten sich von der Helper-Klasse ab und schaffen eine Abstraktion der verwendeten Hardware. Dadurch wird es in Zukunft einfacher, andere Boards und sogar Mikrocontroller in das System zu integrieren.
+
+Um die Konfiguration zu ändern, passen Sie bitte die folgenden Zeilen an Ihr verwendetes Board an:
+
+##### ``main.cpp``
+```cpp
+// Initialisierung der Hardware Helper-Klasse
+Helper_ExampleBoard HWHelper;
+//Helper_config1_Board5v5 HWHelper;
+```
+
+
+##### ``Helper.h``
+```cpp
+// allowing to use HelperClass without having to create an instance of the class
+extern ExampleBoard HWHelper;
+```
+
+Die verfügbaren Boards mit ihren Spezifikationen können Sie weiter unten finden.
 
 ### Raspberrypi
 
@@ -219,13 +238,13 @@ Die Berechtigungen für Buckets können recht einfach über das UI eingestellt w
 - In der Option 'Load Data' auf 'API TOKENS' klicken
 - Klicken Sie auf 'Generate API TOKEN' -> Custom API Token
 - Token-Beschreibung eingeben und Berechtigung (Write) wählen -> Auf 'Generate' klicken
-- InfluxDB-Token nun in der 'connection.h'-Datei ersetzen
+- InfluxDB-Token nun in der `connection.h`-Datei ersetzen
 
 ---
 
-Nun sollte alles vorbereitet sein. Die Konfigurationsdatei ('config.JSON) kann nach Bedarf angepasst werden, dazu einfach die benötigten Funktionen (siehe Tabellen) wie im Beispiel gezeigt konfigurieren. <br>
+Nun sollte alles vorbereitet sein. Die Konfigurationsdatei (`config.JSON`) kann nach Bedarf angepasst werden, dazu einfach die benötigten Funktionen (siehe Tabellen) wie im Beispiel gezeigt konfigurieren. <br>
 
-Falls ein Relais-Modul verwendet wird mit invertierter Logik besteht die Option, die Ausgänge des Shift Registers zu invertieren, dazu in der 'config.h'-Datei INVERT_SHIFTOUT auf true setzen. <br>
+Falls ein Relais-Modul verwendet wird mit invertierter Logik besteht die Option, die Ausgänge des Shift Registers zu invertieren, dazu in der `config.h`-Datei INVERT_SHIFTOUT auf true setzen. <br>
 Weiterhin können noch Flags gesetzt werden, die das Debugging erleichtern. <br>
 
 ## Details
