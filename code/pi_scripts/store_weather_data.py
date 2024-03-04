@@ -70,7 +70,7 @@ def pubInfluxdb(client: InfluxDBClient, bucket: str, measurement: str, location:
     write_api.write(bucket=bucket, record=point)
     client.__del__()
 
-if __name__ == "__main__":
+def main():
     logger = setup_logger()
     try:
         # Load the configuration
@@ -86,3 +86,6 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error("An error occurred:", exc_info=True)
         print("An error occurred:", str(e))
+
+if __name__ == "__main__":
+    main()
