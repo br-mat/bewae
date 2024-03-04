@@ -1,6 +1,6 @@
 
 ########################################################################################################################
-# Python program to convert config file
+# Python program to convert old config file to new JSON variant
 #
 # use this script tocreate the JSON file
 # no waranty for the program
@@ -15,7 +15,7 @@ import json
 import re
 
 # the file to be converted
-filename = 'test-conf-raw.txt'
+filename = 'old-config.txt'
 json_filename = 'bewae_config.json'
 
 

@@ -1,3 +1,6 @@
+# script to calculate a input list of full hours to binary representation
+# where each bit indicates a full hour
+
 def get_binary_representation(hours):
     binary_representation = ['0'] * 24  # Create a list of 24 '0' elements
     for hour in hours:
