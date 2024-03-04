@@ -1,0 +1,11 @@
+{
+  "db_org": "organisation",
+  "db_token": "yourTOKEN==",
+  "server": "raspberrypiAddress",
+  "port": ":Port",
+  "bucket": "yourBucket",
+  "weatherAPI": "APIToken",
+  "lat": "22.22",
+  "lon": "11.11",
+  "location": "City"
+}
