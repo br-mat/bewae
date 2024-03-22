@@ -56,7 +56,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // reverse shiftregister output in case of optocoupler (v-pins)
     #ifndef INVERT_SHIFTOUT
-    #define INVERT_SHIFTOUT false // set true if using negative logic relais
+    #define INVERT_SHIFTOUT true // set true if using negative logic relais
     #endif
 
     // publish data flag (DEBUG FLAG)
@@ -119,37 +119,4 @@
     const int SECONDS_PER_HOUR = 3600;
     const int gmtOffset_hours = 1;
     const int daylightOffset_hours = 1;
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// MQTT topics (unused)
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    #ifndef cliendID
-    #define clientID "client_test2"
-    #endif
-
-    // MQTT msg length
-    #ifndef MAX_MSG_LEN
-    #define MAX_MSG_LEN 128
-    #endif
-
-    // mqtt topics
-    #ifndef topic_prefix
-    #define topic_prefix "home/bewae_data/"
-    #endif
-
-    #ifndef config_status
-    #define config_status "home/bewae/config_status" //signal Pi that system is up and listening for instructions
-    #endif
-
-    // subsciption topics
-    #ifndef watering_topic
-    #define watering_topic "home/bewae/config" //bewae config and config status indicate things not passed to influx recive watering instructions
-    #endif
-    #ifndef testing
-    #define testing "home/test/tester"
-    #endif
-    #ifndef comms
-    #define comms "home/bewae/comms" //get command from raspberrypi
-    #endif
 #endif

@@ -10,10 +10,6 @@
 //Standard
 #include <Arduino.h>
 #include <Wire.h>
-//#include <SPI.h> // TODO fix namespacing problem with spiffs fs::File and SDfs::File for example
-//#include <SD.h>
-
-//external
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <WiFi.h>

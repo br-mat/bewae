@@ -11,8 +11,6 @@
 //Standard
 #include <Arduino.h>
 #include <Wire.h>
-//#include <SPI.h>
-//#include <SD.h>
 #include <SPIFFS.h>
 #include <OneWire.h>
 
@@ -66,7 +64,7 @@ Adafruit_BME280 bme;
 WiFiClient wificlient;
 
 // initialise Hardware Helper class
-Helper_config1_Board1v3838 HWHelper;
+Helper_config1_Board5v5 HWHelper;
 //Helper_config1_Board5v5 HWHelper;
 
 // Create a BasicSensor instance
