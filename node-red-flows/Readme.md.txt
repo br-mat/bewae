@@ -10,3 +10,30 @@ The flow contains a page to host the config file. (replacing older flows.json im
 
 
 Check for any other necessary changes.
+
+
+Explanaition of Json data abbreviation's:
+### Plant
+
+| Abbreviation | Meaning          |
+|--------------|------------------|
+| pn           | Plant Name       |
+| pw           | Plant Water      |
+| pls          | Plant Size       |
+| pts          | Pot Size         |
+| wt           | Water Times      |
+| pvp          | Plant vPins      |
+| ps           | Plant Set        |
+
+
+### Sensor
+
+| Abbreviation | Meaning          |
+|--------------|------------------|
+| sn           | Sensor Name      |
+| sf           | Sensor Field     |
+| sm           | Sensor Mode      |
+| svp          | Sensor vPin      |
+| hl           | High Limit       |
+| ll           | Low Limit        |
+| ss           | Sensor Set       |

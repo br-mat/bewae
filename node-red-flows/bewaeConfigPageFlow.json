@@ -1,166 +1,166 @@
 [
     {
-        "id": "0dc0942eb5a59979",
+        "id": "ca18495f6f6a16ae",
         "type": "tab",
-        "label": "bewaeConfigPage",
+        "label": "bewae-working",
         "disabled": false,
         "info": "",
         "env": []
     },
     {
-        "id": "e5229ff60d1d91c2",
+        "id": "ed1d1764feb8f1e9",
         "type": "http in",
-        "z": "0dc0942eb5a59979",
+        "z": "ca18495f6f6a16ae",
         "name": "bewae config page",
-        "url": "/bewae",
+        "url": "/bewae-working",
         "method": "get",
         "upload": false,
         "swaggerDoc": "",
-        "x": 250,
-        "y": 280,
+        "x": 170,
+        "y": 120,
         "wires": [
             [
-                "8c77a299d11b7da0"
+                "3d3b36e3782abc35"
             ]
         ]
     },
     {
-        "id": "0b5eb0549573f19d",
+        "id": "53827f0afa4f6d0c",
         "type": "json",
-        "z": "0dc0942eb5a59979",
+        "z": "ca18495f6f6a16ae",
         "name": "",
         "property": "payload",
         "action": "",
         "pretty": false,
-        "x": 590,
-        "y": 180,
+        "x": 550,
+        "y": 300,
         "wires": [
             [
-                "fd3487f8a0ced5c3",
-                "13f2c7649b66e075"
+                "111cbba3243539ee",
+                "212711423decc1dd"
             ]
         ]
     },
     {
-        "id": "8c77a299d11b7da0",
+        "id": "3d3b36e3782abc35",
         "type": "template",
-        "z": "0dc0942eb5a59979",
+        "z": "ca18495f6f6a16ae",
         "name": "",
         "field": "payload",
         "fieldType": "msg",
         "format": "handlebars",
         "syntax": "mustache",
-        "template": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Bewae V3</title>\n\n<style>\n  /* Top navigation bar styling */\n  .violet-bar {\n    background-color: #8a2be2;\n    color: white;\n    padding: 10px;\n    text-align: left;\n  }\n\n  /* Form styling for plant data entry */\n  .plant-form {\n    margin: 20px auto;\n    padding: 20px;\n    max-width: 900px;\n    background-color: #f2f2f2;\n  }\n\n  /* Label styling within the form */\n  .plant-form label {\n    display: block;\n    margin-bottom: 10px;\n  }\n\n  /* Text and number input field styling */\n  .plant-form input[type=\"text\"],\n  .plant-form input[type=\"number\"] {\n    width: calc(100% - 10px);\n    padding: 8px;\n    margin-bottom: 10px;\n    box-sizing: border-box;\n  }\n\n  /* 'Add plant' button styling */\n  .plant-form button.add-plant-button {\n    background-color: #388e3c;\n    color: white;\n    border: none;\n    padding: 10px;\n    cursor: pointer;\n    width: calc(100% - 10px);\n    border-radius: 20px;\n  }\n\n  /* Table styling for displaying saved plant data */\n  table {\n    margin-top: 20px;\n    width: 100%;\n    border-collapse: collapse;\n  }\n\n  /* Table header and cell styling */\n  th, td {\n    border: 1px solid #ddd;\n    padding: 8px;\n    text-align: left;\n  }\n\n  /* Table header row styling */\n  th {\n    background-color: #f2f2f2;\n  }\n\n  /* Button styling for edit, delete, and add actions */\n  .edit-button, .delete-button, .add-plant-button {\n    color: white;\n    border: none;\n    padding: 8px;\n    cursor: pointer;\n    width: 90%;\n    border-radius: 5px;\n    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);\n    transition: 0.3s;\n    font-size: 0.9em;\n  }\n\n  /* Button hover effect for edit, delete, and add actions */\n  .edit-button:hover, .delete-button:hover, .add-plant-button:hover {\n    box-shadow: 0 6px 12px 0 rgba(0,0,0,0.3);\n  }\n\n  /* Alternate row styling for the table */\n  table tr:nth-child(even) {\n    background-color: rgba(138, 43, 226, 0.1);\n  }\n\n  /* Edit button specific styling */\n  .edit-button {\n    background-color: #f39c12;\n    color: black;\n  }\n\n  /* Delete button specific styling */\n  .delete-button {\n    background-color: #8e44ad;\n  }\n\n  /* Table container styling for layout */\n  .table-container {\n    width: 75%;\n    margin: 0 auto;\n  }\n</style>\n\n</head>\n<body>\n  <!-- Navigation bar with title -->\n  <div class=\"violet-bar\">PlantZ</div>\n\n  <!-- Table container for displaying plant data -->\n  <div class=\"table-container\">\n    <table id=\"plantTable\">\n      <tr>\n        <th>Plant Name</th>\n        <th>Default Water</th>\n        <th>Plant Size</th>\n        <th>Pot Size</th>\n        <th>Water Times</th>\n        <th>vPins</th>\n        <th>Set</th>\n        <th>Actions</th>\n      </tr>\n      <!-- Rows with plant data will be dynamically added here -->\n    </table>\n  </div>\n\n  <!-- Form for adding new plant data -->\n  <div class=\"plant-form\">\n    <form id=\"plantForm\">\n      <label for=\"plantName\">Plant Name:</label>\n      <input type=\"text\" id=\"plantName\">\n\n      <label for=\"defaultWater\">Default Water:</label>\n      <input type=\"number\" id=\"defaultWater\">\n\n      <label for=\"plantSize\">Plant Size:</label>\n      <input type=\"number\" id=\"plantSize\">\n\n      <label for=\"potSize\">Pot Size:</label>\n      <input type=\"number\" id=\"potSize\">\n\n      <label for=\"waterTimes\">Water Times (comma-separated):</label>\n      <input type=\"text\" id=\"waterTimes\">\n\n      <label for=\"vPins\">vPins (comma-separated):</label>\n      <input type=\"text\" id=\"vPins\">\n\n      <label for=\"set\">Set:</label>\n      <input type=\"number\" id=\"set\">\n\n      <button type=\"button\" class=\"add-plant-button\" onclick=\"addPlant(event)\">Add Plant</button>\n    </form>\n  </div>\n</body>\n\n<script>\n  // Function to load data from the server\n  function loadData() {\n    return fetch('/bewae/get-config')\n      .then(response => {\n        if (!response.ok) {\n          throw new Error('Network response was not ok');\n        }\n        return response.json();\n      })\n      .then(data => {\n        console.log('Data loaded:', data);\n        return data;\n      })\n      .catch(error => {\n        console.error('There has been a problem with your fetch operation:', error);\n      });\n  }\n\n  function saveData() {\n    var plantTable = document.getElementById('plantTable');\n    var data = {}; // Initialize data as an object\n    for (var i = 1; i < plantTable.rows.length; i++) {\n      var row = plantTable.rows[i];\n      var plantName = row.cells[0].innerText;\n      data[plantName] = { // Use plantName as the key for each plant\n        \"defaultWater\": parseInt(row.cells[1].innerText),\n        \"plantSize\": parseInt(row.cells[2].innerText),\n        \"potSize\": parseFloat(row.cells[3].innerText),\n        \"waterTimes\": row.cells[4].innerText.split(',').map(Number), // Convert strings to numbers\n        \"vPins\": row.cells[5].innerText.split(',').map(Number), // Convert strings to numbers\n        \"set\": parseInt(row.cells[6].innerText) // Convert string to number\n      };\n    }\n    // Convert the object to a JSON string\n    var jsonData = JSON.stringify(data);\n    // Send the JSON data using XMLHttpRequest\n    var xhr = new XMLHttpRequest();\n    xhr.open(\"POST\", \"/bewae/save\", true);\n    xhr.setRequestHeader('Content-Type', 'application/json');\n    xhr.send(jsonData);\n  }\n\n  // Function to initialize table with data\n  function initializeTable(data) {\n    const plantTable = document.getElementById(\"plantTable\");\n    for (const key in data) {\n      if (data.hasOwnProperty(key)) {\n        const plant = data[key];\n        const newRow = plantTable.insertRow();\n        newRow.innerHTML = `<td>${key}</td><td>${plant[\"defaultWater\"]}</td><td>${plant[\"plantSize\"]}</td><td>${plant[\"potSize\"]}</td><td>${plant[\"waterTimes\"].join(',')}</td><td>${plant[\"vPins\"].join(',')}</td><td>${plant[\"set\"]}</td><td><button class=\"edit-button\" onclick=\"editPlant(this)\">Edit</button><button class=\"delete-button\" onclick=\"deletePlant(this)\">Delete</button></td>`;\n      }\n    }\n  }\n\n  // Event listener for DOMContentLoaded\n  document.addEventListener('DOMContentLoaded', (event) => {\n    loadData().then(data => {\n      initializeTable(data);\n    });\n  });\n\n  function addPlant() {\n    event.preventDefault(); // Prevent default form submission\n    const plantName = document.getElementById(\"plantName\").value;\n    const defaultWater = document.getElementById(\"defaultWater\").value;\n    const plantSize = document.getElementById(\"plantSize\").value;\n    const potSize = document.getElementById(\"potSize\").value;\n    const waterTimes = document.getElementById(\"waterTimes\").value.split(',');\n    const vPins = document.getElementById(\"vPins\").value.split(',');\n    const set = document.getElementById(\"set\").value;\n    const newRow = plantTable.insertRow();\n    newRow.innerHTML = `<td>${plantName}</td><td>${defaultWater}</td><td>${plantSize}</td><td>${potSize}</td><td>${waterTimes.join(',')}</td><td>${vPins.join(',')}</td><td>${set}</td><td><button class=\"edit-button\" onclick=\"editPlant(this)\">Edit</button><button class=\"delete-button\" onclick=\"deletePlant(this)\">Delete</button></td>`;\n    console.log('Saving data:', { plantName, defaultWater, plantSize, potSize, waterTimes, vPins, set }); // Log data for debugging\n    saveData();\n  }\n\n\n  function editPlant(button) {\n    const row = button.parentNode.parentNode;\n    const cells = row.getElementsByTagName(\"td\");\n\n    const plantName = cells[0].innerHTML;\n    const defaultWater = cells[1].innerHTML;\n    const plantSize = cells[2].innerHTML;\n    const potSize = cells[3].innerHTML;\n    const waterTimes = cells[4].innerHTML.split(',');\n    const vPins = cells[5].innerHTML.split(',');\n    const set = cells[6].innerHTML;\n\n    cells[0].innerHTML = `<input type=\"text\" id=\"edit-plantName\" value=\"${plantName}\">`;\n    cells[1].innerHTML = `<input type=\"number\" id=\"edit-defaultWater\" value=\"${defaultWater}\">`;\n    cells[2].innerHTML = `<input type=\"number\" id=\"edit-plantSize\" value=\"${plantSize}\">`;\n    cells[3].innerHTML = `<input type=\"number\" id=\"edit-potSize\" value=\"${potSize}\">`;\n    cells[4].innerHTML = `<input type=\"text\" id=\"edit-waterTimes\" value=\"${waterTimes.join(',')}\">`;\n    cells[5].innerHTML = `<input type=\"text\" id=\"edit-vPins\" value=\"${vPins.join(',')}\">`;\n    cells[6].innerHTML = `<input type=\"number\" id=\"edit-set\" value=\"${set}\">`;\n\n    button.innerHTML = \"Save\";\n    button.onclick = function() {\n      savePlant(this);\n    };\n    saveData();\n  }\n\n  function savePlant(button) {\n    const row = button.parentNode.parentNode;\n    const cells = row.getElementsByTagName(\"td\");\n\n    const plantName = document.getElementById(\"edit-plantName\").value;\n    const defaultWater = document.getElementById(\"edit-defaultWater\").value;\n    const plantSize = document.getElementById(\"edit-plantSize\").value;\n    const potSize = document.getElementById(\"edit-potSize\").value;\n    const waterTimes = document.getElementById(\"edit-waterTimes\").value.split(',');\n    const vPins = document.getElementById(\"edit-vPins\").value.split(',');\n    const set = document.getElementById(\"edit-set\").value;\n\n    cells[0].innerHTML = plantName;\n    cells[1].innerHTML = defaultWater;\n    cells[2].innerHTML = plantSize;\n    cells[3].innerHTML = potSize;\n    cells[4].innerHTML = waterTimes.join(',');\n    cells[5].innerHTML = vPins.join(',');\n    cells[6].innerHTML = set;\n\n    button.innerHTML = \"Edit\";\n    button.onclick = function() {\n      editPlant(this);\n    };\n    saveData();\n  }\n\n  function deletePlant(button) {\n    const row = button.parentNode.parentNode;\n    plantTable.deleteRow(row.rowIndex);\n    saveData();\n  }\n\n</script>\n</body>\n</html>",
+        "template": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Bewae V3</title>\n  <style>\n  body {\n    margin: 0;\n    padding: 0;\n    font-family: Arial, sans-serif;\n  }\n\n  .violet-bar {\n    background-color: rgba(80, 30, 120, 0.9);\n    color: white;\n    padding: 20px;\n    text-align: left;\n    position: fixed;\n    width: 100%;\n    top: 0;\n    z-index: 2;\n  }\n\n  .sidebar {\n    height: 100%;\n    width: 250px;\n    position: fixed;\n    z-index: 1;\n    top: 58px;\n    left: 0;\n    background-color: rgba(80, 30, 120, 0.6);\n    overflow-x: hidden;\n    padding-top: 20px;\n  }\n\n  .sidebar a {\n    padding: 6px 8px 6px 16px;\n    text-decoration: none;\n    font-size: 25px;\n    color: #fff;\n    display: block;\n  }\n\n  .main-content {\n    margin-left: 250px;\n    padding: 20px;\n    margin-top: 60px;\n  }\n\n  .sidebar a:hover {\n    color: #f1f1f1;\n    background-color: rgba(255, 255, 255, 0.1);\n  }\n\n  /* Watering Table specific styling */\n  .table-container {\n    width: 100%;\n    margin: 0 auto;\n  }\n\n  #plantTable {\n    border-collapse: collapse;\n    width: 100%;\n  }\n\n  #plantTable th, #plantTable td {\n    border: 1px solid #ddd;\n    padding: 8px;\n    text-align: center;\n  }\n\n  #plantTable th {\n    background-color: #f2f2f2;\n  }\n\n  /* Style for every second row of the plant table */\n  #plantTable tr:nth-child(even) {\n    background-color: #d2abff; /* A light violet shade */\n  }\n\n  .plant-form {\n    margin-top: 20px;\n  }\n\n  .plant-form label {\n    display: block;\n    margin-bottom: 5px;\n  }\n\n  .plant-form input[type=\"text\"],\n  .plant-form input[type=\"number\"] {\n    width: 100%;\n    padding: 8px;\n    margin-bottom: 10px;\n    box-sizing: border-box;\n  }\n\n  .plant-form .add-plant-button {\n    background-color: #4CAF50;\n    color: white;\n    padding: 10px 20px;\n    border: none;\n    cursor: pointer;\n  }\n  \n  .plant-form .add-plant-button:hover {\n    background-color: #45a049;\n  }\n\n  /* Edit button specific styling */\n  .edit-button {\n    background-color: #f39c12;\n    color: black;\n  }\n  .edit-button:hover{\n    background-color: #f3ca12;\n  }\n\n  /* Delete button specific styling */\n  .delete-button {\n    background-color: #8e44ad;\n  }\n  .delete-button:hover {\n    background-color: #da4ced;\n  }\n  \n  /* Button hover effect for edit, delete, and add actions */\n  .edit-button:hover, .delete-button:hover, .add-plant-button:hover {\n    box-shadow: 0 6px 12px 0 rgba(0,0,0,0.3);\n  }\n\n  /* Save button specific styling */\n.save-button {\n  background-color: #f39c12;\n  color: black;\n  display: none; /* Save button starts hidden */\n}\n\n.save-button:hover {\n  background-color: #f3ca12;\n  box-shadow: 0 6px 12px 0 rgba(0,0,0,0.3);\n}\n\n/* Ensure the text color remains solid on interaction */\n.edit-button, .save-button, .delete-button {\n  /* ... existing styles ... */\n  color: black; /* Explicitly set the text color */\n}\n\n.edit-button:focus, .save-button:focus, .delete-button:focus,\n.edit-button:active, .save-button:active, .delete-button:active {\n  opacity: 1; /* Maintain full opacity on focus/active */\n  color: black; /* Maintain text color on focus/active */\n}\n\n.button-container {\n  margin-top: 1.5em; /* This will be relative to the current font size */\n}\n\n  /* Sensor Table specific styling */\n  #sensorTable {\n    border-collapse: collapse;\n    width: 100%;\n  }\n\n  #sensorTable th, #sensorTable td {\n    border: 1px solid #ddd;\n    padding: 8px;\n    text-align: center;\n  }\n\n  #sensorTable th {\n    background-color: #f2f2f2;\n  }\n\n  /* Style for every second row of the sensor table */\n  #sensorTable tr:nth-child(even) {\n    background-color: #d2abff; /* A light violet shade */\n  }\n\n  /* Sensor Form specific styling */\n  .sensor-form {\n    margin-top: 20px;\n  }\n\n  .sensor-form label {\n    display: block;\n    margin-bottom: 5px;\n  }\n\n  .sensor-form input[type=\"text\"],\n  .sensor-form input[type=\"number\"] {\n    width: 100%;\n    padding: 8px;\n    margin-bottom: 10px;\n    box-sizing: border-box;\n  }\n\n  .sensor-form .add-sensor-button {\n    background-color: #4CAF50;\n    color: white;\n    padding: 10px 20px;\n    border: none;\n    cursor: pointer;\n  }\n  \n  .sensor-form .add-sensor-button:hover {\n    background-color: #45a049;\n  }\n\n/* Dropdown Selectors Styling */\nselect {\n  padding: 8px 12px;\n  border: 1px solid #ccc;\n  border-radius: 4px;\n  background-color: #d2abff; /* Light violet shade to match the table row */\n  cursor: pointer;\n  outline: none;\n  color: #333; /* Text color for better readability */\n}\n\nselect:hover {\n  background-color: #e4c7ff; /* A lighter violet shade for hover state */\n}\n\nselect:focus {\n  border-color: #8e44ad; /* Violet shade for focus border to match the delete button */\n}\n\n\n  /* Dropdown Menu specific styling */\n  /* Dropdown Button */\n  .dropbtn {\n    background-color: #4CAF50;\n    color: white;\n    padding: 16px;\n    font-size: 16px;\n    border: none;\n    cursor: pointer;\n  }\n\n  /* The container <div> - needed to position the dropdown content */\n  .dropdown {\n    position: relative;\n    display: inline-block;\n  }\n\n  /* Dropdown Content (Hidden by Default) */\n  .dropdown-content {\n    display: none;\n    position: absolute;\n    background-color: #f9f9f9;\n    min-width: 160px;\n    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);\n    z-index: 1;\n  }\n\n  /* Links inside the dropdown */\n  .dropdown-content a {\n    color: black;\n    padding: 12px 16px;\n    text-decoration: none;\n    display: block;\n  }\n\n  /* Change color of dropdown links on hover */\n  .dropdown-content a:hover {background-color: #f1f1f1}\n\n  /* Show the dropdown menu when the button is clicked */\n  .dropdown-content.show {\n    display: block;\n  }\n  </style>\n\n</head>\n<body>\n  <!-- Navigation bar with title -->\n  <div class=\"violet-bar\">Bewae V3</div>\n\n  <!-- Sidebar -->\n  <div class=\"sidebar\">\n    <a href=\"#watering\" id=\"wateringLink\">Watering System</a>\n    <a href=\"#sensors\">Sensors</a>\n    <a href=\"#additionalConfig\">Additional Config</a>\n  </div>\n\n  <!-- Main content area -->\n  <div class=\"main-content\">\n    <!-- Default text -->\n    <p id=\"defaultText\">Welcome to Bewae V3! Please select an option from the sidebar to get started.</p>\n\n    <!-- Watering System content -->\n    <div id=\"watering\" style=\"display:none;\">\n      <div class=\"table-container\">\n        <h2>Watering System Configuration</h2>\n        <!-- Table container for displaying plant data -->\n        <div class=\"table-container\">\n          <table id=\"plantTable\">\n            <tr>\n              <th>Plant Name</th>\n              <th>Default Water</th>\n              <th>Plant Size</th>\n              <th>Pot Size</th>\n              <th>Water Times</th>\n              <th>vPins</th>\n              <th>Set</th>\n              <th>Actions</th>\n            </tr>\n            <!-- Rows with plant data will be dynamically added here -->\n          </table>\n        </div>\n\n        <!-- Form for adding new plant data -->\n        <div class=\"plant-form\">\n          <form id=\"plantForm\">\n            <label for=\"pn\">Plant Name:</label>\n            <input type=\"text\" id=\"pn\">\n\n            <label for=\"pw\">Default Water:</label>\n            <input type=\"number\" id=\"pw\">\n\n            <label for=\"pls\">Plant Size:</label>\n            <input type=\"number\" id=\"pls\">\n\n            <label for=\"pts\">Pot Size:</label>\n            <input type=\"number\" id=\"pts\">\n\n            <label for=\"wt\">Water Times (comma-separated):</label>\n            <input type=\"text\" id=\"wt\">\n\n            <label for=\"pvp\">vPins (comma-separated):</label>\n            <input type=\"text\" id=\"pvp\">\n            <!--\n            <label for=\"ps\">Set:</label>\n            <input type=\"number\" id=\"ps\">\n            -->\n            <label for=\"ps\">Set:</label>\n            <select id=\"ps\">\n              <option value=\"true\">True</option>\n              <option value=\"false\">False</option>\n            </select>\n            <!-- Add a div with a class for styling the button -->\n            <div class=\"button-container\">\n              <button type=\"button\" class=\"add-plant-button\" onclick=\"addItem(plantConfig)\">Add Plant</button>\n            </div>\n          </form>\n        </div>\n      </div>\n    </div>\n\n  <!-- Sensors content -->\n  <div id=\"sensors\" style=\"display:none;\">\n    <h2>Sensor Configuration</h2>\n    <div class=\"table-container\">\n      <table id=\"sensorTable\">\n        <tr>\n          <th>Sensor Name</th>\n          <th>Field</th>\n          <th>vPins</th>\n          <th>High Limit</th>\n          <th>Low Limit</th>\n          <th>Set</th>\n          <th>Actions</th>\n        </tr>\n        <!-- Rows with sensor data will be dynamically added here -->\n      </table>\n    </div>\n\n    <!-- Sensor Form -->\n    <div class=\"sensor-form\">\n      <form id=\"sensorForm\">\n        <label for=\"sn\">Sensor Name:</label>\n        <input type=\"text\" id=\"sn\">\n\n        <label for=\"sf\">Field:</label>\n        <select id=\"sf\" name=\"field\">\n          <option value=\"bmetemp\">BME280 Temperature</option>\n          <option value=\"bmehum\">BME280 Humidity</option>\n          <option value=\"bmepress\">BME280 Pressure</option>\n          <option value=\"soiltemp\">Soil Temperature</option>\n          <option value=\"analog\">Analog Measurement</option>\n          <option value=\"vanalog\">V Analog Measurement</option>\n          <!-- Add more options as needed -->\n        </select>\n\n        <label for=\"svp\">vPin:</label>\n        <input type=\"number\" id=\"svp\">\n\n        <label for=\"hl\">High Limit:</label>\n        <input type=\"number\" id=\"hl\">\n\n        <label for=\"ll\">Low Limit:</label>\n        <input type=\"number\" id=\"ll\">\n        <!--\n        <label for=\"ss\">Set:</label>\n        <input type=\"number\" id=\"ss\">\n        -->\n        <label for=\"ss\">Set:</label>\n        <select id=\"ss\">\n          <option value=\"true\">True</option>\n          <option value=\"false\">False</option>\n        </select>\n\n        <!-- Add a div with a class for styling the button -->\n        <div class=\"button-container\">\n          <button type=\"button\" class=\"add-sensor-button\" onclick=\"addItem(sensorConfig)\">Add Sensor</button>\n        </div>\n        \n      </form>\n    </div>\n  </div>\n\n  <!-- Additional Config content -->\n    <div id=\"additionalConfig\" style=\"display:none;\">\n      <h2>Additional Configuration</h2>\n      <p>Set up additional system preferences and features.</p>\n    </div>\n  </div>\n\n  <script>\n  // Function to show a section and hide others\n  function showContent(sectionId) {\n    var sections = ['watering', 'sensors', 'additionalConfig', 'defaultText'];\n    sections.forEach(function(section) {\n      document.getElementById(section).style.display = 'none';\n    });\n    document.getElementById(sectionId).style.display = 'block';\n  }\n\n  // Add click event listeners to sidebar links\n  document.querySelectorAll('.sidebar a').forEach(function(link) {\n    link.addEventListener('click', function(e) {\n      e.preventDefault();\n      var sectionId = e.target.getAttribute('href').substring(1);\n      showContent(sectionId);\n    });\n  });\n\n  // Show default text initially\n  showContent('defaultText');\n    \n  // load data\n  function loadData(path) {\n    return fetch(path)\n      .then(response => {\n        if (!response.ok) {\n          throw new Error('Network response was not ok');\n        }\n        return response.json();\n      })\n      .then(data => {\n        console.log('Data loaded:', data);\n        return data;\n      })\n      .catch(error => {\n        console.error('There has been a problem with your fetch operation:', error);\n      });\n  }\n\n  function saveData(tableId, endpoint, keysMapping) {\n    const table = document.getElementById(tableId);\n    const rows = table.rows;\n\n    const data = [];\n\n    // Iterate over each row (skip the header row)\n    for (let i = 1; i < rows.length; i++) {\n      const row = rows[i];\n      const cells = row.cells;\n      const rowData = {};\n\n      // Iterate over each cell in the row\n      for (let j = 0; j < cells.length - 1; j++) {\n        const key = Object.keys(keysMapping)[j];\n        const shortKey = keysMapping[key];\n        const value = cells[j].innerText;\n\n        // Store the cell value in the rowData object using the short key\n        rowData[shortKey] = value;\n      }\n\n      // Add the rowData object to the data array\n      data.push(rowData);\n    }\n\n    // Convert the data array to JSON string\n    const jsonData = JSON.stringify(data);\n\n    // Send the JSON data using XMLHttpRequest\n    const xhr = new XMLHttpRequest();\n    xhr.open(\"POST\", endpoint, true);\n    xhr.setRequestHeader('Content-Type', 'application/json');\n    xhr.onreadystatechange = function() {\n      if (xhr.readyState === XMLHttpRequest.DONE) {\n        if (xhr.status === 200) {\n          console.log('Data saved successfully:', xhr.responseText);\n        } else {\n          console.error('Failed to save data. Status:', xhr.status);\n        }\n      }\n    };\n    xhr.send(jsonData);\n  }\n\n  function initializeTable(config) {\n    const table = document.getElementById(config.tableId);\n    const keys = Object.keys(config.keysMapping);\n\n    // Populate table header with mapped keys\n    const headerRow = table.querySelector('tr');\n    if (headerRow) {\n      headerRow.innerHTML = keys.map(key => `<th>${key}</th>`).join('') + '<th>Actions</th>';\n    }\n\n    // Populate table with data\n    Object.values(config.data).forEach((item) => {\n      const newRow = table.insertRow();\n      keys.forEach((key) => {\n        const shortKey = config.keysMapping[key];\n        const value = item.hasOwnProperty(shortKey) ? item[shortKey] : '';\n        const cell = newRow.insertCell();\n        cell.innerHTML = Array.isArray(value) ? value.join(',') : value;\n      });\n\n      // Add action buttons at the end of the row using closures\n      const actionCell = newRow.insertCell();\n      actionCell.appendChild(createButton('Edit', 'edit-button', () => editItem(newRow, config)));\n      actionCell.appendChild(createButton('Save', 'save-button', () => saveItem(newRow, config), { display: 'none' })); // Save button starts hidden\n      actionCell.appendChild(createButton('Delete', 'delete-button', () => deleteItem(newRow, config)));\n    });\n  }\n\n  function createButton(text, className, handler, style = {}) {\n    const button = document.createElement('button');\n    button.textContent = text;\n    button.className = className;\n    Object.assign(button.style, style);\n    button.onclick = handler; // Use onclick for simplicity\n    return button;\n  }\n\n  function addItem(config) {\n    const table = document.getElementById(config.tableId);\n    const newRow = table.insertRow();\n\n    // Iterate over the config.keysMapping to get values and split by comma if needed\n    Object.entries(config.keysMapping).forEach(([displayName, dataName]) => {\n      const element = document.getElementById(dataName);\n      if (!element) return; // Skip if the element is not found\n\n      const value = element.value;\n      const cell = newRow.insertCell();\n      cell.innerHTML = value.includes(',') ? value.split(',').join(',') : value;\n    });\n\n    // Add action buttons at the end of the row using arrow functions\n    const actionCell = newRow.insertCell();\n    actionCell.appendChild(createButton('Edit', 'edit-button', () => editItem(newRow, config)));\n    actionCell.appendChild(createButton('Save', 'save-button', () => saveItem(newRow, config), { display: 'none' })); // Save button starts hidden\n    actionCell.appendChild(createButton('Delete', 'delete-button', () => deleteItem(newRow, config)));\n\n    // Call saveData to save the entire table\n    saveData(config.tableId, config.endpoint, config.keysMapping);\n  }\n\n  function editItem(row, config) {\n    // Convert all cells except the action cell to editable inputs\n    for (let i = 0; i < row.cells.length - 1; i++) {\n      const cell = row.cells[i];\n      const text = cell.innerText;\n      cell.innerHTML = `<input type='text' value='${text}' />`;\n    }\n\n    // Hide the 'Edit' and 'Delete' buttons and show the 'Save' button\n    row.querySelector('.edit-button').style.display = 'none';\n    row.querySelector('.delete-button').style.display = 'none';\n    row.querySelector('.save-button').style.display = 'inline';\n  }\n\n  function saveItem(row, config) {\n    // Save the new values from the input fields\n    for (let i = 0; i < row.cells.length - 1; i++) {\n      const input = row.cells[i].querySelector('input');\n      const text = input ? input.value : '';\n      row.cells[i].innerText = text;\n    }\n\n    // Show the 'Edit' button, hide the 'Save' button, and make 'Delete' button visible again\n    row.querySelector('.edit-button').style.display = 'inline';\n    row.querySelector('.save-button').style.display = 'none';\n    row.querySelector('.delete-button').style.display = 'inline';\n\n    // Call saveData to save the entire table\n    saveData(config.tableId, config.endpoint, config.keysMapping);\n  }\n\n  function deleteItem(row, config) {\n    // Get the table element by ID\n    const table = document.getElementById(config.tableId);\n    // Check if the row has a defined rowIndex and is not the header row\n    if (row.rowIndex > 0) {\n      // Delete the row from the table\n      table.deleteRow(row.rowIndex);\n      // Log the deletion for debugging\n      console.log(`Deleted row at index: ${row.rowIndex} from table: ${config.tableId}`);\n      // Call saveData function here with the provided endpoint\n      saveData(config.tableId, config.endpoint, config.keysMapping)\n    } else {\n      console.error('Attempted to delete a non-data row.');\n    }\n  }\n\n  const plantConfig = {\n    tableId: 'plantTable',\n    keysMapping: {\n      \"Plant Name\": \"pn\",\n      \"Default Water\": \"pw\",\n      \"Plant Size\": \"pls\",\n      \"Pot Size\": \"pts\",\n      \"Water Times\": \"wt\",\n      \"vPins\": \"pvp\",\n      \"Set\": \"ps\"\n    },\n    endpoint: '/bewae/save-plant',\n    dataEndpoint: '/bewae/get-irrig-config'\n  };\n\n  const sensorConfig = {\n    tableId: 'sensorTable',\n    keysMapping: {\n      \"Sensor Name\": \"sn\",\n      \"Field\": \"sf\",\n      \"vPins\": \"svp\",\n      \"High Limit\": \"hl\",\n      \"Low Limit\": \"ll\",\n      \"Set\": \"ss\"\n    },\n    endpoint: '/bewae/sensor-save',\n    dataEndpoint: '/bewae/get-sensor-config'\n  };\n\n    /* Event listenets */\n  // Event listener for DOMContentLoaded for plant table\n  document.addEventListener('DOMContentLoaded', (event) => {\n    loadData(plantConfig.dataEndpoint).then(data => {\n      plantConfig.data = data; // Assign the loaded data to the plantConfig\n      initializeTable(plantConfig);\n    });\n  });\n\n  // Event listener for DOMContentLoaded for sensor table\n  document.addEventListener('DOMContentLoaded', (event) => {\n    loadData(sensorConfig.dataEndpoint).then(data => {\n      sensorConfig.data = data; // Assign the loaded data to the sensorConfig\n      initializeTable(sensorConfig);\n    });\n  });\n\n  </script>\n</body>\n</html>\n",
         "output": "str",
-        "x": 740,
-        "y": 280,
+        "x": 680,
+        "y": 120,
         "wires": [
             [
-                "911befcdb9086491",
-                "ad901883efaea969"
+                "fe21dd6a2328e721",
+                "b913867cc4dad89a"
             ]
         ]
     },
     {
-        "id": "911befcdb9086491",
+        "id": "fe21dd6a2328e721",
         "type": "http response",
-        "z": "0dc0942eb5a59979",
+        "z": "ca18495f6f6a16ae",
         "name": "",
         "statusCode": "",
         "headers": {},
-        "x": 970,
-        "y": 280,
+        "x": 910,
+        "y": 120,
         "wires": []
     },
     {
-        "id": "11eb26586ec06efb",
+        "id": "e4b9f1f7d373f35c",
         "type": "http in",
-        "z": "0dc0942eb5a59979",
-        "name": "post config file",
-        "url": "/bewae/save",
+        "z": "ca18495f6f6a16ae",
+        "name": "[post] irrigation config file",
+        "url": "/bewae/save-plant",
         "method": "post",
         "upload": false,
         "swaggerDoc": "",
-        "x": 230,
-        "y": 420,
+        "x": 190,
+        "y": 380,
         "wires": [
             [
-                "41f0ce2a18afa204"
+                "d3921adb377ee432"
             ]
         ]
     },
     {
-        "id": "c12447dc11f522d7",
+        "id": "b07bb4e680299ed8",
         "type": "file",
-        "z": "0dc0942eb5a59979",
+        "z": "ca18495f6f6a16ae",
         "name": "write file",
-        "filename": "/path/to/bewae/web-config.json",
+        "filename": "/home/homepi/bewae/web-config.json",
         "filenameType": "str",
         "appendNewline": true,
         "createDir": false,
         "overwriteFile": "true",
         "encoding": "none",
-        "x": 600,
-        "y": 420,
+        "x": 560,
+        "y": 380,
         "wires": [
             [
-                "8a539049b4ea6712"
+                "bd1152747d94e61b"
             ]
         ]
     },
     {
-        "id": "a1814796e5b169ee",
+        "id": "7b7e8139040bf458",
         "type": "http in",
-        "z": "0dc0942eb5a59979",
-        "name": "get config file",
-        "url": "/bewae/get-config",
+        "z": "ca18495f6f6a16ae",
+        "name": "[get] irrigation config file",
+        "url": "/bewae/get-irrig-config",
         "method": "get",
         "upload": false,
         "swaggerDoc": "",
-        "x": 230,
-        "y": 180,
+        "x": 180,
+        "y": 300,
         "wires": [
             [
-                "972fbf4b09e6043f"
+                "42af19a34bb54402"
             ]
         ]
     },
     {
-        "id": "972fbf4b09e6043f",
+        "id": "42af19a34bb54402",
         "type": "file in",
-        "z": "0dc0942eb5a59979",
+        "z": "ca18495f6f6a16ae",
         "name": "read file",
-        "filename": "/path/to/bewae/web-config.json",
+        "filename": "/home/homepi/bewae/web-config.json",
         "filenameType": "str",
         "format": "utf8",
         "chunk": false,
         "sendError": false,
         "encoding": "none",
         "allProps": false,
-        "x": 440,
-        "y": 180,
+        "x": 400,
+        "y": 300,
         "wires": [
             [
-                "0b5eb0549573f19d"
+                "53827f0afa4f6d0c"
             ]
         ]
     },
     {
-        "id": "fd3487f8a0ced5c3",
+        "id": "111cbba3243539ee",
         "type": "http response",
-        "z": "0dc0942eb5a59979",
+        "z": "ca18495f6f6a16ae",
         "name": "return config File",
         "statusCode": "",
         "headers": {},
-        "x": 930,
-        "y": 180,
+        "x": 870,
+        "y": 300,
         "wires": []
     },
     {
-        "id": "8a539049b4ea6712",
+        "id": "bd1152747d94e61b",
         "type": "debug",
-        "z": "0dc0942eb5a59979",
-        "name": "debug 6",
+        "z": "ca18495f6f6a16ae",
+        "name": "debug 9",
         "active": false,
         "tosidebar": true,
         "console": false,
@@ -168,15 +168,15 @@
         "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 960,
-        "y": 420,
+        "x": 900,
+        "y": 380,
         "wires": []
     },
     {
-        "id": "ad901883efaea969",
+        "id": "b913867cc4dad89a",
         "type": "debug",
-        "z": "0dc0942eb5a59979",
-        "name": "debug 7",
+        "z": "ca18495f6f6a16ae",
+        "name": "debug 10",
         "active": false,
         "tosidebar": true,
         "console": false,
@@ -185,15 +185,15 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 960,
-        "y": 320,
+        "x": 900,
+        "y": 80,
         "wires": []
     },
     {
-        "id": "13f2c7649b66e075",
+        "id": "212711423decc1dd",
         "type": "debug",
-        "z": "0dc0942eb5a59979",
-        "name": "debug 8",
+        "z": "ca18495f6f6a16ae",
+        "name": "debug 11",
         "active": false,
         "tosidebar": true,
         "console": false,
@@ -202,22 +202,18 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 940,
-        "y": 140,
+        "x": 900,
+        "y": 260,
         "wires": []
     },
     {
-        "id": "7982a075b3e7a38a",
+        "id": "b237a7278448b73d",
         "type": "inject",
-        "z": "0dc0942eb5a59979",
+        "z": "ca18495f6f6a16ae",
         "name": "",
         "props": [
             {
                 "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
             }
         ],
         "repeat": "",
@@ -225,28 +221,174 @@
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 740,
-        "y": 240,
+        "payload": "{   \"1\": { \"pn\": \"Big Tomato15\", \"pw\": 20, \"pls\": 3, \"pts\": 0.3, \"wt\": [7, 10], \"pvp\": [1], \"ps\": 0 },   \"2\": { \"pn\": \"Red Rose20\", \"pw\": 15, \"pls\": 2, \"pts\": 0.2, \"wt\": [6, 12], \"pvp\": [2, 3], \"ps\": 1 },   \"3\": { \"pn\": \"Green Basil10\", \"pw\": 25, \"pls\": 1, \"pts\": 0.15, \"wt\": [8, 14], \"pvp\": [4], \"ps\": 2 },   \"4\": { \"pn\": \"Yellow Sunflower30\", \"pw\": 18, \"pls\": 4, \"pts\": 0.4, \"wt\": [9, 15], \"pvp\": [5], \"ps\": 3 } }",
+        "payloadType": "json",
+        "x": 390,
+        "y": 340,
         "wires": [
             [
-                "8c77a299d11b7da0"
+                "d3921adb377ee432"
             ]
         ]
     },
     {
-        "id": "9b9b7c3ecfe253f9",
+        "id": "d3921adb377ee432",
+        "type": "json",
+        "z": "ca18495f6f6a16ae",
+        "name": "",
+        "property": "payload",
+        "action": "str",
+        "pretty": true,
+        "x": 390,
+        "y": 380,
+        "wires": [
+            [
+                "b07bb4e680299ed8"
+            ]
+        ]
+    },
+    {
+        "id": "3f6b73c3391536fa",
+        "type": "json",
+        "z": "ca18495f6f6a16ae",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 550,
+        "y": 480,
+        "wires": [
+            [
+                "5b6540b0fedda5d9",
+                "e1473193a459dd30"
+            ]
+        ]
+    },
+    {
+        "id": "b5c05a3b575dd7d0",
+        "type": "http in",
+        "z": "ca18495f6f6a16ae",
+        "name": "[get] sensor config file",
+        "url": "/bewae/get-sensor-config",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 480,
+        "wires": [
+            [
+                "273063d63e34b5b6"
+            ]
+        ]
+    },
+    {
+        "id": "273063d63e34b5b6",
+        "type": "file in",
+        "z": "ca18495f6f6a16ae",
+        "name": "read file",
+        "filename": "/home/homepi/bewae/web-sensor-config.json",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 400,
+        "y": 480,
+        "wires": [
+            [
+                "3f6b73c3391536fa"
+            ]
+        ]
+    },
+    {
+        "id": "5b6540b0fedda5d9",
+        "type": "http response",
+        "z": "ca18495f6f6a16ae",
+        "name": "return config File",
+        "statusCode": "",
+        "headers": {},
+        "x": 870,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "e1473193a459dd30",
+        "type": "debug",
+        "z": "ca18495f6f6a16ae",
+        "name": "debug 12",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 900,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "fdb5238a4f624efb",
+        "type": "http in",
+        "z": "ca18495f6f6a16ae",
+        "name": "[post] sensor config file",
+        "url": "/bewae/sensor-save",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 560,
+        "wires": [
+            [
+                "42d43881a8b1c569"
+            ]
+        ]
+    },
+    {
+        "id": "d7250034925e4dae",
+        "type": "file",
+        "z": "ca18495f6f6a16ae",
+        "name": "write file",
+        "filename": "/home/homepi/bewae/web-sensor-config.json",
+        "filenameType": "str",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "true",
+        "encoding": "none",
+        "x": 560,
+        "y": 560,
+        "wires": [
+            [
+                "76dc92b07056a1bf"
+            ]
+        ]
+    },
+    {
+        "id": "76dc92b07056a1bf",
+        "type": "debug",
+        "z": "ca18495f6f6a16ae",
+        "name": "debug 13",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 900,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "959a791205616d04",
         "type": "inject",
-        "z": "0dc0942eb5a59979",
+        "z": "ca18495f6f6a16ae",
         "name": "",
         "props": [
             {
                 "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
             }
         ],
         "repeat": "",
@@ -254,20 +396,170 @@
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 440,
-        "y": 140,
+        "payload": "{   \"1\": { \"sn\": \"bme280\", \"sf\": \"temp\", \"sm\": \"bmetemp\" },   \"2\": { \"sn\": \"bme280\", \"sf\": \"hum\", \"sm\": \"bmehum\" },   \"3\": { \"sn\": \"bme280\", \"sf\": \"press\", \"sm\": \"bmepress\" },   \"4\": { \"sn\": \"Soil\", \"sf\": \"temp\", \"sm\": \"soiltemp\" },   \"5\": { \"sn\": \"Soil\", \"sf\": \"moisture\", \"sm\": \"analog\", \"svp\": 15, \"hl\": 600, \"ll\": 250 } }",
+        "payloadType": "json",
+        "x": 390,
+        "y": 520,
         "wires": [
             [
-                "972fbf4b09e6043f"
+                "42d43881a8b1c569"
             ]
         ]
     },
     {
-        "id": "06927e2cdbc60cc9",
+        "id": "42d43881a8b1c569",
+        "type": "json",
+        "z": "ca18495f6f6a16ae",
+        "name": "",
+        "property": "payload",
+        "action": "str",
+        "pretty": true,
+        "x": 390,
+        "y": 560,
+        "wires": [
+            [
+                "d7250034925e4dae"
+            ]
+        ]
+    },
+    {
+        "id": "9cf0277461519ffa",
+        "type": "json",
+        "z": "ca18495f6f6a16ae",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 550,
+        "y": 660,
+        "wires": [
+            [
+                "c4744d7fba1a051e",
+                "431ab81035252336"
+            ]
+        ]
+    },
+    {
+        "id": "8ee17cd07c32a9e7",
+        "type": "http in",
+        "z": "ca18495f6f6a16ae",
+        "name": "[get] system config file",
+        "url": "/bewae/get-bewae-config",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 660,
+        "wires": [
+            [
+                "d55f828529a7be77"
+            ]
+        ]
+    },
+    {
+        "id": "d55f828529a7be77",
+        "type": "file in",
+        "z": "ca18495f6f6a16ae",
+        "name": "read file",
+        "filename": "/home/homepi/bewae/web-sensor-config.json",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 400,
+        "y": 660,
+        "wires": [
+            [
+                "9cf0277461519ffa"
+            ]
+        ]
+    },
+    {
+        "id": "c4744d7fba1a051e",
+        "type": "http response",
+        "z": "ca18495f6f6a16ae",
+        "name": "return config File",
+        "statusCode": "",
+        "headers": {},
+        "x": 870,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "431ab81035252336",
+        "type": "debug",
+        "z": "ca18495f6f6a16ae",
+        "name": "debug 14",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 900,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "c94b4efef886dc04",
+        "type": "http in",
+        "z": "ca18495f6f6a16ae",
+        "name": "[post] system config file",
+        "url": "/bewae/bewae-save",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 740,
+        "wires": [
+            [
+                "1e7e92d0f8173722"
+            ]
+        ]
+    },
+    {
+        "id": "6df907323d5f4a5c",
+        "type": "file",
+        "z": "ca18495f6f6a16ae",
+        "name": "write file",
+        "filename": "/home/homepi/bewae/web-bewae-config.json",
+        "filenameType": "str",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "true",
+        "encoding": "none",
+        "x": 560,
+        "y": 740,
+        "wires": [
+            [
+                "db95ff0fed7f5f09"
+            ]
+        ]
+    },
+    {
+        "id": "db95ff0fed7f5f09",
+        "type": "debug",
+        "z": "ca18495f6f6a16ae",
+        "name": "debug 15",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 900,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "1007fc40cc701edb",
         "type": "inject",
-        "z": "0dc0942eb5a59979",
+        "z": "ca18495f6f6a16ae",
         "name": "",
         "props": [
             {
@@ -281,27 +573,27 @@
         "topic": "",
         "payload": "{   \"Big Tomato15\": {     \"defaultWater\": 20,     \"plantSize\": 3,     \"potSize\": 0.3,     \"waterTimes\": [7, 10],     \"vPins\": [1],     \"set\": 0   },   \"Red Rose20\": {     \"defaultWater\": 15,     \"plantSize\": 2,     \"potSize\": 0.2,     \"waterTimes\": [6, 12],     \"vPins\": [2, 3],     \"set\": 1   },   \"Green Basil10\": {     \"defaultWater\": 25,     \"plantSize\": 1,     \"potSize\": 0.15,     \"waterTimes\": [8, 14],     \"vPins\": [4],     \"set\": 2   },   \"Yellow Sunflower30\": {     \"defaultWater\": 18,     \"plantSize\": 4,     \"potSize\": 0.4,     \"waterTimes\": [9, 15],     \"vPins\": [5],     \"set\": 3   } }",
         "payloadType": "json",
-        "x": 430,
-        "y": 380,
+        "x": 390,
+        "y": 700,
         "wires": [
             [
-                "41f0ce2a18afa204"
+                "1e7e92d0f8173722"
             ]
         ]
     },
     {
-        "id": "41f0ce2a18afa204",
+        "id": "1e7e92d0f8173722",
         "type": "json",
-        "z": "0dc0942eb5a59979",
+        "z": "ca18495f6f6a16ae",
         "name": "",
         "property": "payload",
         "action": "str",
         "pretty": true,
-        "x": 430,
-        "y": 420,
+        "x": 390,
+        "y": 740,
         "wires": [
             [
-                "c12447dc11f522d7"
+                "6df907323d5f4a5c"
             ]
         ]
     }
