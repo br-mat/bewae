@@ -259,7 +259,7 @@ Die Schaltungen wurden mit Fritzing erstellt, die Steckbrettansicht bietet gute 
 ![Board1](/docs/pictures/bewae3_3_board1v3_838_Leiterplatte.png) | ![Board3](/docs/pictures/bewae3_3_board3v22_Leiterplatte.png) | ![Board5](/docs/pictures/bewae3_3_board5v5_final_Leiterplatte.png)
 Main Board (Älteres testboard) | Extention Board | Main Board (neustes) <br> 
 
-Steuerung der Ventile entweder über Optokoppler Relais (bis zu 8x mit adaption mehr) oder Externe beschaltung Board 3 und ähnliche.
+Steuerung der Ventile entweder über Optokoppler Relais (bis zu 8x mit adaption mehr) oder externe Beschaltung Board 3 und ähnliche. Die Ansteuerung ist über das Schieberegister (74hc595) vorgesehen.
 
 #### **bewae3_3_board1v3_838.fzz** Hauptplatine (PCB)
 
@@ -272,7 +272,7 @@ Als Erweiterung gedacht. Hat den Zweck, Steckplätze für Sensoren und weitere V
 #### **bewae3_3_board5v5_final.fzz** als Hauptplatine (PCB)
 
 Kleinere Hauptplatine (neueste). bietet die möglichkeit für eine Begrenzte anzahl an analogen Sensoren direkt am Board.
-Verzichtet jedoch auf eine größere Anzahl an (analogen) Sensoranschlüssen. <br> Platz für 2x 5V Sensoren, 2x 3V Sensoren, 1x LDR, I2C-Bus, 1-Wire-Bus. BME280- und RTC-Modul sind ebenfalls vorgesehen.<br>
+Verzichtet jedoch auf eine größere Anzahl an (analogen) Sensoranschlüssen. <br> 8 Pins für Ventile/Pumpen (mit Schieberegister erweiterbar). Platz für 2x 5V Sensoren, 2x 3V Sensoren, 1x LDR, I2C-Bus, 1-Wire-Bus. BME280- und RTC-Modul sind ebenfalls vorgesehen.<br>
 
 ### aktueller Aufbau
 
