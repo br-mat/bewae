@@ -42,7 +42,7 @@ The system is equipped with a small PV module, a lead-acid battery, and a small 
  System Setup:                  | Solar Setup:
 :-------------------------:|:-------------------------:
 ![System](/docs/pictures/SystemdiagrammV3_3.png "System Diagram 3.3") | ![Solar](/docs/pictures/systemdiagramSolar.png "Solar Diagram 3.3")
-(Shows a rough outline of the system)
+shows rough sketch of the system, for details on circuit boards see [(details)](#details)
 
 ## System Control
 
@@ -255,11 +255,13 @@ The circuits were created with Fritzing, and the breadboard view provides a good
  Board 1:                  | Board 3:                  | Board 5:
 :-------------------------:|:-------------------------:|:-------------------------:
 ![Board1](/docs/pictures/bewae3_3_board1v3_838_Leiterplatte.png) | ![Board3](/docs/pictures/bewae3_3_board3v22_Leiterplatte.png) | ![Board5](/docs/pictures/bewae3_3_board5v5_final_Leiterplatte.png)
-Main Board | Extension Board | Main Board
+Main Board (Older test board) | Extention Board | Main Board (latest) <br> 
+
+Control of the valves either via optocoupler relay (up to 8x with adaption more) or external circuit board 3 and similar.
 
 #### **bewae3_3_board1v3_838.fzz** Main Board (PCB)
 
-Large main board. Room for up to 16 analog sensors as well as BME280 and RTC module via I2C. 8 pins for valves/pumps (expandable). These can be easily used either via relays or PCB Board 3.<br>
+Large main board. Requires board 3 or external wiring for a large number of analogue sensors. <br> Room for up to 16 analog sensors as well as BME280 and RTC module via I2C. 8 pins for valves/pumps (expandable). These can be easily used either via relays or PCB Board 3.<br>
 
 #### **bewae3_3_board3v22.fzz** as Extension (PCB)
 
@@ -267,7 +269,7 @@ Intended as an extension. It aims to provide slots for sensors and additional co
 
 #### **bewae3_3_board5v5_final.fzz** as Main Board (PCB)
 
-Smaller main board. Avoids a large number of sensor connections. Room for 2x 5V sensors, 2x 3V sensors, 1x LDR, I2C bus, 1-Wire bus. BME280 and RTC module are also provided.<br>
+Smaller main board (latest). offers the possibility for a limited number of analogue sensors directly on the board. <br> Avoids a large number of sensor connections. Room for 2x 5V sensors, 2x 3V sensors, 1x LDR, I2C bus, 1-Wire bus. BME280 and RTC module are also provided.<br>
 
 ### Current Setup
 

@@ -43,7 +43,7 @@ Das System ist mit einem kleinen PV-Modul, einem Blei-Akku und einem kleinen 100
  System Setup:                  | Solar Setup:
 :-------------------------:|:-------------------------:
 ![System](/docs/pictures/SystemdiagrammV3_3.png "Systemdiagramm 3.3") | ![Solar](/docs/pictures/systemdiagramSolar.png "Solar diagramm 3.3")
-(zeigt grobe Skizzierung des Systems)
+zeigt grobe Skizzierung des Systems, Details zu Platinen siehe [(Details)](#details)
 
 ## Steuerung des Systems
 
@@ -257,11 +257,13 @@ Die Schaltungen wurden mit Fritzing erstellt, die Steckbrettansicht bietet gute 
  Board 1:                  | Board 3:                  | Board 5:
 :-------------------------:|:-------------------------:|:-------------------------:
 ![Board1](/docs/pictures/bewae3_3_board1v3_838_Leiterplatte.png) | ![Board3](/docs/pictures/bewae3_3_board3v22_Leiterplatte.png) | ![Board5](/docs/pictures/bewae3_3_board5v5_final_Leiterplatte.png)
-Main Board | Extention Board | Main Board
+Main Board (Älteres testboard) | Extention Board | Main Board (neustes) <br> 
+
+Steuerung der Ventile entweder über Optokoppler Relais (bis zu 8x mit adaption mehr) oder externe Beschaltung Board 3 und ähnliche. Die Ansteuerung ist über das Schieberegister (74hc595) vorgesehen.
 
 #### **bewae3_3_board1v3_838.fzz** Hauptplatine (PCB)
 
-Große Hauptplatine. Platz für bis zu 16 analoge Sensoren sowie BME280- und RTC-Modul über I2C. 8 Pins für Ventile/Pumpen (erweiterbar). Diese können entweder über Relais oder dem PCB Board 3 einfach verwendet werden.<br>
+Große Hauptplatine. Erfordert Board 3 oder externe Beschaltung für große Anzahl an analoger Sensoren. <br> Platz für bis zu 16 analoge Sensoren sowie BME280- und RTC-Modul über I2C. 8 Pins für Ventile/Pumpen (erweiterbar). Diese können entweder über Relais oder dem PCB Board 3 einfach verwendet werden.<br>
 
 #### **bewae3_3_board3v22.fzz** als Erweiterung (PCB)
 
@@ -269,7 +271,8 @@ Als Erweiterung gedacht. Hat den Zweck, Steckplätze für Sensoren und weitere V
 
 #### **bewae3_3_board5v5_final.fzz** als Hauptplatine (PCB)
 
-Kleinere Hauptplatine. Verzichtet auf eine große Anzahl an Sensoranschlüssen. Platz für 2x 5V Sensoren, 2x 3V Sensoren, 1x LDR, I2C-Bus, 1-Wire-Bus. BME280- und RTC-Modul sind ebenfalls vorgesehen.<br>
+Kleinere Hauptplatine (neueste). bietet die möglichkeit für eine Begrenzte anzahl an analogen Sensoren direkt am Board.
+Verzichtet jedoch auf eine größere Anzahl an (analogen) Sensoranschlüssen. <br> 8 Pins für Ventile/Pumpen (mit Schieberegister erweiterbar). Platz für 2x 5V Sensoren, 2x 3V Sensoren, 1x LDR, I2C-Bus, 1-Wire-Bus. BME280- und RTC-Modul sind ebenfalls vorgesehen.<br>
 
 ### aktueller Aufbau
 
