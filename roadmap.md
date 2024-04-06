@@ -1,13 +1,14 @@
 This is a small roadmap to help me remember what I am working on.
 
 To-do:
+- Implement config web page (RaspberryPi)
+- Integrate new configuration into the system (ESP32)
 - Add OpenWeather forecast script to the Pi
-- Add dynamic watering controlled by Raspberry Pi
+- Reimplement dynamic watering controlled by Raspberry Pi
 - Updated documentation
-- reimplement controll option via smartphone: use node-red or mqtt bridging scripts or possibly an (app?!)
 
 Open problems:
-- Sensor rail needs 5V, not 3V! (Currently hooked onto logic switch)
+- Sensor rail needs 5V, not 3V! (Currently hooked onto logic switch 3.3V)
 
 Future ideas:
 - Add display and interface menu
