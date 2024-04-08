@@ -21,6 +21,7 @@ class SwitchController {
     bool dataloging_switch; // dataloging switch
     bool irrigation_system_switch; // irrigation system switch
     bool placeholder3; // switch
+    String name;
 
     HelperBase* helper;
 
@@ -36,6 +37,7 @@ class SwitchController {
     bool updateSwitches();
 
     // Getters
+    String getName();
     bool getMainSwitch();
     bool getDatalogingSwitch();
     bool getIrrigationSystemSwitch();
