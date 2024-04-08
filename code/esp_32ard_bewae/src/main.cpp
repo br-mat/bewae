@@ -201,8 +201,24 @@ void setup() {
   delay(1);
   // update the config file stored in spiffs
   // in order to work a RasPi with node-red and configured flow is needed
-  HWHelper.updateConfig(CONFIG_FILE_PATH);
+  HWHelper.syncConfig();
+// TEST DEVICE CONFIGURATION
+Serial.print("Test DEVICE CONFIG!");
+  SwitchController status_switches(&HWHelper); // initialize switch class
+Serial.print("PASSED DEVICE CONFIG!");
+  // Create a JSON object with the sensor data
+DynamicJsonDocument doc(512);
+doc["sensor"] = "temperature";
+doc["value"] = 50;
+doc["timestamp"] = "2024-04-07T16:16:03Z";
 
+// Calculate the hash of the JSON object
+String hash = HWHelper.calculateJSONHash(doc);
+String testfile = "";
+serializeJson(doc, testfile);
+// Print the hash to the serial monitor
+Serial.println();
+Serial.println(testfile);
   HWHelper.system_sleep(); //power down prepare sleep
 }
 
@@ -219,8 +235,9 @@ void loop(){
 // manage sleep and updating of configuration
 while(checkSleepTask()){
 }
+Serial.print("INIT SWITCHES:");
 SwitchController status_switches(&HWHelper); // initialize switch class
-status_switches.updateSwitches();
+//status_switches.updateSwitches(); // get called when initialized
 
 // print system status
 #ifdef DEBUG
@@ -306,7 +323,8 @@ long sensoringTask(){
   //Serial.print("ds18b20 temp: "); Serial.println(test);
 
   // handle analog pins
-  obj = configf["sensor"].as<JsonObject>();
+  //obj = configf["sensor"].as<JsonObject>(); // OLD CODE TODO: REMOVE WHEN TESTED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  obj = configf.as<JsonObject>();
 
   if(obj){
     for (JsonObject::iterator it = obj.begin(); it != obj.end(); ++it){
@@ -478,7 +496,7 @@ bool checkSleepTask(){
   delay(1);
   // update config
   // in order to work a RasPi with node-red and configured flow is needed
-  HWHelper.updateConfig(CONFIG_FILE_PATH);
+  HWHelper.syncConfig();
 
   // load update configuration
   SwitchController controller_switches(&HWHelper);

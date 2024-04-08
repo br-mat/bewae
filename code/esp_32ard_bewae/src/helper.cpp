@@ -10,22 +10,12 @@
 //Standard
 #include <Arduino.h>
 #include <Wire.h>
+//external
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <WiFi.h>
 
 #include <Helper.h>
-
-/*
-#define SD_MOSI      13
-#define SD_MISO      5
-#define SD_SCK       14
-
-SPIClass spiSD(HSPI);
-//spiSD.begin(SD_SCK, SD_MISO, SD_MOSI);
-*/
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  HELPER     functions
@@ -463,10 +453,12 @@ bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PA
   // calculate new hash
   String newhash = calculateJSONHash(jsonDoc);
 
-  // check if file has changed
-  if(!(oldhash != newhash)){
+  bool contains_hash = (oldFile_buff.containsKey("checksum") && oldFile_buff["checksum"].as<String>().length() > 0);
+  bool changed_hash = (oldhash != newhash);
+  // check if file has changed or if old file does not have a checksum
+  if(!changed_hash && !contains_hash){
     #ifdef DEBUG
-    Serial.println(F("Not Saving file: File unchanged!"));
+    Serial.println(F("Not Saving file: File unchanged and checksum present!"));
     #endif
     return true;
   }
@@ -594,7 +586,7 @@ JsonObject HelperBase::getJsonObjects(const char* key, const char* filepath) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // HTTP GET request to the Raspberry Pi server
-DynamicJsonDocument HelperBase::getJSONConfig(const char* server, int serverPort, const char* serverPath) {
+DynamicJsonDocument HelperBase::getJSONConfigLEGACY(const char* server, int serverPort, const char* serverPath) {
   // create buffer file
   int max_retries = 3;
   int retries = 0;
@@ -617,14 +609,14 @@ DynamicJsonDocument HelperBase::getJSONConfig(const char* server, int serverPort
         #endif
         empty = true;
       }
-
+      /* // NOT IMPLEMENTED CURRENTLY
       // veryfy content of file using sha256 hash
       bool verification = verifyChecksum(jsonConfdata);
       if(!verification){
         #ifdef DEBUG
         Serial.println(F("Warning: File verification went wrong!"));
         #endif
-      }
+      }*/
 
       // check problems if all good return data
       if ((bool)error || empty) {
@@ -638,7 +630,65 @@ DynamicJsonDocument HelperBase::getJSONConfig(const char* server, int serverPort
 
     } else {
       #ifdef DEBUG
-      Serial.println(F("Warning: Sending request to server went wrong"));
+      Serial.println(F("Warning: Sending request to server went wrong ()"));
+      #endif
+    }
+    http.end();
+    retries++;
+  }
+  #ifdef DEBUG
+  Serial.println(F("Info: An error occurred while retrieving the JSON data! Exiting, returned empty doc."));
+  #endif
+  DynamicJsonDocument empty(CONF_FILE_SIZE);
+  return empty;
+}
+// HTTP GET request to the Raspberry Pi server
+DynamicJsonDocument HelperBase::getJSONConfig(const char* server, int serverPort, const char* serverPath) {
+  // create buffer file
+  int max_retries = 3;
+  int retries = 0;
+  while (retries < max_retries) {
+    DynamicJsonDocument jsonConfdata(CONF_FILE_SIZE);
+    HTTPClient http;
+    String serverAddress = String("http://") + server + ":" + serverPort + serverPath;
+    http.begin(serverAddress);
+    int httpCode = http.GET();
+    String databuffer = http.getString();
+
+    // Check the status code
+    if (httpCode == HTTP_CODE_OK) {
+      // Parse the JSON data
+      // check for errors
+      DeserializationError error = deserializeJson(jsonConfdata, databuffer);
+      bool empty = false;
+      if (!(databuffer != String(""))) {
+        #ifdef DEBUG
+        Serial.println(F("Warning: retrieved file empty!"));
+        #endif
+        empty = true;
+      }
+      /* // NOT IMPLEMENTED CURRENTLY
+      // verify content of file using sha256 hash
+      bool verification = verifyChecksum(jsonConfdata);
+      if(!verification){
+        #ifdef DEBUG
+        Serial.println(F("Warning: File verification went wrong!"));
+        #endif
+      }*/
+
+      // check problems if all good return data
+      if ((bool)error || empty) {
+        #ifdef DEBUG
+        Serial.println(F("Error: Problem when parsing JSON data"));
+        #endif
+      } else {
+        // correct return
+        return jsonConfdata;
+      }
+
+    } else {
+      #ifdef DEBUG
+      Serial.println(String("Warning: Sending request to server went wrong (") + serverAddress + ")");
       #endif
     }
     http.end();
@@ -685,7 +735,7 @@ DynamicJsonDocument HelperBase::getJSONData(const char* server, int serverPort, 
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// This function calculates the SHA-256 hash of the input content and returns the hash as a hexadecimal string.
+// (HEX) This function calculates the SHA-256 hash of the input content and returns the hash as a hexadecimal string.
 String HelperBase::sha256(String content) {
   // Create an instance of the SHA256 hasher
   SHA256 hasher;
@@ -709,7 +759,6 @@ String HelperBase::sha256(String content) {
   // Return the calculated SHA-256 hash as a hexadecimal string
   return result;
 }
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // This function verifies the integrity of received JSON data by comparing its checksum with a calculated checksum.
@@ -721,11 +770,9 @@ bool HelperBase::verifyChecksum(DynamicJsonDocument& JSONdata) {
     // generate hash if not contained
     String calculatedChecksum = calculateJSONHash(JSONdata);
     #ifdef DEBUG
-    Serial.println(F("Warning: File could not be verified. No checksum hash found in file!"));
-    Serial.println(F("Added file hash to passed file:"));
-    Serial.print(F("Sha256 file hash:")); Serial.println(calculatedChecksum);
+    Serial.println(F("Warning: File could not be verified. No 'checksum' hash found in file!"));
     #endif
-    return true; // print warning and set true to make it optional
+    return false; // print warning and set true to make it optional
   }
 
   // Extract the received checksum from the JSON data
@@ -759,20 +806,24 @@ bool HelperBase::verifyTM(struct tm timeinfo){
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// calculate hash of a json doc without optional contained hash value ("checksum")
+// calculate new hash of a json doc without optional contained hash value ("checksum")
 String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
-  bool containsHash = false;
   // prepare hash
-  if(JSONdata.containsKey("checksum")){
+  bool hadhash = false;
+  String oldhash = "";
+if(JSONdata.containsKey("checksum") && JSONdata["checksum"].as<String>().length() > 0){
+    oldhash = JSONdata["checksum"].as<String>();
     JSONdata.remove("checksum");
-    containsHash = true;
-  }
+    hadhash = true;
+}
   String fileStr = "";
   serializeJson(JSONdata, fileStr);
+  fileStr.trim(); // Remove any whitespace at the start or end
   // calculate hash
   String hash = sha256(fileStr);
-  // Add the checksum field back to the original JSON data
-  if(containsHash){
+  // Add the checksum field back to the original JSON data, in case no hash found add newly generated
+  JSONdata["checksum"] = oldhash;
+  if (!hadhash) {
     JSONdata["checksum"] = hash;
   }
   return hash;
@@ -780,15 +831,38 @@ String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // The updateConfig function retrieves new JSON data from a server and updates the config file,
-// while preserving the "watering" values of the old JSON data.
-// This value is only relevant for the controller itself.
-// The function takes in a const char* type argument named path which specifies the path to retrieve new JSON data from the server.
-// Returns a bool value indicating the success of updating the config file with new JSON data from the server.
+// paths get automatically converted to WEB and LOCAL file path (adding Pre-/Suffix where needed)
+// Returns a bool value indicating the success
 bool HelperBase::updateConfig(const char* path){
   // Check if the device is connected to WiFi
   if (WiFi.status() == WL_CONNECTED) {
+    String webPath = String(WEB_PREFIX) + String(path);
     // Retrieve new JSON data from the server
-    DynamicJsonDocument newdoc = HelperBase::getJSONConfig(SERVER, SERVER_PORT, path);
+    DynamicJsonDocument newdoc = HelperBase::getJSONConfig(SERVER, SERVER_PORT, webPath.c_str());
+    //DynamicJsonDocument newdoc = HelperBase::getJSONData(SERVER, SERVER_PORT, path);
+    // Check if the retrieved data is not null
+    if(newdoc.isNull()){
+      #ifdef DEBUG
+      Serial.println(F("Warning: Problem recieving config file from server!"));
+      #endif
+      return false;
+    }
+    // Write the updated JSON data to the config file
+    String localPath = String(path) + String(JSON_SUFFIX);
+    return HelperBase::writeConfigFile(newdoc, localPath.c_str());
+  }
+  else{
+    #ifdef DEBUG
+    Serial.println(F("Error no Wifi connection established"));
+    #endif
+    return false;
+  }
+}
+bool HelperBase::updateConfigOLD(const char* path){
+  // Check if the device is connected to WiFi
+  if (WiFi.status() == WL_CONNECTED) {
+    // Retrieve new JSON data from the server
+    DynamicJsonDocument newdoc = HelperBase::getJSONConfigLEGACY(SERVER, SERVER_PORT, path);
     //DynamicJsonDocument newdoc = HelperBase::getJSONData(SERVER, SERVER_PORT, path);
     // Check if the retrieved data is not null
     if(newdoc.isNull()){
@@ -821,7 +895,7 @@ bool HelperBase::updateConfig(const char* path){
         }
       }
     // Write the updated JSON data to the config file
-    return HelperBase::writeConfigFile(newdoc, CONFIG_FILE_PATH);
+    return HelperBase::writeConfigFile(newdoc, path);
   }
   else{
     #ifdef DEBUG
@@ -832,6 +906,25 @@ bool HelperBase::updateConfig(const char* path){
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+bool HelperBase::syncConfig(){
+  byte count = 0;
+  count += HelperBase::updateConfigOLD(CONFIG_FILE_PATH);
+  count += HelperBase::updateConfig(DEVICE_CONFIG_PATH);
+  count += HelperBase::updateConfig(IRRIG_CONFIG_PATH);
+  count += HelperBase::updateConfig(SENS_CONFIG_PATH);
+  if (count) {
+    #ifdef DEBUG
+    Serial.println(F("Successfully synched Config!"));
+    #endif
+  }
+  else{
+    #ifdef DEBUG
+    Serial.print(F("Warning: Config Synchronisation error: ")); Serial.println(count);
+    #endif
+  }
+  return count; // return true if a problem occured
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void HelperBase::shiftvalue8b(uint8_t val, bool invert) {
     // Provide a new implementation of system_sleep specific to Helper_config1_alternate here

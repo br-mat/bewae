@@ -80,6 +80,8 @@ public:
     JsonObject getJsonObjects(const char* key, const char* filepath);
     // HTTP GET request to the a configured server retrieving JSON config data
     DynamicJsonDocument getJSONConfig(const char* server, int serverPort, const char* serverPath);
+    // OLD LEGACY CODE! (BACKUP TODO REMOVE LATER)
+    DynamicJsonDocument getJSONConfigLEGACY(const char* server, int serverPort, const char* serverPath);
     // OLD HTTP GET
     DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath);
     // This function calculates the SHA-256 hash of the input content and returns the hash as a hexadecimal string.
@@ -92,6 +94,9 @@ public:
     String calculateJSONHash(DynamicJsonDocument& JSONdata);
     // routine to check and update config file (from raspberrypi server)
     bool updateConfig(const char* path);
+    bool updateConfigOLD(const char* path); // REPLACEMENT FUNCTION WIP
+    // sync config with server
+    bool syncConfig();
 
     // virtual functions
 
