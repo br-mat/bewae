@@ -549,7 +549,7 @@ void HelperBase::blinkOnBoard(String howLong, int times) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // loads JSON object from file using its key
-JsonObject HelperBase::getJsonObjects(const char* key, const char* filepath) {
+JsonObject HelperBase::getJsonObject(const char* filepath, const char* key) {
   // load the stored file and get all keys
   DynamicJsonDocument doc(CONF_FILE_SIZE);
   doc = HelperBase::readConfigFile(filepath);
@@ -562,23 +562,27 @@ JsonObject HelperBase::getJsonObjects(const char* key, const char* filepath) {
     return jsonobj;
   }
 
-  // Access the key object and close file
-  jsonobj = doc[key];
-  delay(1);
-  doc.clear();
+  // Access the key object if key is provided, else return the whole doc
+  if (key != nullptr) {
+    jsonobj = doc[key];
+    delay(1);
+    doc.clear();
 
-  #ifdef DEBUG_SPAM
-  String jsonString;
-  serializeJson(jsonobj, jsonString);
-  Serial.println(F("JsonObj:"));
-  Serial.println(jsonString); Serial.println();
-  #endif
-  
-  // Check if key exists in the JSON object
-  if (jsonobj.isNull()) {
-    #ifdef DEBUG
-    Serial.println(F("Warning: Key not found in JSON object."));
+    #ifdef DEBUG_SPAM
+    String jsonString;
+    serializeJson(jsonobj, jsonString);
+    Serial.println(F("JsonObj:"));
+    Serial.println(jsonString); Serial.println();
     #endif
+    
+    // Check if key exists in the JSON object
+    if (jsonobj.isNull()) {
+      #ifdef DEBUG
+      Serial.println(F("Warning: Key not found in JSON object."));
+      #endif
+    }
+  } else {
+    jsonobj = doc.as<JsonObject>();
   }
   
   return jsonobj;
@@ -609,7 +613,7 @@ DynamicJsonDocument HelperBase::getJSONConfigLEGACY(const char* server, int serv
         #endif
         empty = true;
       }
-      /* // NOT IMPLEMENTED CURRENTLY
+      /* // NOT CURRENTLY IMPLEMENTED
       // veryfy content of file using sha256 hash
       bool verification = verifyChecksum(jsonConfdata);
       if(!verification){
@@ -876,7 +880,7 @@ bool HelperBase::updateConfigOLD(const char* path){
     // Access the "group" object of the new JSON data
     JsonObject group = newdoc["group"];
     // Retrieve the old group object from the config file
-    JsonObject oldGroup = HelperBase::getJsonObjects("group", CONFIG_FILE_PATH);
+    JsonObject oldGroup = HelperBase::getJsonObject(CONFIG_FILE_PATH, "group");
     // Iterate over all the keys in the new group object
     for (JsonObject::iterator it = group.begin(); it != group.end(); ++it) {
       const char* key = it->key().c_str();

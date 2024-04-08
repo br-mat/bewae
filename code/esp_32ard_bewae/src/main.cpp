@@ -212,6 +212,13 @@ doc["sensor"] = "temperature";
 doc["value"] = 50;
 doc["timestamp"] = "2024-04-07T16:16:03Z";
 
+DynamicJsonDocument jsonDoc(CONF_FILE_SIZE); // create JSON doc, if an error occurs it will return an empty jsonDoc
+JsonObject jsonobj;
+Serial.println("TESTING FILE RETURNS!");
+Serial.println(jsonDoc.isNull());
+Serial.println(jsonobj.isNull());
+Serial.println(jsonobj.size());
+
 // Calculate the hash of the JSON object
 String hash = HWHelper.calculateJSONHash(doc);
 String testfile = "";
@@ -373,17 +380,7 @@ bool irrigationTask(){
   delay(30);
 
   // load config file
-  JsonObject groups = HWHelper.getJsonObjects("group", CONFIG_FILE_PATH);
-
-  // check for valid object
-  if (groups.isNull()) {
-    #ifdef DEBUG
-    Serial.println(F("Error: No 'Group' found in file!"));
-    #endif
-    thirsty = false; // break loop and continue programm
-  }
-
-  // get number of kv pairs within JSON object
+  JsonObject groups = HWHelper.getJsonObject(CONFIG_FILE_PATH, "group");
   int numgroups = groups.size();
 
   // sanity check
@@ -391,7 +388,14 @@ bool irrigationTask(){
     #ifdef DEBUG
     Serial.println(F("Warning: too many groups! Exiting procedure"));
     #endif
-    thirsty = false;
+    return false;
+  }
+  // check for valid object
+  if (groups.isNull()) {
+    #ifdef DEBUG
+    Serial.println(F("Error: No 'Group' found in file!"));
+    #endif
+    return false; // break loop and continue programm
   }
 
   // load empty irrigationcontroller instances 
