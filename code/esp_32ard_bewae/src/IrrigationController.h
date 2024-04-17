@@ -54,30 +54,30 @@ public:
 // CLASS IrrigationController
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Initialize empty class for basic functions
+// for irrigation fill instance with loadScheduleConfig()
+
 class IrrigationController {
   private:
     // PRIVATE VARIABLES
     // New
     std::vector<unsigned int> driver_pins; // vector of driver pins
-
+    
+    const char* key;
     bool is_set; //activate deactivate group, value will get saved to config
-    char name[MAX_GROUP_LENGTH]; //name of the group, value will get saved to config
-    unsigned long timetable; //timetable special formated, value will get saved to config
-    byte lastupdate;
-    byte lastDay;
-    byte lastHour;
-    int watering; //defualt value of watering amount set for group, value will get saved to config
-    int water_time; //holds value of how long it should water, value will get saved to config
+    char name[MAX_GROUP_LENGTH]; //[pn] name of the group, value will get saved to config
+    unsigned long timetable; //[pt] timetable special formated, value will get saved to config
+    int water_time; //[wt] defualt value of watering amount set for group, value will get saved to config
+    int plant_size; //[pls]
+    int pot_size; //[pts]
+    byte lastDay; //[pu][0] runntimevariable
+    byte lastHour; //[pu][0] runntimevariable
+    int watering; //[dty] runntimevariable
 
     // Helper config member
     //HelperBase* helper;
 
     // PRIVATE METHODS:
-    // Loads the config file and sets the values of the member variables
-    //DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
-    // Saves the values of the member variables to the config file
-    //bool writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]);
-    // sends GET request to RaspberryPi and store response in json doc
     DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath); // OUTDATED
     // Member function to activate watering using PWM
     void activatePWM(int time_s);
@@ -85,15 +85,7 @@ class IrrigationController {
     void activate(int time_s);
 
   public:
-    // NEW Constructor:
-
-    // Alternative constructor
-    IrrigationController(
-                          const char path[PATH_LENGTH],
-                          const char keyName[MAX_GROUP_LENGTH]
-    );
-
-    // DEFAULT Constructor seting an empty class
+    // DEFAULT Constructor seting an empty class, populate with loadScheduleConfig for specific irrigation functionality
     IrrigationController();
 
     // DEFAULT Destructor free up dynamic allocated memory
@@ -102,8 +94,11 @@ class IrrigationController {
     // PUBLIC METHODS:
 
     // Member function loads schedule config from file
-    // can be used to fill empty class
+    // used to fill empty class
     bool loadScheduleConfig(const JsonPair& groupPair);
+
+    // Verify Configfile
+    bool verifyScheduleConfig(const JsonPair& groupPair);
 
     // Member function saves state to config file
     bool saveScheduleConfig(const char path[PATH_LENGTH], const char name[MAX_GROUP_LENGTH]);
@@ -119,10 +114,11 @@ class IrrigationController {
     // Resets all member variables to their default values
     void reset();
 
-    // Member function to update the data
-    //bool updateController();
-    // Define a static member function to combine the timetables of an array of IrrigationController objects using a loop
+    // Static member function to combine the timetables of an array of IrrigationController objects using a loop
     static long combineTimetables();
+    // function to init running file & update
+    void loadDuty(const char* objkey);
+    bool saveDuty(const char* objkey);
 };
 
 #endif
