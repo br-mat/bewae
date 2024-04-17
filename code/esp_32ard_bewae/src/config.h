@@ -17,6 +17,10 @@
 #define CONFIG_FILE_PATH "/config.JSON" //specifies name of config file stored within spiffs
 #endif
 
+#ifndef RUNNING_FILE_PATH
+#define RUNNING_FILE_PATH "/Running.Json"
+#endif
+
 #ifndef WEB_PREFIX
 #define WEB_PREFIX "/bewae"
 #endif
@@ -42,7 +46,7 @@
 #endif
 
 #ifndef MAX_GROUP_LENGTH
-#define MAX_GROUP_LENGTH 5 //Max Group length
+#define MAX_GROUP_LENGTH 20 //Max Group length
 #endif
 
 

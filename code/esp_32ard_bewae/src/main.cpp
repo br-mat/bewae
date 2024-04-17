@@ -39,9 +39,12 @@ using namespace std;
 //######################################################################################################################
 //important global variables
 //byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_; // containing time variables
-struct tm oldtimeMark;
-unsigned long nextActionTime = 0; //timestamp variable
-bool thirsty = false; //marks if a watering cycle is finished
+
+struct tm oldtimeMark; // timemark
+
+unsigned long nextActionTime = 0; // timestamp variable
+
+bool thirsty = false; // marks if a watering cycle is finished
 
 //timetable example
 //                                             2523211917151311 9 7 5 3 1
@@ -404,15 +407,6 @@ bool irrigationTask(){
 
   // Iterate over each group and load the config
   for (JsonObject::iterator groupIterator = groups.begin(); groupIterator != groups.end(); ++groupIterator) {
-    // Check if j exceeds the maximum number of groups
-    if (j >= numgroups) {
-      #ifdef DEBUG
-      Serial.println(F("Warning: Too many groups! Exiting procedure"));
-      #endif
-      thirsty = false;
-      break;
-    }
-
     // Load schedule configuration for the current group
     bool success = Group[j].loadScheduleConfig(*groupIterator);
     if (!success) { // if it fails reset class instance
@@ -514,10 +508,9 @@ bool checkSleepTask(){
     HWHelper.readTime(&oldtimeMark); // update long time timestamp
 
     // setup empty class instance & check timetables
-    IrrigationController controller;
-    delay(30);
+    delay(5);
     // combine timetables
-    timetable = controller.combineTimetables();
+    timetable = IrrigationController::combineTimetables();
 
     #ifdef DEBUG
     Serial.print(F("Combined timetable:"));
@@ -531,11 +524,11 @@ bool checkSleepTask(){
       if(controller_switches.getIrrigationSystemSwitch())
       {
         thirsty = true; //initialize watering phase
-        Serial.println(F("Watering ON"));
+        Serial.println(F("Watering ON: starting"));
       }
       else{
         thirsty = false;
-        Serial.println(F("Watering OFF"));
+        Serial.println(F("Watering OFF: do nothing"));
       }
       #endif
     }

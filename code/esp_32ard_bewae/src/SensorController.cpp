@@ -142,11 +142,19 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
         high_limit_ = sensorConfig["hl"].as<int>();
     } else {
         high_limit_ = 0;
+        #ifdef DEBUG
+        Serial.println(F("Error: in sensor config File"));
+        #endif
+        return 0;
     }
     if (sensorConfig.containsKey("ll")) {
         low_limit_ = sensorConfig["ll"].as<int>();
     } else {
         low_limit_ = 0;
+        #ifdef DEBUG
+        Serial.println(F("Error: in sensor config File"));
+        #endif
+        return 0;
     }
     if (sensorConfig.containsKey("sp")) {
         virtualPin_ = sensorConfig["sp"].as<uint16_t>();
@@ -154,6 +162,10 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
     } else {
         virtualPin_ = 0;
         hardwarePin_ = 0;
+        #ifdef DEBUG
+        Serial.println(F("Error: in sensor config File"));
+        #endif
+        return 0;
     }
     if (sensorConfig.containsKey("sf")) {
         String mode = sensorConfig["sf"];
@@ -173,8 +185,8 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
         } else {
         // code for unknown mode
             #ifdef DEBUG
-            Serial.println(F("Warning: Unknown measuring mode!"));
-            return -273;
+            Serial.println(F("Error: Unknown measuring mode!"));
+            return 0;
             #endif
         }
     }

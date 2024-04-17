@@ -16,12 +16,13 @@
 
 class SwitchController {
   private:
+    String name; // device name
+
     // SWITCH VARIABLES:
     bool main_switch; // main switch
     bool dataloging_switch; // dataloging switch
     bool irrigation_system_switch; // irrigation system switch
     bool placeholder3; // switch
-    String name;
 
     HelperBase* helper;
 
