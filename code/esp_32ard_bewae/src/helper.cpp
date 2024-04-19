@@ -437,6 +437,8 @@ bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PA
     #endif
     return false;
   }
+  //Serial.print("Free heap memory: ");
+  //Serial.println(ESP.getFreeHeap());
 
   // open old file
   DynamicJsonDocument oldFile_buff(CONF_FILE_SIZE);
@@ -444,46 +446,74 @@ bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PA
   // Check if doc is empty
   if (oldFile_buff.isNull()) {
     #ifdef DEBUG
-    Serial.println(F("Warning: Failed to read file or empty JSON object."));
+    Serial.print(F("Warning: Failed to read file or empty JSON object, path: "));
+    Serial.println(path);
     #endif
   }
   // calculate old hash value
-  String oldhash = calculateJSONHash(oldFile_buff);
+  //String oldhash = calculateJSONHash(oldFile_buff);
+  String oldhash = oldFile_buff["checksum"].as<String>();
+  bool valid_hash = verifyChecksum(oldFile_buff);
   
+Serial.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+Serial.println("OLD FILE:");
+serializeJson(oldFile_buff, Serial);
+Serial.println();
+Serial.println("NEW FILE:");
+serializeJson(jsonDoc, Serial);
+Serial.println("----------------------------------------------------------------------------------------");
+Serial.print("OLDHash (calc)"); Serial.println(calculateJSONHash(oldFile_buff));
+  // clear memory before opening new file
+  oldFile_buff.clear();
+
+  // Create a new DynamicJsonDocument with the same size as the old file buffer
+  //DynamicJsonDocument newFile_buff(CONF_FILE_SIZE);
+  //jsonDoc = jsonDoc;
+  // At the end of your function, if you need to clear jsonDoc for some reason
+  //jsonDoc.clear();
+
   // calculate new hash
   String newhash = calculateJSONHash(jsonDoc);
+  bool changed_hash = !(oldhash == newhash);
+  // update & apppend hash
+  jsonDoc["checksum"] = newhash;
+Serial.print("OLDHash "); Serial.println(oldhash);
+Serial.print("NEWHash "); Serial.println(newhash);
+  //Serial.print("Free heap memory: ");
+  //Serial.println(ESP.getFreeHeap());
 
-  bool contains_hash = (oldFile_buff.containsKey("checksum") && oldFile_buff["checksum"].as<String>().length() > 0);
-  bool changed_hash = (oldhash != newhash);
   // check if file has changed or if old file does not have a checksum
-  if(!changed_hash && !contains_hash){
+  if(!changed_hash && valid_hash){
     #ifdef DEBUG
-    Serial.println(F("Not Saving file: File unchanged and checksum present!"));
+    Serial.print(F("Not Saving file: File unchanged and checksum present! Path:"));
+    Serial.println(path);
     #endif
     return true;
   }
-
-  // clear memory before opening new file
-  oldFile_buff.clear();
 
   // open new file to save changes
   fs::File newFile = SPIFFS.open(path, "w"); // open the config file for writing
   if (!newFile) { // check if file was opened successfully
     #ifdef DEBUG
-    Serial.println(F("Error: Failed to open config file for writing"));
+    Serial.print(F("Error: Failed to open config file for writing, path:"));
+    Serial.println(path);
     #endif
     newFile.close();
     return false; // error occured
   }
-
-  // update & apppend hash
-  jsonDoc.remove("checksum");
-  jsonDoc["checksum"] = newhash;
-
   // Write the JSON data to the config file
-  serializeJson(jsonDoc, newFile);
+  if (serializeJson(jsonDoc, newFile) == 0) {
+    #ifdef DEBUG
+    Serial.print(F("Failed to write to file, path:"));
+    Serial.println(path);
+    #endif
+    newFile.close();
+    return false;
+  }
   newFile.close();
-
+  #ifdef DEBUG
+  Serial.print(F("Updated: ")); Serial.println(path);
+  #endif
   return true; // all good
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -749,7 +779,7 @@ String HelperBase::sha256(String content) {
   byte hash[SHA256_SIZE];
   // Finalize the hash calculation and store it in the 'hash' array
   hasher.doFinal(hash);
-
+Serial.print("HASHER CONTENT: "); Serial.println(content);
   String result = "";
   // Convert each byte of the hash to a two-digit hexadecimal representation
   for (byte i = 0; i < SHA256_SIZE; i++) {
@@ -767,9 +797,6 @@ String HelperBase::sha256(String content) {
 
 // This function verifies the integrity of received JSON data by comparing its checksum with a calculated checksum.
 bool HelperBase::verifyChecksum(DynamicJsonDocument& JSONdata) {
-  // to make it easier when editing the file manually:
-  // if no hash i sprovided in checksum it will calculate and add the hash, however a warning is given in serial
-  // Hint: this "feature" could be removed later on to allow detection of wrongly transmitted files
   if(!JSONdata.containsKey("checksum")){
     // generate hash if not contained
     String calculatedChecksum = calculateJSONHash(JSONdata);
@@ -810,12 +837,13 @@ bool HelperBase::verifyTM(struct tm timeinfo){
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/*
 // calculate new hash of a json doc without optional contained hash value ("checksum")
 String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
   // prepare hash
   bool hadhash = false;
   String oldhash = "";
-if(JSONdata.containsKey("checksum") && JSONdata["checksum"].as<String>().length() > 0){
+if(JSONdata.containsKey("checksum") && JSONdata["checksum"].as<String>().length() > 63){
     oldhash = JSONdata["checksum"].as<String>();
     JSONdata.remove("checksum");
     hadhash = true;
@@ -832,6 +860,28 @@ if(JSONdata.containsKey("checksum") && JSONdata["checksum"].as<String>().length(
   }
   return hash;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
+
+// calculate new hash of a json doc without optional contained hash value ("checksum")
+String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
+  // Create a copy of the JSON data
+  DynamicJsonDocument tempDoc(CONF_FILE_SIZE);
+  tempDoc.set(JSONdata);
+Serial.print("FILE BEVOREHASHING: "); serializeJson(tempDoc, Serial); Serial.println();
+  // Remove the checksum field if it exists
+  tempDoc.remove("checksum");
+
+  // Convert JSON to string
+  String fileStr;
+  serializeJson(tempDoc, fileStr);
+  fileStr.trim(); // Remove any whitespace at the start or end
+
+  // Calculate hash
+  String hash = sha256(fileStr);
+
+  // Return the calculated hash
+  return hash;
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // The updateConfig function retrieves new JSON data from a server and updates the config file,
@@ -842,7 +892,9 @@ bool HelperBase::updateConfig(const char* path){
   if (WiFi.status() == WL_CONNECTED) {
     String webPath = String(WEB_PREFIX) + String(path);
     // Retrieve new JSON data from the server
-    DynamicJsonDocument newdoc = HelperBase::getJSONConfig(SERVER, SERVER_PORT, webPath.c_str());
+    DynamicJsonDocument newdoc(CONF_FILE_SIZE);
+    newdoc = HelperBase::getJSONConfig(SERVER, SERVER_PORT, webPath.c_str());
+
     //DynamicJsonDocument newdoc = HelperBase::getJSONData(SERVER, SERVER_PORT, path);
     // Check if the retrieved data is not null
     if(newdoc.isNull()){
@@ -912,11 +964,11 @@ bool HelperBase::updateConfigOLD(const char* path){
 
 bool HelperBase::syncConfig(){
   byte count = 0;
-  count += HelperBase::updateConfigOLD(CONFIG_FILE_PATH);
-  count += HelperBase::updateConfig(DEVICE_CONFIG_PATH);
-  count += HelperBase::updateConfig(IRRIG_CONFIG_PATH);
-  count += HelperBase::updateConfig(SENS_CONFIG_PATH);
-  if (count) {
+  //count += HelperBase::updateConfigOLD(CONFIG_FILE_PATH);
+  count += !HelperBase::updateConfig(DEVICE_CONFIG_PATH);
+  count += !HelperBase::updateConfig(IRRIG_CONFIG_PATH);
+  count += !HelperBase::updateConfig(SENS_CONFIG_PATH);
+  if (!count) {
     #ifdef DEBUG
     Serial.println(F("Successfully synched Config!"));
     #endif

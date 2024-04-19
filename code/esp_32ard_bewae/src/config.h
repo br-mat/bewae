@@ -18,7 +18,7 @@
 #endif
 
 #ifndef RUNNING_FILE_PATH
-#define RUNNING_FILE_PATH "/Running.Json"
+#define RUNNING_FILE_PATH "/running.Json"
 #endif
 
 #ifndef WEB_PREFIX
@@ -42,7 +42,7 @@
 #endif
 
 #ifndef CONF_FILE_SIZE
-#define CONF_FILE_SIZE 5000 // estimate at https://arduinojson.org/v6/assistant/#/step1
+#define CONF_FILE_SIZE 8192 // estimate at https://arduinojson.org/v6/assistant/#/step1
 #endif
 
 #ifndef MAX_GROUP_LENGTH
