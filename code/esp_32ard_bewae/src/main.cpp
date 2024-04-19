@@ -120,13 +120,22 @@ void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize SPIFFS
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if(!SPIFFS.begin(true)){
+  if (!SPIFFS.begin(true)) {
     #ifdef DEBUG
-    Serial.println("An Error has occurred while mounting SPIFFS");
+    Serial.println(F("An Error has occurred while mounting SPIFFS"));
     #endif
     return;
   }
-  
+  #ifdef DEBUG
+  unsigned int totalBytes = SPIFFS.totalBytes();
+  unsigned int usedBytes = SPIFFS.usedBytes();
+  Serial.print("Total space: ");
+  Serial.println(totalBytes);
+  Serial.print("Used space: ");
+  Serial.println(usedBytes);
+  #endif
+
+  /*
   fs::File file = SPIFFS.open(CONFIG_FILE_PATH);
   if(!file){
     #ifdef DEBUG
@@ -134,8 +143,7 @@ void setup() {
     #endif
     return;
   }
-
-  file.close();
+  file.close();*/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize bme280 & ds18b20 sensor
@@ -206,21 +214,29 @@ void setup() {
   // in order to work a RasPi with node-red and configured flow is needed
   HWHelper.syncConfig();
 // TEST DEVICE CONFIGURATION
+Serial.print("Free heap memory: ");
+Serial.println(ESP.getFreeHeap());
 Serial.print("Test DEVICE CONFIG!");
   SwitchController status_switches(&HWHelper); // initialize switch class
 Serial.print("PASSED DEVICE CONFIG!");
   // Create a JSON object with the sensor data
 DynamicJsonDocument doc(512);
+Serial.print("Free heap memory: ");
+Serial.println(ESP.getFreeHeap());
 doc["sensor"] = "temperature";
 doc["value"] = 50;
 doc["timestamp"] = "2024-04-07T16:16:03Z";
-
-DynamicJsonDocument jsonDoc(CONF_FILE_SIZE); // create JSON doc, if an error occurs it will return an empty jsonDoc
-JsonObject jsonobj;
+String p = IRRIG_CONFIG_PATH; // Make sure IRRIG_CONFIG_PATH is defined somewhere
+String p2 = JSON_SUFFIX;
+String filePath = p + p2; // Concatenate to form the file path
+DynamicJsonDocument jsonDoc = HWHelper.readConfigFile(filePath.c_str());
 Serial.println("TESTING FILE RETURNS!");
 Serial.println(jsonDoc.isNull());
-Serial.println(jsonobj.isNull());
-Serial.println(jsonobj.size());
+String f_jsonDoc;
+serializeJson(jsonDoc, f_jsonDoc);
+Serial.println("Irrig file: ");
+Serial.println(f_jsonDoc);
+Serial.println();Serial.println();
 
 // Calculate the hash of the JSON object
 String hash = HWHelper.calculateJSONHash(doc);
@@ -230,6 +246,9 @@ serializeJson(doc, testfile);
 Serial.println();
 Serial.println(testfile);
   HWHelper.system_sleep(); //power down prepare sleep
+
+Serial.print("Free heap memory: ");
+Serial.println(ESP.getFreeHeap());
 }
 
 //######################################################################################################################
@@ -548,8 +567,12 @@ bool checkSleepTask(){
     breakTime = millis() + 600000UL; // reduce time to once per hour if intervall is bigger
   }
   else{
-    breakTime = nextActionTime;
+    breakTime = nextActionTime + millis() + 10;
   }
+  #ifdef DEBUG
+  Serial.print(F("Waking in: ")); Serial.print(breakTime/1000);
+  Serial.println(F(" seconds!"));
+  #endif
 
   delay(3);
   while(true){ // sleep until break
