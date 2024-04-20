@@ -505,8 +505,10 @@ int IrrigationController::watering_task_handler() {
     // update watering variable
     this->watering = this->watering - active_time; // update the water time
 
+    String path = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
+
     // save water time variable
-    if (!saveScheduleConfig(CONFIG_FILE_PATH, this->key)){ // WARNING: calling this too ofthen could wear out flash memory
+    if (!saveScheduleConfig(path.c_str(), this->key)){ // WARNING: calling this too ofthen could wear out flash memory
       #ifdef DEBUG
       Serial.println(F("Failed to save status!"));
       #endif
@@ -545,13 +547,13 @@ long IrrigationController::combineTimetables()
   long combinedTimetable = 0;
 
   // load config
+  String path = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
   DynamicJsonDocument doc(CONF_FILE_SIZE);
-  doc = HWHelper.readConfigFile(CONFIG_FILE_PATH);
+  doc = HWHelper.readConfigFile(path.c_str());
 
   // Access the "groups" object
   JsonObject groups = doc.as<JsonObject>();
   doc.clear();
-
   for (JsonObject::iterator it = groups.begin(); it != groups.end(); ++it) {
     // validate if key is something that could be used
     JsonObject groupItem = it->value();

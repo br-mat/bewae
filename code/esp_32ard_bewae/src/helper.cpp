@@ -454,7 +454,7 @@ bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PA
   //String oldhash = calculateJSONHash(oldFile_buff);
   String oldhash = oldFile_buff["checksum"].as<String>();
   bool valid_hash = verifyChecksum(oldFile_buff);
-  
+  /*
 Serial.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 Serial.println("OLD FILE:");
 serializeJson(oldFile_buff, Serial);
@@ -462,7 +462,7 @@ Serial.println();
 Serial.println("NEW FILE:");
 serializeJson(jsonDoc, Serial);
 Serial.println("----------------------------------------------------------------------------------------");
-Serial.print("OLDHash (calc)"); Serial.println(calculateJSONHash(oldFile_buff));
+Serial.print("OLDHash (calc)"); Serial.println(calculateJSONHash(oldFile_buff));*/
   // clear memory before opening new file
   oldFile_buff.clear();
 
@@ -477,8 +477,9 @@ Serial.print("OLDHash (calc)"); Serial.println(calculateJSONHash(oldFile_buff));
   bool changed_hash = !(oldhash == newhash);
   // update & apppend hash
   jsonDoc["checksum"] = newhash;
+  /*
 Serial.print("OLDHash "); Serial.println(oldhash);
-Serial.print("NEWHash "); Serial.println(newhash);
+Serial.print("NEWHash "); Serial.println(newhash);*/
   //Serial.print("Free heap memory: ");
   //Serial.println(ESP.getFreeHeap());
 
@@ -582,7 +583,7 @@ void HelperBase::blinkOnBoard(String howLong, int times) {
 JsonObject HelperBase::getJsonObject(const char* filepath, const char* key) {
   // load the stored file and get all keys
   DynamicJsonDocument doc(CONF_FILE_SIZE);
-  doc = HelperBase::readConfigFile(filepath);
+  doc = readConfigFile(filepath);
 
   JsonObject jsonobj;
 
@@ -779,7 +780,6 @@ String HelperBase::sha256(String content) {
   byte hash[SHA256_SIZE];
   // Finalize the hash calculation and store it in the 'hash' array
   hasher.doFinal(hash);
-Serial.print("HASHER CONTENT: "); Serial.println(content);
   String result = "";
   // Convert each byte of the hash to a two-digit hexadecimal representation
   for (byte i = 0; i < SHA256_SIZE; i++) {
@@ -867,13 +867,12 @@ String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
   // Create a copy of the JSON data
   DynamicJsonDocument tempDoc(CONF_FILE_SIZE);
   tempDoc.set(JSONdata);
-Serial.print("FILE BEVOREHASHING: "); serializeJson(tempDoc, Serial); Serial.println();
+
   // Remove the checksum field if it exists
   tempDoc.remove("checksum");
 
   // Convert JSON to string
   String fileStr;
-  serializeJson(tempDoc, fileStr);
   fileStr.trim(); // Remove any whitespace at the start or end
 
   // Calculate hash

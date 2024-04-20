@@ -120,10 +120,6 @@ bool SwitchController::updateSwitches(){
   DynamicJsonDocument jsonDoc = helper->readConfigFile(sensorPath);
   int reading_errors = 0;
   if (!jsonDoc.isNull()) {
-  String file = "";
-  serializeJson(jsonDoc, file);
-  Serial.println("FILE CONTENT:");
-  Serial.println(file);
     if (jsonDoc.containsKey("dn")) {
       name = jsonDoc["dn"].as<String>();
     }
@@ -133,10 +129,11 @@ bool SwitchController::updateSwitches(){
       #endif
       name = String("");
     }
-    main_switch = jsonDoc["main"] | false; // main - main system ON/OFF
-    placeholder3 = jsonDoc["dmmy"] | false; // placeholder - placeholder ON/OFF
-    irrigation_system_switch = jsonDoc["irig"] | false; // irig - irrigation system ON/OFF
-    dataloging_switch = jsonDoc["mssr"] | false; // mssr - measurement ON/OFF
+
+    main_switch = jsonDoc["main"].as<bool>() | false; // main - main system ON/OFF
+    placeholder3 = jsonDoc["dmmy"].as<bool>() | false; // placeholder - placeholder ON/OFF
+    irrigation_system_switch = jsonDoc["irig"].as<bool>() | false; // irig - irrigation system ON/OFF
+    dataloging_switch = jsonDoc["mssr"].as<bool>() | false; // mssr - measurement ON/OFF
     
     // Check for reading errors
     if (jsonDoc["dn"].isNull()) reading_errors++;

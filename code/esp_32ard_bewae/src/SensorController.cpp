@@ -167,25 +167,27 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
         #endif
         return 0;
     }
-    if (sensorConfig.containsKey("sf")) {
-        String mode = sensorConfig["sf"];
-        if (mode == "analog") {
+    if (sensorConfig.containsKey("sm")) {
+        String mode = sensorConfig["sm"];
+        if (mode == String("analog")) {
             HWHelper.checkAnalogPin(hardwarePin_);
             measurmentraw = analoghandler(hardwarePin_);
-        } else if (mode == "vanalog") {
+        } else if (mode == String("vanalog")) {
             measurmentraw = analogVhandler(virtualPin_);
-        } else if (mode == "bmetemp") {
+        } else if (mode == String("bmetemp")) {
             measurmentraw = bmetemphandler();
-        } else if (mode == "bmehum") {
+        } else if (mode == String("bmehum")) {
             measurmentraw = bmehumhandler();
-        } else if (mode == "bmepress") {
+        } else if (mode == String("bmepress")) {
             measurmentraw = bmepresshandler();
-        } else if (mode == "soiltemp") {
+        } else if (mode == String("soiltemp")) {
             measurmentraw = onewirehandler();
         } else {
         // code for unknown mode
             #ifdef DEBUG
-            Serial.println(F("Error: Unknown measuring mode!"));
+            Serial.print(F("Error: Unknown measuring mode '"));
+            Serial.print(mode);
+            Serial.println("'");
             return 0;
             #endif
         }
