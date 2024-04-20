@@ -264,7 +264,7 @@ void loop(){
 // manage sleep and updating of configuration
 while(checkSleepTask()){
 }
-Serial.print("INIT SWITCHES:");
+Serial.print(F("INIT SWITCHES:"));
 SwitchController status_switches(&HWHelper); // initialize switch class
 //status_switches.updateSwitches(); // get called when initialized
 
@@ -299,6 +299,11 @@ else{
 if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timing is handled by irrigation class
   irrigationTask();
 }
+#ifdef DEBUG
+else{
+Serial.print(F("Irrigation not set, satus: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
+}
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // end loop
@@ -345,14 +350,14 @@ long sensoringTask(){
   std::vector<SensorData> dataVecTest;
 
   DynamicJsonDocument configf(CONF_FILE_SIZE);
-  configf = HWHelper.readConfigFile(CONFIG_FILE_PATH);
+  String path = String(SENS_CONFIG_PATH) + String(JSON_SUFFIX);
+  configf = HWHelper.readConfigFile(path.c_str());
   JsonObject obj;
 
   //float test = Sensors.onewirehandler();
   //Serial.print("ds18b20 temp: "); Serial.println(test);
 
   // handle analog pins
-  //obj = configf["sensor"].as<JsonObject>(); // OLD CODE TODO: REMOVE WHEN TESTED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   obj = configf.as<JsonObject>();
 
   if(obj){
@@ -521,8 +526,8 @@ bool checkSleepTask(){
 
   //hour_ = 0; //DEBUG
   // check for hour change and update config
-  //if(true){
-  if((newtimeMark.tm_hour != oldtimeMark.tm_hour) && (rtc_status) && (controller_switches.getMainSwitch())){
+  if(true){
+  //if((newtimeMark.tm_hour != oldtimeMark.tm_hour) && (rtc_status) && (controller_switches.getMainSwitch())){
     // check for hour change
     HWHelper.readTime(&oldtimeMark); // update long time timestamp
 
@@ -589,7 +594,12 @@ bool checkSleepTask(){
     Serial.print(F("Sleeping: Wifi status: ")); Serial.println(WiFi.status());
     #endif
   }
-
+  #ifdef DEBUG
+  Serial.println(F("Config: ")); Serial.print(F("Main switch: ")); Serial.println(controller_switches.getMainSwitch());
+  Serial.print(F("Irrigation switch: ")); Serial.println(controller_switches.getIrrigationSystemSwitch());
+  Serial.print(F("Measurement switch: ")); Serial.println(controller_switches.getDatalogingSwitch());
+  Serial.print(F("Timetable: ")); Serial.println(timetable, BIN);
+  #endif
   // exit whole loop only if system is switched ON
   if(controller_switches.getMainSwitch()){ // condition get checked with little delay!
     return false;
