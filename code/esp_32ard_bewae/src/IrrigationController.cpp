@@ -151,7 +151,7 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
   JsonObject groupData = groupPair.value();
 
   bool verify = verifyScheduleConfig(groupPair);
-  if (verify) {
+  if (!verify) {
     IrrigationController::reset();
     return 0;
   }
@@ -164,8 +164,8 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
 
   // Extract the values from the groupData object
   this->is_set = groupData["ps"].as<bool>();
-  this->timetable = groupData["pw"].as<uint32_t>();
-  this->water_time = groupData["wt"].as<int16_t>();
+  this->timetable = groupData["wt"].as<uint32_t>();
+  this->water_time = groupData["pw"].as<int16_t>();
   JsonArray pinsArray = groupData["pp"].as<JsonArray>();
   driver_pins.clear(); // Clear the vector before populating it
   // Access the "vpins" array and populate the vector
@@ -174,11 +174,7 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
   }
   this->plant_size = groupData["pls"].as<int16_t>();
   this->pot_size = groupData["pts"].as<int16_t>();
-  /*
-  this->watering = groupData["dty"].as<int16_t>();
-  JsonArray timestampArr = groupData["up"].as<JsonArray>();
-  this->lastHour = timestampArr[0];
-  this->lastDay = timestampArr[1];*/
+
   loadDuty(this->key);
 
   // verify instance safety
@@ -207,16 +203,8 @@ bool IrrigationController::verifyScheduleConfig(const JsonPair& groupPair) {
     return false;
   }
 
-  // Verify the group name
-  if (!groupData.containsKey("pn") || !groupData["pn"].is<String>()) {
-    #ifdef DEBUG
-    Serial.println(F("Group name 'pn' is missing or not a string."));
-    #endif
-    return false;
-  }
-
   // Verify the schedule set flag
-  if (!groupData.containsKey("ps") || !groupData["ps"].is<bool>()) {
+  if (!groupData.containsKey("ps") || !groupData["ps"].is<int>()) {
     #ifdef DEBUG
     Serial.println(F("Schedule set flag 'ps' is missing or not a boolean."));
     #endif
@@ -232,9 +220,9 @@ bool IrrigationController::verifyScheduleConfig(const JsonPair& groupPair) {
   }
 
   // Verify the water time
-  if (!groupData.containsKey("wt") || !groupData["wt"].is<int16_t>()) {
+  if (!groupData.containsKey("wt") || !groupData["wt"].is<uint32_t>()) {
     #ifdef DEBUG
-    Serial.println(F("Water time 'wt' is missing or not a 16-bit integer."));
+    Serial.println(F("Water time 'wt' is missing or not a 32-bit integer."));
     #endif
     return false;
   }
@@ -264,7 +252,7 @@ bool IrrigationController::verifyScheduleConfig(const JsonPair& groupPair) {
   }
 
   // Verify the plant size
-  if (!groupData.containsKey("pls") || !groupData["pls"].is<int16_t>()) {
+  if (!groupData.containsKey("pls") || !groupData["pls"].is<float>()) {
     #ifdef DEBUG
     Serial.println(F("Plant size 'pls' is missing or not a 16-bit integer."));
     #endif
@@ -272,7 +260,7 @@ bool IrrigationController::verifyScheduleConfig(const JsonPair& groupPair) {
   }
 
   // Verify the pot size
-  if (!groupData.containsKey("pts") || !groupData["pts"].is<int16_t>()) {
+  if (!groupData.containsKey("pts") || !groupData["pts"].is<float>()) {
     #ifdef DEBUG
     Serial.println(F("Pot size 'pts' is missing or not a 16-bit integer."));
     #endif
@@ -287,7 +275,7 @@ bool IrrigationController::verifyScheduleConfig(const JsonPair& groupPair) {
 // Updates the values of a number of member variables in the IrrigationController class in the JSON file at the specified file path.
 // Returns true if the file was updated successfully, false if the file path is invalid or if there is an error reading or writing the file.
 bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], const char grp_name[MAX_GROUP_LENGTH]) {
-  DynamicJsonDocument jsonDoc =  HWHelper.readConfigFile(path); // read the config file
+  DynamicJsonDocument jsonDoc = HWHelper.readConfigFile(path); // read the config file
   // check jsonDoc
   if (jsonDoc.isNull()) {
     #ifdef DEBUG
@@ -434,6 +422,7 @@ int IrrigationController::watering_task_handler() {
     #ifdef DEBUG
     Serial.print(F("Group '"));
     Serial.print(this->name); Serial.println(F("' nothing to do this time"));
+Serial.print("TODO: timetable = "); Serial.println(this->timetable);
     #endif
     return 0; // nothing to do this time
   }
@@ -479,8 +468,8 @@ int IrrigationController::watering_task_handler() {
     // Print info to serial if wanted
     #ifdef DEBUG
     Serial.print(F("Watering group: "));
-    Serial.println(key);
-    Serial.print(F("With name: "));
+    Serial.print(key);
+    Serial.print(F(" - With name: "));
     Serial.println(name);
     Serial.print(F("driver_pins values: "));
     for (int pin : driver_pins) {
@@ -492,7 +481,7 @@ int IrrigationController::watering_task_handler() {
     #endif
 
     #ifdef DEBUG
-    Serial.println(F("Set activationtimestamp to pin: "));
+    Serial.print(F("Set activationtimestamp to pin: "));
     #endif
     // update the last activation time of the pins when everything is fine
     for (const auto& pinValue : this->driver_pins) {
@@ -501,6 +490,9 @@ int IrrigationController::watering_task_handler() {
         Serial.print(pinValue); Serial.print(F(" "));
         #endif
     }
+    #ifdef DEBUG
+    Serial.println();
+    #endif
 
     // update watering variable
     this->watering = this->watering - active_time; // update the water time
@@ -541,8 +533,7 @@ int IrrigationController::watering_task_handler() {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Define the implementation of the combineTimetables() static member function
-long IrrigationController::combineTimetables()
-{
+long IrrigationController::combineTimetables() {
   // Initialize the combined timetable to 0.
   long combinedTimetable = 0;
 
@@ -599,15 +590,20 @@ void IrrigationController::loadDuty(const char* objkey) {
 // function to init running file & update use this funciton to set a irrigation duty
 bool IrrigationController::saveDuty(const char* objkey) {
   const char* RUNTIME_FILE_PATH = RUNNING_FILE_PATH;
-  DynamicJsonDocument jsonDoc(1024);
+  DynamicJsonDocument jsonDoc(CONF_FILE_SIZE);
 
   // load unning file
   jsonDoc = HWHelper.readConfigFile(RUNTIME_FILE_PATH);
+  if (!SPIFFS.exists(RUNTIME_FILE_PATH)) {
+    #ifdef DEBUG
+    Serial.println(F("Info: Created Duty file (Saving)!"));
+    #endif
+    HWHelper.createFile(RUNTIME_FILE_PATH);
+  }
   if (!jsonDoc.isNull()) {
     #ifdef DEBUG
-    Serial.println(F("Duty file could not be found!"));
+    Serial.println(F("Warning: Duty file was empty (Saving)!"));
     #endif
-    return false;
   }
 
   // Update or set the "dty" and "up" keys

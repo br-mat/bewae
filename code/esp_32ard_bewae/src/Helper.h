@@ -77,7 +77,7 @@ public:
     // blink onboard led for visual signals
     void blinkOnBoard(String howLong, int times);
     // returns requestet JSON object (key) of specified file
-    JsonObject getJsonObject(const char* filepath, const char* key = nullptr);
+    DynamicJsonDocument getJsonDoc(const char* filepath, const char* key = nullptr);
     // HTTP GET request to the a configured server retrieving JSON config data
     DynamicJsonDocument getJSONConfig(const char* server, int serverPort, const char* serverPath);
     // OLD LEGACY CODE! (BACKUP TODO REMOVE LATER)
@@ -97,6 +97,8 @@ public:
     bool updateConfigOLD(const char* path); // REPLACEMENT FUNCTION WIP
     // sync config with server
     bool syncConfig();
+    // create empty file
+    bool createFile(const char* filePath);
 
     // virtual functions
 

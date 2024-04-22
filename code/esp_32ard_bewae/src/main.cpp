@@ -99,9 +99,11 @@ bool checkSleepTask();
 
 void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// set clock speed
+// init
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //setCpuFrequencyMhz(80);
+  // configure low power timer
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // configure pin mode
@@ -180,15 +182,12 @@ void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // init time and date
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  HWHelper.wakeModemSleep();
+  delay(1);
   //uncomment if want to set the time (NOTE: only need to do this once not every time!)
   //HWHelper.set_time(00,56,18,01,11,9,23);
   //seting time (second,minute,hour,weekday,date_day,date_month,year)
   struct tm localTime = HWHelper.readTimeNTP();
-
-  delay(100);
-  //initialize global time
-  bool condition = HWHelper.readTime(&oldtimeMark);
-  delay(30);
 
   // automatically set time (requires WIFI access!!)
   struct tm local = HWHelper.readTimeNTP();
@@ -198,12 +197,16 @@ void setup() {
     #endif
     HWHelper.setTime(local);
   }
+  #ifdef DEBUG
+  else{
+    Serial.println(F("Setup Warning: Could not verify time!"));
+  }
+  #endif
 
-  HWHelper.system_sleep(); //power down prepare sleep
   delay(100);
-  
-  // configure low power timer
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  //initialize global time
+  bool condition = HWHelper.readTime(&oldtimeMark);
+  delay(30);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //init Irrigation Controller instance and update config
@@ -249,6 +252,10 @@ Serial.println(testfile);
 
 Serial.print("Free heap memory: ");
 Serial.println(ESP.getFreeHeap());
+
+  HWHelper.system_sleep(); //power down prepare sleep
+  delay(100);
+
 }
 
 //######################################################################################################################
@@ -407,9 +414,18 @@ bool irrigationTask(){
   delay(30);
 
   // load config file
-  JsonObject groups = HWHelper.getJsonObject(CONFIG_FILE_PATH, "group");
+  String path = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
+  DynamicJsonDocument doc = HWHelper.getJsonDoc(path.c_str());
+  JsonObject groups;
+  // Check if the document is not null and contains a JsonObject
+  if (doc.isNull() || !doc.is<JsonObject>()) {
+    #ifdef DEBUG
+    Serial.println(F("Warning: Configuration not valid!"));
+    #endif
+    return false;
+  }
+  groups = doc.as<JsonObject>();
   int numgroups = groups.size();
-
   // sanity check
   if (numgroups > max_groups) {
     #ifdef DEBUG
@@ -432,16 +448,30 @@ bool irrigationTask(){
   // Iterate over each group and load the config
   for (JsonObject::iterator groupIterator = groups.begin(); groupIterator != groups.end(); ++groupIterator) {
     // Load schedule configuration for the current group
+    if (String(groupIterator->key().c_str()) == String("checksum")){
+      continue; // skip checksum (TODO: idea for rework of config files, then this "forbiden" name would be ok {"name"{config},"checksum":"asdfxcz"})
+    }
     bool success = Group[j].loadScheduleConfig(*groupIterator);
     if (!success) { // if it fails reset class instance
       #ifdef DEBUG
-      Serial.println(F("Error: Failed to load schedule configuration for group"));
+      Serial.print(F("Error: Failed to load schedule, for: '["));
+      Serial.print(groupIterator->key().c_str());
+      JsonObject groupData = groupIterator->value();
+      Serial.print(F("] data: "));
+      serializeJson(groupData, Serial); Serial.println(F("'"));
       #endif
       // Reset the class to an empty state
       Group[j].reset();
       break;
     }
-
+    /*
+#ifdef DEBUG
+Serial.print(F("Error: Failed to load schedule, for: '["));
+Serial.print(groupIterator->key().c_str());
+JsonObject groupData = groupIterator->value();
+Serial.print(F("] data: "));
+serializeJson(groupData, Serial); Serial.println(F("'"));
+#endif*/
     // Increment j for the next group
     j++;
   }
@@ -506,7 +536,7 @@ bool checkSleepTask(){
   byte rtc_status = HWHelper.readTime(&newtimeMark); // update current timestamp
 
   #ifdef DEBUG_SPAM
-  Serial.print(F("Rtc Status: ")); Serial.println(!rtc_status);
+  Serial.print(F("Info: Rtc Status: ")); Serial.println(!rtc_status);
   #endif
   #ifdef DEBUG
   String time = HWHelper.timestampNTP();
@@ -523,6 +553,33 @@ bool checkSleepTask(){
   // load update configuration
   SwitchController controller_switches(&HWHelper);
   controller_switches.updateSwitches();
+
+#ifdef DEBUG
+Serial.print(F("NEW Time: "));
+Serial.print(newtimeMark.tm_hour); // Print hours
+Serial.print(F(":"));
+Serial.print(newtimeMark.tm_min);  // Print minutes
+Serial.print(F(" Date: "));
+Serial.print(newtimeMark.tm_mday); // Print day of the month
+Serial.print(F("/"));
+Serial.print(newtimeMark.tm_mon + 1); // Print month (tm_mon is 0-11, so add 1)
+Serial.print(F("/"));
+Serial.println(newtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
+#endif
+#ifdef DEBUG
+Serial.print(F("OLD Time: "));
+Serial.print(oldtimeMark.tm_hour); // Print hours
+Serial.print(F(":"));
+Serial.print(oldtimeMark.tm_min);  // Print minutes
+Serial.print(F(" Date: "));
+Serial.print(oldtimeMark.tm_mday); // Print day of the month
+Serial.print(F("/"));
+Serial.print(oldtimeMark.tm_mon + 1); // Print month (tm_mon is 0-11, so add 1)
+Serial.print(F("/"));
+Serial.println(oldtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
+#endif
+
+
 
   //hour_ = 0; //DEBUG
   // check for hour change and update config

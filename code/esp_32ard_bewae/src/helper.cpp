@@ -124,16 +124,17 @@ bool HelperBase::readTime(struct tm* timeinfo)
   // read time
   if (status) { // verify rtc
     #ifdef DEBUG
-    //Serial.println(timestamp(*timeinfo).c_str());
+    Serial.print(F("RTC time:"));
+    Serial.println(timestamp(*timeinfo).c_str());
     #endif
     return true;
   }
-
   *timeinfo = readTimeNTP();
   status = verifyTM(*timeinfo);
   // read time
   if (status) { // verify NTP
     #ifdef DEBUG
+    Serial.print(F("NTP time:"));
     Serial.println(timestamp(*timeinfo).c_str());
     #endif
     return true;
@@ -324,10 +325,10 @@ bool HelperBase::connectWifi(){
   // If the loop exits normally, the WiFi connection was successful. Print the IP address of the device and return true.
   #ifdef DEBUG
   Serial.println();
-  Serial.println(F("WiFi connected"));
-  Serial.print(F("IP address: "));
-  Serial.println(WiFi.localIP());
-  Serial.print(F("RSSI: "));
+  Serial.print(F("WiFi connected: "));
+  Serial.print(F("IP: "));
+  Serial.print(WiFi.localIP());
+  Serial.print(F(" RSSI: "));
   Serial.print(WiFi.RSSI()); Serial.println(" dBm");
   #endif
   return true;
@@ -455,14 +456,15 @@ bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PA
   String oldhash = oldFile_buff["checksum"].as<String>();
   bool valid_hash = verifyChecksum(oldFile_buff);
   /*
-Serial.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-Serial.println("OLD FILE:");
-serializeJson(oldFile_buff, Serial);
-Serial.println();
-Serial.println("NEW FILE:");
-serializeJson(jsonDoc, Serial);
-Serial.println("----------------------------------------------------------------------------------------");
-Serial.print("OLDHash (calc)"); Serial.println(calculateJSONHash(oldFile_buff));*/
+  Serial.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+  Serial.println("OLD FILE:");
+  serializeJson(oldFile_buff, Serial);
+  Serial.println();
+  Serial.println("NEW FILE:");
+  serializeJson(jsonDoc, Serial);
+  Serial.println("----------------------------------------------------------------------------------------");
+  Serial.print("OLDHash (calc)"); Serial.println(calculateJSONHash(oldFile_buff));*/
+
   // clear memory before opening new file
   oldFile_buff.clear();
 
@@ -477,11 +479,12 @@ Serial.print("OLDHash (calc)"); Serial.println(calculateJSONHash(oldFile_buff));
   bool changed_hash = !(oldhash == newhash);
   // update & apppend hash
   jsonDoc["checksum"] = newhash;
+
   /*
-Serial.print("OLDHash "); Serial.println(oldhash);
-Serial.print("NEWHash "); Serial.println(newhash);*/
-  //Serial.print("Free heap memory: ");
-  //Serial.println(ESP.getFreeHeap());
+  Serial.print("OLDHash "); Serial.println(oldhash);
+  Serial.print("NEWHash "); Serial.println(newhash);
+  Serial.print("Free heap memory: ");
+  Serial.println(ESP.getFreeHeap());*/
 
   // check if file has changed or if old file does not have a checksum
   if(!changed_hash && valid_hash){
@@ -580,43 +583,37 @@ void HelperBase::blinkOnBoard(String howLong, int times) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // loads JSON object from file using its key
-JsonObject HelperBase::getJsonObject(const char* filepath, const char* key) {
+DynamicJsonDocument HelperBase::getJsonDoc(const char* filepath, const char* key) {
   // load the stored file and get all keys
   DynamicJsonDocument doc(CONF_FILE_SIZE);
   doc = readConfigFile(filepath);
 
-  JsonObject jsonobj;
-
   // Check if doc is empty
   if (doc.isNull()) {
     Serial.println(F("Warning: Failed to read file or empty JSON object."));
-    return jsonobj;
+    return doc;
   }
 
   // Access the key object if key is provided, else return the whole doc
   if (key != nullptr) {
-    jsonobj = doc[key];
-    delay(1);
-    doc.clear();
+    doc = doc[key];
 
     #ifdef DEBUG_SPAM
     String jsonString;
-    serializeJson(jsonobj, jsonString);
-    Serial.println(F("JsonObj:"));
-    Serial.println(jsonString); Serial.println();
+    Serial.println(F("JsonDoc:"));
+    serializeJson(doc, Serial);
+    Serial.println();
     #endif
     
     // Check if key exists in the JSON object
-    if (jsonobj.isNull()) {
+    if (doc.isNull()) {
       #ifdef DEBUG
       Serial.println(F("Warning: Key not found in JSON object."));
       #endif
     }
-  } else {
-    jsonobj = doc.as<JsonObject>();
   }
-  
-  return jsonobj;
+  Serial.print("OBJ RETURN: "); serializeJson(doc, Serial); Serial.println();
+  return doc;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -830,7 +827,6 @@ bool HelperBase::verifyTM(struct tm timeinfo){
   if (timeinfo.tm_sec == 0 && timeinfo.tm_min == 0 && timeinfo.tm_hour == 0 &&
       timeinfo.tm_wday == 0 && timeinfo.tm_mday == 0 && timeinfo.tm_mon == 0 &&
       timeinfo.tm_year == 0) {
-    Serial.println(F("ERROR: Time not valid! (tm structure)"));
     return false;
   }
   return true; // all good
@@ -866,13 +862,15 @@ if(JSONdata.containsKey("checksum") && JSONdata["checksum"].as<String>().length(
 String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
   // Create a copy of the JSON data
   DynamicJsonDocument tempDoc(CONF_FILE_SIZE);
-  tempDoc.set(JSONdata);
+  //tempDoc.set(JSONdata);
+  tempDoc = JSONdata;
 
   // Remove the checksum field if it exists
   tempDoc.remove("checksum");
 
   // Convert JSON to string
   String fileStr;
+  serializeJson(tempDoc, fileStr);
   fileStr.trim(); // Remove any whitespace at the start or end
 
   // Calculate hash
@@ -914,50 +912,7 @@ bool HelperBase::updateConfig(const char* path){
   }
 }
 bool HelperBase::updateConfigOLD(const char* path){
-  // Check if the device is connected to WiFi
-  if (WiFi.status() == WL_CONNECTED) {
-    // Retrieve new JSON data from the server
-    DynamicJsonDocument newdoc = HelperBase::getJSONConfigLEGACY(SERVER, SERVER_PORT, path);
-    //DynamicJsonDocument newdoc = HelperBase::getJSONData(SERVER, SERVER_PORT, path);
-    // Check if the retrieved data is not null
-    if(newdoc.isNull()){
-      #ifdef DEBUG
-      Serial.println(F("Warning: Problem recieving config file from server!"));
-      #endif
-      return false;
-    }
-
-    // preserve some old values only relevant for the controller
-    // Access the "group" object of the new JSON data
-    JsonObject group = newdoc["group"];
-    // Retrieve the old group object from the config file
-    JsonObject oldGroup = HelperBase::getJsonObject(CONFIG_FILE_PATH, "group");
-    // Iterate over all the keys in the new group object
-    for (JsonObject::iterator it = group.begin(); it != group.end(); ++it) {
-      const char* key = it->key().c_str();
-      // Check if the key is within the keys of oldGroup
-      // check if key exists
-      if (oldGroup.containsKey(key)) {
-          // preserve values
-          it->value()["watering"] = oldGroup[key]["watering"].as<int16_t>();
-          it->value()["lastup"] = oldGroup[key]["lastup"].as<JsonArray>();
-        }
-        else {
-          // new group should be created and saved, or some error occured
-          #ifdef DEBUG
-          Serial.println(F("Warning: Failed to retrieve watering value of old group object"));
-          #endif
-        }
-      }
-    // Write the updated JSON data to the config file
-    return HelperBase::writeConfigFile(newdoc, path);
-  }
-  else{
-    #ifdef DEBUG
-    Serial.println(F("Error no Wifi connection established"));
-    #endif
-    return false;
-  }
+  return false;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -978,6 +933,22 @@ bool HelperBase::syncConfig(){
     #endif
   }
   return count; // return true if a problem occured
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool HelperBase::createFile(const char* filePath) {
+  File file = SPIFFS.open(filePath, "w");
+  bool isSuccess = true;
+
+  if (!file) {
+    isSuccess = false;
+    #ifdef DEBUG
+    Serial.println(F("Error: Could not create the file."));
+    #endif
+  }
+  
+  file.close(); // Close the file to ensure no resources are leaked
+  return isSuccess;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
