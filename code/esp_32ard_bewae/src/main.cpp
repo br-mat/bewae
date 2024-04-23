@@ -216,19 +216,15 @@ void setup() {
   // update the config file stored in spiffs
   // in order to work a RasPi with node-red and configured flow is needed
   HWHelper.syncConfig();
-// TEST DEVICE CONFIGURATION
+  // TEST DEVICE CONFIGURATION
+  SwitchController status_switches(&HWHelper); // initialize switch class
+
 Serial.print("Free heap memory: ");
 Serial.println(ESP.getFreeHeap());
 Serial.print("Test DEVICE CONFIG!");
-  SwitchController status_switches(&HWHelper); // initialize switch class
-Serial.print("PASSED DEVICE CONFIG!");
-  // Create a JSON object with the sensor data
 DynamicJsonDocument doc(512);
 Serial.print("Free heap memory: ");
 Serial.println(ESP.getFreeHeap());
-doc["sensor"] = "temperature";
-doc["value"] = 50;
-doc["timestamp"] = "2024-04-07T16:16:03Z";
 String p = IRRIG_CONFIG_PATH; // Make sure IRRIG_CONFIG_PATH is defined somewhere
 String p2 = JSON_SUFFIX;
 String filePath = p + p2; // Concatenate to form the file path
@@ -239,16 +235,6 @@ String f_jsonDoc;
 serializeJson(jsonDoc, f_jsonDoc);
 Serial.println("Irrig file: ");
 Serial.println(f_jsonDoc);
-Serial.println();Serial.println();
-
-// Calculate the hash of the JSON object
-String hash = HWHelper.calculateJSONHash(doc);
-String testfile = "";
-serializeJson(doc, testfile);
-// Print the hash to the serial monitor
-Serial.println();
-Serial.println(testfile);
-  HWHelper.system_sleep(); //power down prepare sleep
 
 Serial.print("Free heap memory: ");
 Serial.println(ESP.getFreeHeap());
@@ -553,38 +539,33 @@ bool checkSleepTask(){
   // load update configuration
   SwitchController controller_switches(&HWHelper);
   controller_switches.updateSwitches();
-
-#ifdef DEBUG
-Serial.print(F("NEW Time: "));
-Serial.print(newtimeMark.tm_hour); // Print hours
-Serial.print(F(":"));
-Serial.print(newtimeMark.tm_min);  // Print minutes
-Serial.print(F(" Date: "));
-Serial.print(newtimeMark.tm_mday); // Print day of the month
-Serial.print(F("/"));
-Serial.print(newtimeMark.tm_mon + 1); // Print month (tm_mon is 0-11, so add 1)
-Serial.print(F("/"));
-Serial.println(newtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
-#endif
-#ifdef DEBUG
-Serial.print(F("OLD Time: "));
-Serial.print(oldtimeMark.tm_hour); // Print hours
-Serial.print(F(":"));
-Serial.print(oldtimeMark.tm_min);  // Print minutes
-Serial.print(F(" Date: "));
-Serial.print(oldtimeMark.tm_mday); // Print day of the month
-Serial.print(F("/"));
-Serial.print(oldtimeMark.tm_mon + 1); // Print month (tm_mon is 0-11, so add 1)
-Serial.print(F("/"));
-Serial.println(oldtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
-#endif
-
-
-
-  //hour_ = 0; //DEBUG
+  /*
+  #ifdef DEBUG
+  Serial.print(F("NEW Time: "));
+  Serial.print(newtimeMark.tm_hour); // Print hours
+  Serial.print(F(":"));
+  Serial.print(newtimeMark.tm_min);  // Print minutes
+  Serial.print(F(" Date: "));
+  Serial.print(newtimeMark.tm_mday); // Print day of the month
+  Serial.print(F("/"));
+  Serial.print(newtimeMark.tm_mon + 1); // Print month (tm_mon is 0-11, so add 1)
+  Serial.print(F("/"));
+  Serial.println(newtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
+  Serial.print(F("OLD Time: "));
+  Serial.print(oldtimeMark.tm_hour); // Print hours
+  Serial.print(F(":"));
+  Serial.print(oldtimeMark.tm_min);  // Print minutes
+  Serial.print(F(" Date: "));
+  Serial.print(oldtimeMark.tm_mday); // Print day of the month
+  Serial.print(F("/"));
+  Serial.print(oldtimeMark.tm_mon + 1); // Print month (tm_mon is 0-11, so add 1)
+  Serial.print(F("/"));
+  Serial.println(oldtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
+  #endif
+  */
   // check for hour change and update config
-  if(true){
-  //if((newtimeMark.tm_hour != oldtimeMark.tm_hour) && (rtc_status) && (controller_switches.getMainSwitch())){
+  //if(true){
+  if((newtimeMark.tm_hour != oldtimeMark.tm_hour) && (rtc_status) && (controller_switches.getMainSwitch())){
     // check for hour change
     HWHelper.readTime(&oldtimeMark); // update long time timestamp
 

@@ -263,7 +263,7 @@ int HelperBase::readAnalogRoutine(uint8_t gpiopin)
 //FUNCTION PARAMETERS:
 // struct tm data format
 String HelperBase::timestamp(struct tm timedata){
-  char timestamp[20];
+  char timestamp[30];
   strftime(timestamp, sizeof(timestamp), "Localtime: %d.%m.%y %H:%M:%S", &timedata);
   return String(timestamp);
 }
@@ -281,19 +281,23 @@ String HelperBase::timestampNTP(){
 // Attempts to enable the WiFi and connect to a specified network.
 // Returns true if the connection was successful, false if not.
 bool HelperBase::connectWifi(){
-  if (WiFi.status() != WL_CONNECTED) {
-    // Disconnect from any current WiFi connection and set the WiFi mode to station mode.
-    WiFi.disconnect(true);  
-    delayMicroseconds(100);
-    WiFi.mode(WIFI_STA);
-
-    // Begin the process of connecting to the specified WiFi network.
+  if (WiFi.status() == WL_CONNECTED) {
     #ifdef DEBUG
-    Serial.println(F("Connecting:"));
+    Serial.println(F("Wifi already connected!"));
     #endif
-    
-    WiFi.begin(ssid, wifi_password);
+    return true;
   }
+  // Disconnect from any current WiFi connection and set the WiFi mode to station mode.
+  WiFi.disconnect(true);  
+  delayMicroseconds(100);
+  WiFi.mode(WIFI_STA);
+
+  // Begin the process of connecting to the specified WiFi network.
+  #ifdef DEBUG
+  Serial.println(F("Connecting:"));
+  #endif
+  
+  WiFi.begin(ssid, wifi_password);
 
   // Initialize a counter to keep track of the number of connection attempts.
   int tries = 0;
@@ -314,7 +318,6 @@ bool HelperBase::connectWifi(){
     // If 30 attempts have been made, exit the loop and return false.
     if(tries > 30){
       #ifdef DEBUG
-      Serial.println();
       Serial.print(F("Error: Wifi connection could not be established! "));
       Serial.println(tries);
       #endif
@@ -324,7 +327,6 @@ bool HelperBase::connectWifi(){
 
   // If the loop exits normally, the WiFi connection was successful. Print the IP address of the device and return true.
   #ifdef DEBUG
-  Serial.println();
   Serial.print(F("WiFi connected: "));
   Serial.print(F("IP: "));
   Serial.print(WiFi.localIP());
@@ -364,7 +366,6 @@ void HelperBase::disableBluetooth(){
   // Quite unusefully, no relevable power consumption
   btStop();
   #ifdef DEBUG
-  Serial.println();
   Serial.println(F("Bluetooth stop!"));
   #endif
 }
@@ -950,6 +951,10 @@ bool HelperBase::createFile(const char* filePath) {
   file.close(); // Close the file to ensure no resources are leaked
   return isSuccess;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// TODO ! TODO: create funciton to clear up running file from old unused but configured irrigation groups
+// use update function to remove all key and value pairs from running file which are not in irrig conf file
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void HelperBase::shiftvalue8b(uint8_t val, bool invert) {
