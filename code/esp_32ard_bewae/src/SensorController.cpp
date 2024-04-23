@@ -50,12 +50,7 @@ float BasicSensor::analoghandler(uint8_t hardwarePin){
 }
 
 float BasicSensor::analogVhandler(uint8_t virtualPin){
-    //helper->disableWiFi(); // make sure to be able to use adc2 pins
-    //helper->enablePeripherals();
-    //helper->enableSensor();
-    //delay(10);
-
-    // measurement performed either default or relative (in %)
+    // measurement performed either default or relative (in %); in case of problems increase delay of controll_mux
     int resultm = 0;
     helper->controll_mux(virtualPin, "read", &resultm); // use virtualPin on MUX and read its value
 
@@ -126,11 +121,13 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
     int low_limit_;
     int virtualPin_;
     int hardwarePin_;
+    bool set_;
 
     float measurmentraw;
     float measurmentPub;
 
     // validate JSON: Check for the presence of the additive and factor properties
+    /*
     if (sensorConfig.containsKey("add")) {
         additive_ = sensorConfig["add"].as<int>();
     } else {
@@ -140,48 +137,68 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
         factor_ = sensorConfig["fac"].as<float>();
     } else {
         factor_ = 1.0;
-    }
-    if (sensorConfig.containsKey("hlim")) {
-        high_limit_ = sensorConfig["hlim"].as<int>();
+    }*/
+    if (sensorConfig.containsKey("hl")) {
+        high_limit_ = sensorConfig["hl"].as<int>();
     } else {
         high_limit_ = 0;
+        #ifdef DEBUG
+        Serial.println(F("Error: in sensor config File"));
+        #endif
+        return 0;
     }
-    if (sensorConfig.containsKey("llim")) {
-        low_limit_ = sensorConfig["llim"].as<int>();
+    if (sensorConfig.containsKey("ll")) {
+        low_limit_ = sensorConfig["ll"].as<int>();
     } else {
         low_limit_ = 0;
+        #ifdef DEBUG
+        Serial.println(F("Error: in sensor config File"));
+        #endif
+        return 0;
     }
-    if (sensorConfig.containsKey("vpin")) {
-        virtualPin_ = sensorConfig["vpin"].as<uint16_t>();
+    if (sensorConfig.containsKey("sp")) {
+        virtualPin_ = sensorConfig["sp"].as<uint16_t>();
+        hardwarePin_ = sensorConfig["sp"].as<uint16_t>();
     } else {
         virtualPin_ = 0;
-    }
-    if (sensorConfig.containsKey("pin")) {
-        hardwarePin_ = sensorConfig["pin"].as<uint16_t>();
-    } else {
         hardwarePin_ = 0;
+        #ifdef DEBUG
+        Serial.println(F("Error: in sensor config File"));
+        #endif
+        return 0;
     }
-    if (sensorConfig.containsKey("mode")) {
-        String mode = sensorConfig["mode"];
-        if (mode == "analog") {
+    if (sensorConfig.containsKey("sm")) {
+        String mode = sensorConfig["sm"];
+        if (mode == String("analog")) {
             HWHelper.checkAnalogPin(hardwarePin_);
             measurmentraw = analoghandler(hardwarePin_);
-        } else if (mode == "vanalog") {
+        } else if (mode == String("vanalog")) {
             measurmentraw = analogVhandler(virtualPin_);
-        } else if (mode == "bmetemp") {
+        } else if (mode == String("bmetemp")) {
             measurmentraw = bmetemphandler();
-        } else if (mode == "bmehum") {
+        } else if (mode == String("bmehum")) {
             measurmentraw = bmehumhandler();
-        } else if (mode == "bmepress") {
+        } else if (mode == String("bmepress")) {
             measurmentraw = bmepresshandler();
-        } else if (mode == "soiltemp") {
+        } else if (mode == String("soiltemp")) {
             measurmentraw = onewirehandler();
         } else {
         // code for unknown mode
             #ifdef DEBUG
-            Serial.println(F("Warning: Unknown measuring mode!"));
-            return -273;
+            Serial.print(F("Error: Unknown measuring mode '"));
+            Serial.print(mode);
+            Serial.println("'");
+            return 0;
             #endif
+        }
+    }
+    if (sensorConfig.containsKey("ss")) {
+        int value = sensorConfig["sp"].as<int>();
+        if (value == 1) {
+            set_ = true;
+        }
+        else{
+            set_ = false;
         }
     }
 
@@ -194,7 +211,7 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
                                                         //avoid using other functions inside the brackets of constrain
         measurmentPub = map(result_, low_limit_, high_limit_, 1000, 0) / 10;
         #ifdef DEBUG
-        Serial.print(F("Reading Sensor (relative): ")); Serial.println(sensorConfig["name"].as<String>());
+        Serial.print(F("Reading Sensor (relative): ")); Serial.println(sensorConfig["sn"].as<String>());
         Serial.print(F("raw: ")); Serial.println(measurmentraw);
         Serial.print(F("return: ")); Serial.println(measurmentPub);
         #endif
@@ -202,7 +219,7 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
     }
     measurmentPub = factor_ * measurmentraw + additive_;
     #ifdef DEBUG
-    Serial.print(F("Reading Sensor: ")); Serial.println(sensorConfig["name"].as<String>());
+    Serial.print(F("Reading Sensor: ")); Serial.println(sensorConfig["sn"].as<String>());
     Serial.print("raw: "); Serial.println(measurmentraw);
     Serial.print("return: "); Serial.println(measurmentPub);
     #endif
@@ -219,8 +236,8 @@ SensorData BasicSensor::measurePoint(HelperBase* helper, const String& id, const
     String field_;
 
     // check passed name and field
-    if (sensorConfig.containsKey("name")) {
-        name_ = sensorConfig["name"].as<String>();
+    if (sensorConfig.containsKey("sn")) { // get name
+        name_ = sensorConfig["sn"].as<String>();
     }
     else{
         #ifdef DEBUG
@@ -228,8 +245,8 @@ SensorData BasicSensor::measurePoint(HelperBase* helper, const String& id, const
         Serial.println(id);
         #endif
     }
-    if (sensorConfig.containsKey("field")) {
-        field_ = sensorConfig["field"].as<String>();
+    if (sensorConfig.containsKey("sf")) { // get field
+        field_ = sensorConfig["sf"].as<String>();
     }
     else{
         field_ = INFLUXDB_FIELD;

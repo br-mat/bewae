@@ -39,9 +39,12 @@ using namespace std;
 //######################################################################################################################
 //important global variables
 //byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_; // containing time variables
-struct tm oldtimeMark;
-unsigned long nextActionTime = 0; //timestamp variable
-bool thirsty = false; //marks if a watering cycle is finished
+
+struct tm oldtimeMark; // timemark
+
+unsigned long nextActionTime = 0; // timestamp variable
+
+bool thirsty = false; // marks if a watering cycle is finished
 
 //timetable example
 //                                             2523211917151311 9 7 5 3 1
@@ -96,9 +99,11 @@ bool checkSleepTask();
 
 void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// set clock speed
+// init
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //setCpuFrequencyMhz(80);
+  // configure low power timer
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // configure pin mode
@@ -117,13 +122,22 @@ void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize SPIFFS
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if(!SPIFFS.begin(true)){
+  if (!SPIFFS.begin(true)) {
     #ifdef DEBUG
-    Serial.println("An Error has occurred while mounting SPIFFS");
+    Serial.println(F("An Error has occurred while mounting SPIFFS"));
     #endif
     return;
   }
-  
+  #ifdef DEBUG
+  unsigned int totalBytes = SPIFFS.totalBytes();
+  unsigned int usedBytes = SPIFFS.usedBytes();
+  Serial.print("Total space: ");
+  Serial.println(totalBytes);
+  Serial.print("Used space: ");
+  Serial.println(usedBytes);
+  #endif
+
+  /*
   fs::File file = SPIFFS.open(CONFIG_FILE_PATH);
   if(!file){
     #ifdef DEBUG
@@ -131,8 +145,7 @@ void setup() {
     #endif
     return;
   }
-
-  file.close();
+  file.close();*/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize bme280 & ds18b20 sensor
@@ -169,15 +182,12 @@ void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // init time and date
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  HWHelper.wakeModemSleep();
+  delay(1);
   //uncomment if want to set the time (NOTE: only need to do this once not every time!)
   //HWHelper.set_time(00,56,18,01,11,9,23);
   //seting time (second,minute,hour,weekday,date_day,date_month,year)
   struct tm localTime = HWHelper.readTimeNTP();
-
-  delay(100);
-  //initialize global time
-  bool condition = HWHelper.readTime(&oldtimeMark);
-  delay(30);
 
   // automatically set time (requires WIFI access!!)
   struct tm local = HWHelper.readTimeNTP();
@@ -187,12 +197,16 @@ void setup() {
     #endif
     HWHelper.setTime(local);
   }
+  #ifdef DEBUG
+  else{
+    Serial.println(F("Setup Warning: Could not verify time!"));
+  }
+  #endif
 
-  HWHelper.system_sleep(); //power down prepare sleep
   delay(100);
-  
-  // configure low power timer
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  //initialize global time
+  bool condition = HWHelper.readTime(&oldtimeMark);
+  delay(30);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //init Irrigation Controller instance and update config
@@ -201,9 +215,33 @@ void setup() {
   delay(1);
   // update the config file stored in spiffs
   // in order to work a RasPi with node-red and configured flow is needed
-  HWHelper.updateConfig(CONFIG_FILE_PATH);
+  HWHelper.syncConfig();
+  // TEST DEVICE CONFIGURATION
+  SwitchController status_switches(&HWHelper); // initialize switch class
+
+Serial.print("Free heap memory: ");
+Serial.println(ESP.getFreeHeap());
+Serial.print("Test DEVICE CONFIG!");
+DynamicJsonDocument doc(512);
+Serial.print("Free heap memory: ");
+Serial.println(ESP.getFreeHeap());
+String p = IRRIG_CONFIG_PATH; // Make sure IRRIG_CONFIG_PATH is defined somewhere
+String p2 = JSON_SUFFIX;
+String filePath = p + p2; // Concatenate to form the file path
+DynamicJsonDocument jsonDoc = HWHelper.readConfigFile(filePath.c_str());
+Serial.println("TESTING FILE RETURNS!");
+Serial.println(jsonDoc.isNull());
+String f_jsonDoc;
+serializeJson(jsonDoc, f_jsonDoc);
+Serial.println("Irrig file: ");
+Serial.println(f_jsonDoc);
+
+Serial.print("Free heap memory: ");
+Serial.println(ESP.getFreeHeap());
 
   HWHelper.system_sleep(); //power down prepare sleep
+  delay(100);
+
 }
 
 //######################################################################################################################
@@ -219,8 +257,9 @@ void loop(){
 // manage sleep and updating of configuration
 while(checkSleepTask()){
 }
+Serial.print(F("INIT SWITCHES:"));
 SwitchController status_switches(&HWHelper); // initialize switch class
-status_switches.updateSwitches();
+//status_switches.updateSwitches(); // get called when initialized
 
 // print system status
 #ifdef DEBUG
@@ -253,6 +292,11 @@ else{
 if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timing is handled by irrigation class
   irrigationTask();
 }
+#ifdef DEBUG
+else{
+Serial.print(F("Irrigation not set, satus: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
+}
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // end loop
@@ -299,14 +343,15 @@ long sensoringTask(){
   std::vector<SensorData> dataVecTest;
 
   DynamicJsonDocument configf(CONF_FILE_SIZE);
-  configf = HWHelper.readConfigFile(CONFIG_FILE_PATH);
+  String path = String(SENS_CONFIG_PATH) + String(JSON_SUFFIX);
+  configf = HWHelper.readConfigFile(path.c_str());
   JsonObject obj;
 
   //float test = Sensors.onewirehandler();
   //Serial.print("ds18b20 temp: "); Serial.println(test);
 
   // handle analog pins
-  obj = configf["sensor"].as<JsonObject>();
+  obj = configf.as<JsonObject>();
 
   if(obj){
     for (JsonObject::iterator it = obj.begin(); it != obj.end(); ++it){
@@ -355,25 +400,31 @@ bool irrigationTask(){
   delay(30);
 
   // load config file
-  JsonObject groups = HWHelper.getJsonObjects("group", CONFIG_FILE_PATH);
-
-  // check for valid object
-  if (groups.isNull()) {
+  String path = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
+  DynamicJsonDocument doc = HWHelper.getJsonDoc(path.c_str());
+  JsonObject groups;
+  // Check if the document is not null and contains a JsonObject
+  if (doc.isNull() || !doc.is<JsonObject>()) {
     #ifdef DEBUG
-    Serial.println(F("Error: No 'Group' found in file!"));
+    Serial.println(F("Warning: Configuration not valid!"));
     #endif
-    thirsty = false; // break loop and continue programm
+    return false;
   }
-
-  // get number of kv pairs within JSON object
+  groups = doc.as<JsonObject>();
   int numgroups = groups.size();
-
   // sanity check
   if (numgroups > max_groups) {
     #ifdef DEBUG
     Serial.println(F("Warning: too many groups! Exiting procedure"));
     #endif
-    thirsty = false;
+    return false;
+  }
+  // check for valid object
+  if (groups.isNull()) {
+    #ifdef DEBUG
+    Serial.println(F("Error: No 'Group' found in file!"));
+    #endif
+    return false; // break loop and continue programm
   }
 
   // load empty irrigationcontroller instances 
@@ -382,26 +433,31 @@ bool irrigationTask(){
 
   // Iterate over each group and load the config
   for (JsonObject::iterator groupIterator = groups.begin(); groupIterator != groups.end(); ++groupIterator) {
-    // Check if j exceeds the maximum number of groups
-    if (j >= numgroups) {
-      #ifdef DEBUG
-      Serial.println(F("Warning: Too many groups! Exiting procedure"));
-      #endif
-      thirsty = false;
-      break;
-    }
-
     // Load schedule configuration for the current group
+    if (String(groupIterator->key().c_str()) == String("checksum")){
+      continue; // skip checksum (TODO: idea for rework of config files, then this "forbiden" name would be ok {"name"{config},"checksum":"asdfxcz"})
+    }
     bool success = Group[j].loadScheduleConfig(*groupIterator);
     if (!success) { // if it fails reset class instance
       #ifdef DEBUG
-      Serial.println(F("Error: Failed to load schedule configuration for group"));
+      Serial.print(F("Error: Failed to load schedule, for: '["));
+      Serial.print(groupIterator->key().c_str());
+      JsonObject groupData = groupIterator->value();
+      Serial.print(F("] data: "));
+      serializeJson(groupData, Serial); Serial.println(F("'"));
       #endif
       // Reset the class to an empty state
       Group[j].reset();
       break;
     }
-
+    /*
+#ifdef DEBUG
+Serial.print(F("Error: Failed to load schedule, for: '["));
+Serial.print(groupIterator->key().c_str());
+JsonObject groupData = groupIterator->value();
+Serial.print(F("] data: "));
+serializeJson(groupData, Serial); Serial.println(F("'"));
+#endif*/
     // Increment j for the next group
     j++;
   }
@@ -466,7 +522,7 @@ bool checkSleepTask(){
   byte rtc_status = HWHelper.readTime(&newtimeMark); // update current timestamp
 
   #ifdef DEBUG_SPAM
-  Serial.print(F("Rtc Status: ")); Serial.println(!rtc_status);
+  Serial.print(F("Info: Rtc Status: ")); Serial.println(!rtc_status);
   #endif
   #ifdef DEBUG
   String time = HWHelper.timestampNTP();
@@ -478,13 +534,35 @@ bool checkSleepTask(){
   delay(1);
   // update config
   // in order to work a RasPi with node-red and configured flow is needed
-  HWHelper.updateConfig(CONFIG_FILE_PATH);
+  HWHelper.syncConfig();
 
   // load update configuration
   SwitchController controller_switches(&HWHelper);
   controller_switches.updateSwitches();
-
-  //hour_ = 0; //DEBUG
+  /*
+  #ifdef DEBUG
+  Serial.print(F("NEW Time: "));
+  Serial.print(newtimeMark.tm_hour); // Print hours
+  Serial.print(F(":"));
+  Serial.print(newtimeMark.tm_min);  // Print minutes
+  Serial.print(F(" Date: "));
+  Serial.print(newtimeMark.tm_mday); // Print day of the month
+  Serial.print(F("/"));
+  Serial.print(newtimeMark.tm_mon + 1); // Print month (tm_mon is 0-11, so add 1)
+  Serial.print(F("/"));
+  Serial.println(newtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
+  Serial.print(F("OLD Time: "));
+  Serial.print(oldtimeMark.tm_hour); // Print hours
+  Serial.print(F(":"));
+  Serial.print(oldtimeMark.tm_min);  // Print minutes
+  Serial.print(F(" Date: "));
+  Serial.print(oldtimeMark.tm_mday); // Print day of the month
+  Serial.print(F("/"));
+  Serial.print(oldtimeMark.tm_mon + 1); // Print month (tm_mon is 0-11, so add 1)
+  Serial.print(F("/"));
+  Serial.println(oldtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
+  #endif
+  */
   // check for hour change and update config
   //if(true){
   if((newtimeMark.tm_hour != oldtimeMark.tm_hour) && (rtc_status) && (controller_switches.getMainSwitch())){
@@ -492,10 +570,9 @@ bool checkSleepTask(){
     HWHelper.readTime(&oldtimeMark); // update long time timestamp
 
     // setup empty class instance & check timetables
-    IrrigationController controller;
-    delay(30);
+    delay(5);
     // combine timetables
-    timetable = controller.combineTimetables();
+    timetable = IrrigationController::combineTimetables();
 
     #ifdef DEBUG
     Serial.print(F("Combined timetable:"));
@@ -509,11 +586,11 @@ bool checkSleepTask(){
       if(controller_switches.getIrrigationSystemSwitch())
       {
         thirsty = true; //initialize watering phase
-        Serial.println(F("Watering ON"));
+        Serial.println(F("Watering ON: starting"));
       }
       else{
         thirsty = false;
-        Serial.println(F("Watering OFF"));
+        Serial.println(F("Watering OFF: do nothing"));
       }
       #endif
     }
@@ -533,8 +610,12 @@ bool checkSleepTask(){
     breakTime = millis() + 600000UL; // reduce time to once per hour if intervall is bigger
   }
   else{
-    breakTime = nextActionTime;
+    breakTime = nextActionTime + millis() + 10;
   }
+  #ifdef DEBUG
+  Serial.print(F("Waking in: ")); Serial.print(breakTime/1000);
+  Serial.println(F(" seconds!"));
+  #endif
 
   delay(3);
   while(true){ // sleep until break
@@ -551,7 +632,12 @@ bool checkSleepTask(){
     Serial.print(F("Sleeping: Wifi status: ")); Serial.println(WiFi.status());
     #endif
   }
-
+  #ifdef DEBUG
+  Serial.println(F("Config: ")); Serial.print(F("Main switch: ")); Serial.println(controller_switches.getMainSwitch());
+  Serial.print(F("Irrigation switch: ")); Serial.println(controller_switches.getIrrigationSystemSwitch());
+  Serial.print(F("Measurement switch: ")); Serial.println(controller_switches.getDatalogingSwitch());
+  Serial.print(F("Timetable: ")); Serial.println(timetable, BIN);
+  #endif
   // exit whole loop only if system is switched ON
   if(controller_switches.getMainSwitch()){ // condition get checked with little delay!
     return false;

@@ -16,6 +16,8 @@
 
 class SwitchController {
   private:
+    String name; // device name
+
     // SWITCH VARIABLES:
     bool main_switch; // main switch
     bool dataloging_switch; // dataloging switch
@@ -36,6 +38,7 @@ class SwitchController {
     bool updateSwitches();
 
     // Getters
+    String getName();
     bool getMainSwitch();
     bool getDatalogingSwitch();
     bool getIrrigationSystemSwitch();
