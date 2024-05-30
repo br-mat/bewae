@@ -1,130 +1,147 @@
 [
     {
-        "id": "ca18495f6f6a16ae",
+        "id": "450f83c2a1abd42e",
         "type": "tab",
-        "label": "bewae-working",
+        "label": "bewae-newBeta",
         "disabled": false,
         "info": "",
         "env": []
     },
     {
-        "id": "ed1d1764feb8f1e9",
+        "id": "861fe85e251ead40",
         "type": "http in",
-        "z": "ca18495f6f6a16ae",
+        "z": "450f83c2a1abd42e",
         "name": "bewae config page",
         "url": "/bewae-working",
         "method": "get",
         "upload": false,
         "swaggerDoc": "",
-        "x": 170,
-        "y": 120,
+        "x": 210,
+        "y": 140,
         "wires": [
             [
-                "3d3b36e3782abc35"
+                "ba4ffedf762aac97"
             ]
         ]
     },
     {
-        "id": "53827f0afa4f6d0c",
-        "type": "json",
-        "z": "ca18495f6f6a16ae",
-        "name": "",
-        "property": "payload",
-        "action": "",
-        "pretty": false,
-        "x": 550,
-        "y": 300,
-        "wires": [
-            [
-                "111cbba3243539ee",
-                "212711423decc1dd"
-            ]
-        ]
-    },
-    {
-        "id": "3d3b36e3782abc35",
+        "id": "ba4ffedf762aac97",
         "type": "template",
-        "z": "ca18495f6f6a16ae",
+        "z": "450f83c2a1abd42e",
         "name": "",
         "field": "payload",
         "fieldType": "msg",
         "format": "handlebars",
         "syntax": "mustache",
-        "template": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Bewae V3</title>\n  <style>\n  body {\n    margin: 0;\n    padding: 0;\n    font-family: Arial, sans-serif;\n  }\n\n  .violet-bar {\n    background-color: rgba(80, 30, 120, 0.9);\n    color: white;\n    padding: 20px;\n    text-align: left;\n    position: fixed;\n    width: 100%;\n    top: 0;\n    z-index: 2;\n  }\n\n  .sidebar {\n    height: 100%;\n    width: 250px;\n    position: fixed;\n    z-index: 1;\n    top: 58px;\n    left: 0;\n    background-color: rgba(80, 30, 120, 0.6);\n    overflow-x: hidden;\n    padding-top: 20px;\n  }\n\n  .sidebar a {\n    padding: 6px 8px 6px 16px;\n    text-decoration: none;\n    font-size: 25px;\n    color: #fff;\n    display: block;\n  }\n\n  .main-content {\n    margin-left: 250px;\n    padding: 20px;\n    margin-top: 60px;\n  }\n\n  .sidebar a:hover {\n    color: #f1f1f1;\n    background-color: rgba(255, 255, 255, 0.1);\n  }\n\n  /* Watering Table specific styling */\n  .table-container {\n    width: 100%;\n    margin: 0 auto;\n  }\n\n  #plantTable {\n    border-collapse: collapse;\n    width: 100%;\n  }\n\n  #plantTable th, #plantTable td {\n    border: 1px solid #ddd;\n    padding: 8px;\n    text-align: center;\n  }\n\n  #plantTable th {\n    background-color: #f2f2f2;\n  }\n\n  /* Style for every second row of the plant table */\n  #plantTable tr:nth-child(even) {\n    background-color: #d2abff; /* A light violet shade */\n  }\n\n  .plant-form {\n    margin-top: 20px;\n  }\n\n  .plant-form label {\n    display: block;\n    margin-bottom: 5px;\n  }\n\n  .plant-form input[type=\"text\"],\n  .plant-form input[type=\"number\"] {\n    width: 100%;\n    padding: 8px;\n    margin-bottom: 10px;\n    box-sizing: border-box;\n  }\n\n  .plant-form .add-plant-button {\n    background-color: #4CAF50;\n    color: white;\n    padding: 10px 20px;\n    border: none;\n    cursor: pointer;\n  }\n  \n  .plant-form .add-plant-button:hover {\n    background-color: #45a049;\n  }\n\n  /* Edit button specific styling */\n  .edit-button {\n    background-color: #f39c12;\n    color: black;\n  }\n  .edit-button:hover{\n    background-color: #f3ca12;\n  }\n\n  /* Delete button specific styling */\n  .delete-button {\n    background-color: #8e44ad;\n  }\n  .delete-button:hover {\n    background-color: #da4ced;\n  }\n  \n  /* Button hover effect for edit, delete, and add actions */\n  .edit-button:hover, .delete-button:hover, .add-plant-button:hover {\n    box-shadow: 0 6px 12px 0 rgba(0,0,0,0.3);\n  }\n\n  /* Save button specific styling */\n.save-button {\n  background-color: #f39c12;\n  color: black;\n  display: none; /* Save button starts hidden */\n}\n\n.save-button:hover {\n  background-color: #f3ca12;\n  box-shadow: 0 6px 12px 0 rgba(0,0,0,0.3);\n}\n\n/* Ensure the text color remains solid on interaction */\n.edit-button, .save-button, .delete-button {\n  /* ... existing styles ... */\n  color: black; /* Explicitly set the text color */\n}\n\n.edit-button:focus, .save-button:focus, .delete-button:focus,\n.edit-button:active, .save-button:active, .delete-button:active {\n  opacity: 1; /* Maintain full opacity on focus/active */\n  color: black; /* Maintain text color on focus/active */\n}\n\n.button-container {\n  margin-top: 1.5em; /* This will be relative to the current font size */\n}\n\n  /* Sensor Table specific styling */\n  #sensorTable {\n    border-collapse: collapse;\n    width: 100%;\n  }\n\n  #sensorTable th, #sensorTable td {\n    border: 1px solid #ddd;\n    padding: 8px;\n    text-align: center;\n  }\n\n  #sensorTable th {\n    background-color: #f2f2f2;\n  }\n\n  /* Style for every second row of the sensor table */\n  #sensorTable tr:nth-child(even) {\n    background-color: #d2abff; /* A light violet shade */\n  }\n\n  /* Sensor Form specific styling */\n  .sensor-form {\n    margin-top: 20px;\n  }\n\n  .sensor-form label {\n    display: block;\n    margin-bottom: 5px;\n  }\n\n  .sensor-form input[type=\"text\"],\n  .sensor-form input[type=\"number\"] {\n    width: 100%;\n    padding: 8px;\n    margin-bottom: 10px;\n    box-sizing: border-box;\n  }\n\n#additionalConfig .save-config-button {\n  background-color: #4CAF50;\n  color: white;\n  padding: 10px 20px;\n  border: none;\n  cursor: pointer;\n}\n\n#additionalConfig .save-config-button:hover {\n  background-color: #45a049;\n}\n\n\n/* Style the form rows */\n.form-row {\n  margin-bottom: 15px;\n}\n\n/* The switch - the box around the slider */\n.switch {\n  position: relative;\n  display: inline-block;\n  width: 50px; /* Adjusted width */\n  height: 25px; /* Adjusted height */\n}\n\n/* Hide default HTML checkbox */\n.switch input {\n  opacity: 0;\n  width: 0;\n  height: 0;\n}\n\n/* The slider */\n.slider {\n  position: absolute;\n  cursor: pointer;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  background-color: #ccc; /* Light grey background */\n  -webkit-transition: .4s;\n  transition: .4s;\n}\n\n.slider:before {\n  position: absolute;\n  content: \"\";\n  height: 21px; /* Adjusted height */\n  width: 21px; /* Adjusted width */\n  left: 2px; /* Adjusted left position */\n  bottom: 2px; /* Adjusted bottom position */\n  background-color: #808080; /* Default grey color for ball */\n  -webkit-transition: .4s;\n  transition: .4s;\n}\n\ninput:checked + .slider {\n  background-color: #d2abff; /* Light violet shade when on */\n}\n\ninput:focus + .slider {\n  box-shadow: 0 0 1px #d2abff; /* Light violet shade for focus */\n}\n\ninput:checked + .slider:before {\n  background-color: #8e44ad; /* Deep purple color for ball when on */\n  -webkit-transform: translateX(25px); /* Adjusted translateX value */\n  -ms-transform: translateX(25px); /* Adjusted translateX value */\n  transform: translateX(25px); /* Adjusted translateX value */\n}\n\n/* Rounded sliders */\n.slider.round {\n  border-radius: 34px;\n}\n\n.slider.round:before {\n  border-radius: 50%;\n}\n\n.sensor-form .add-sensor-button {\n  background-color: #4CAF50;\n  color: white;\n  padding: 10px 20px;\n  border: none;\n  cursor: pointer;\n}\n\n.sensor-form .add-sensor-button:hover {\n  background-color: #45a049;\n}\n\n/* Dropdown Selectors Styling */\nselect {\n  padding: 8px 12px;\n  border: 1px solid #ccc;\n  border-radius: 4px;\n  background-color: #d2abff; /* Light violet shade to match the table row */\n  cursor: pointer;\n  outline: none;\n  color: #333; /* Text color for better readability */\n}\n\nselect:hover {\n  background-color: #e4c7ff; /* A lighter violet shade for hover state */\n}\n\nselect:focus {\n  border-color: #8e44ad; /* Violet shade for focus border to match the delete button */\n}\n\n\n\n\n  /* Dropdown Menu specific styling */\n  /* Dropdown Button */\n  .dropbtn {\n    background-color: #4CAF50;\n    color: white;\n    padding: 16px;\n    font-size: 16px;\n    border: none;\n    cursor: pointer;\n  }\n\n  /* The container <div> - needed to position the dropdown content */\n  .dropdown {\n    position: relative;\n    display: inline-block;\n  }\n\n  /* Dropdown Content (Hidden by Default) */\n  .dropdown-content {\n    display: none;\n    position: absolute;\n    background-color: #f9f9f9;\n    min-width: 160px;\n    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);\n    z-index: 1;\n  }\n\n  /* Links inside the dropdown */\n  .dropdown-content a {\n    color: black;\n    padding: 12px 16px;\n    text-decoration: none;\n    display: block;\n  }\n\n  /* Change color of dropdown links on hover */\n  .dropdown-content a:hover {background-color: #f1f1f1}\n\n  /* Show the dropdown menu when the button is clicked */\n  .dropdown-content.show {\n    display: block;\n  }\n  </style>\n\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <!-- Your head content -->\n</head>\n<body>\n  <!-- Navigation bar with title -->\n  <div class=\"violet-bar\">Bewae V3</div>\n\n  <!-- Sidebar -->\n  <div class=\"sidebar\">\n    <a href=\"#welcome\" onclick=\"showSection('welcome')\">Welcome Page</a>\n    <a href=\"#additionalConfig\" onclick=\"showSection('additionalConfig')\">Device</a>\n    <a href=\"#watering\" id=\"wateringLink\" onclick=\"showSection('watering')\">Irrigation</a>\n    <a href=\"#sensors\" onclick=\"showSection('sensors')\">Sensors</a>\n  </div>\n\n  <!-- Main content area -->\n  <div class=\"main-content\">\n    <!-- Welcome content -->\n    <div id=\"welcome\">\n      <h2>Welcome to Bewae V3!</h2>\n      <p>Please select an option from the sidebar to get started.</p>\n    </div>\n\n    <!-- Watering System content -->\n    <div id=\"watering\" style=\"display:none;\">\n      <div class=\"table-container\">\n        <h2>Watering System Configuration</h2>\n        <!-- Table container for displaying plant data -->\n        <div class=\"table-container\">\n          <table id=\"plantTable\">\n            <tr>\n              <th>Plant Name</th>\n              <th>Default Water</th>\n              <th>Plant Size</th>\n              <th>Pot Size</th>\n              <th>Water Times</th>\n              <th>vPins</th>\n              <th>Set</th>\n              <th>Actions</th>\n            </tr>\n            <!-- Rows with plant data will be dynamically added here -->\n          </table>\n        </div>\n\n        <!-- Form for adding new plant data -->\n        <div class=\"plant-form\">\n          <form id=\"plantForm\">\n            <label for=\"pn\">Plant Name:</label>\n            <input type=\"text\" id=\"pn\">\n\n            <label for=\"pw\">Default Water:</label>\n            <input type=\"number\" id=\"pw\">\n\n            <label for=\"pls\">Plant Size:</label>\n            <input type=\"number\" id=\"pls\">\n\n            <label for=\"pts\">Pot Size:</label>\n            <input type=\"number\" id=\"pts\">\n\n            <label for=\"wt\">Water Times (comma-separated):</label>\n            <input type=\"text\" id=\"wt\">\n\n            <label for=\"pp\">vPins (comma-separated):</label>\n            <input type=\"text\" id=\"pp\">\n\n            <label for=\"ps\">Set:</label>\n            <select id=\"ps\">\n              <option value=\"1\">True</option>\n              <option value=\"0\">False</option>\n            </select>\n            <!-- Add a div with a class for styling the button -->\n            <div class=\"button-container\">\n              <button type=\"button\" class=\"add-plant-button\" onclick=\"addItem(plantConfig)\">Add Plant</button>\n            </div>\n          </form>\n        </div>\n      </div>\n    </div>\n\n    <!-- Sensors content -->\n    <div id=\"sensors\" style=\"display:none;\">\n      <h2>Sensor Configuration</h2>\n      <div class=\"table-container\">\n        <table id=\"sensorTable\">\n          <tr>\n            <th>Sensor Name</th>\n            <th>Field</th>\n            <th>vPins</th>\n            <th>High Limit</th>\n            <th>Low Limit</th>\n            <th>Set</th>\n            <th>Actions</th>\n          </tr>\n          <!-- Rows with sensor data will be dynamically added here -->\n        </table>\n      </div>\n\n      <!-- Sensor Form -->\n      <div class=\"sensor-form\">\n        <form id=\"sensorForm\">\n          <label for=\"sn\">Sensor Name:</label>\n          <input type=\"text\" id=\"sn\">\n\n          <label for=\"sf\">Field:</label>\n          <select id=\"sf\" name=\"field\">\n            <option value=\"bmetemp\">BME280 Temperature</option>\n            <option value=\"bmehum\">BME280 Humidity</option>\n            <option value=\"bmepress\">BME280 Pressure</option>\n            <option value=\"soiltemp\">Soil Temperature</option>\n            <option value=\"analog\">Analog Measurement</option>\n            <option value=\"vanalog\">V Analog Measurement</option>\n            <!-- Add more options as needed -->\n          </select>\n\n          <label for=\"sp\">vPin:</label>\n          <input type=\"number\" id=\"sp\">\n\n          <label for=\"hl\">High Limit:</label>\n          <input type=\"number\" id=\"hl\">\n\n          <label for=\"ll\">Low Limit:</label>\n          <input type=\"number\" id=\"ll\">\n\n          <label for=\"ss\">Set:</label>\n          <select id=\"ss\">\n            <option value=\"1\">True</option>\n            <option value=\"0\">False</option>\n          </select>\n\n          <!-- Add a div with a class for styling the button -->\n          <div class=\"button-container\">\n            <button type=\"button\" class=\"add-sensor-button\" onclick=\"addItem(sensorConfig)\">Add Sensor</button>\n          </div>\n          \n        </form>\n      </div>\n    </div>\n\n<!-- Device Config content -->\n<div id=\"additionalConfig\" style=\"display:none;\">\n  <h2>Device Configuration</h2>\n  <form id=\"deviceConfigForm\">\n    <div class=\"form-row\">\n      <label for=\"dn\">Device Name:</label>\n      <input type=\"text\" id=\"dn\" name=\"deviceName\">\n    </div>\n    \n    <!-- Toggle switch for 'mssr' -->\n    <div class=\"form-row\">\n      <label for=\"mssr\">Datalogging Switch:</label>\n      <label class=\"switch\">\n        <input type=\"checkbox\" id=\"mssr\" name=\"mssr\">\n        <span class=\"slider round\"></span>\n      </label>\n    </div>\n\n    <!-- Toggle switch for 'irig' -->\n    <div class=\"form-row\">\n      <label for=\"irig\">Irrigation System Switch:</label>\n      <label class=\"switch\">\n        <input type=\"checkbox\" id=\"irig\" name=\"irig\">\n        <span class=\"slider round\"></span>\n      </label>\n    </div>\n\n    <!-- Add other configuration fields as needed -->\n    \n    <div class=\"button-container\">\n      <button type=\"button\" class=\"save-config-button\" onclick=\"addConfig(deviceConfig)\">Save Configuration</button>\n    </div>\n  </form>\n</div>\n\n\n  <script>\n    /*\n    function saveData(tableId, endpoint, keysMapping, inputTypes) {\n      const table = document.getElementById(tableId);\n      const rows = table.rows;\n\n      const data = [];\n      //const data = {};\n\n      // Iterate over each row (skip the header row)\n      for (let i = 1; i < rows.length; i++) {\n        const row = rows[i];\n        const cells = row.cells;\n        const rowData = {};\n\n        // Iterate over each cell in the row\n        for (let j = 0; j < cells.length - 1; j++) {\n          const key = Object.keys(keysMapping)[j];\n          const shortKey = keysMapping[key];\n          let value = cells[j].innerText;\n          rowData[shortKey] = value;\n          // Parse and format the cell value\n          //rowData[shortKey] = parseValue(value, shortKey);\n        }\n\n        // Format the rowData object to ensure consistent data types\n        const formattedRowData = formatDataItem(rowData, inputTypes);\n\n        // Add the formattedRowData object to the data array\n        data.push(formattedRowData);\n      }\n\n      // Convert the data array to JSON string\n      const jsonData = JSON.stringify(data);\n\n      // Send the JSON data using XMLHttpRequest\n      const xhr = new XMLHttpRequest();\n      xhr.open(\"POST\", endpoint, true);\n      xhr.setRequestHeader('Content-Type', 'application/json');\n      xhr.onreadystatechange = function() {\n        if (xhr.readyState === XMLHttpRequest.DONE) {\n          if (xhr.status === 200) {\n            console.log('Data saved successfully:', xhr.responseText);\n          } else {\n            console.error('Failed to save data. Status:', xhr.status);\n          }\n        }\n      };\n      xhr.send(jsonData);\n    }*/\n\nfunction saveData(tableId, endpoint, keysMapping, inputTypes) {\n  const table = document.getElementById(tableId);\n  const rows = table.rows;\n\n  // Initialize data as an array\n  const data = [];\n\n  // Iterate over each row (skip the header row)\n  for (let i = 1; i < rows.length; i++) {\n    const row = rows[i];\n    const cells = row.cells;\n    const rowData = {};\n\n    // Iterate over each cell in the row\n    for (let j = 0; j < cells.length - 1; j++) {\n      const key = Object.keys(keysMapping)[j];\n      const shortKey = keysMapping[key];\n      let value = cells[j].innerText;\n      rowData[shortKey] = value;\n      // Uncomment and implement parseValue if needed\n      // rowData[shortKey] = parseValue(value, shortKey);\n    }\n\n    // Format the rowData object to ensure consistent data types\n    const formattedRowData = formatDataItem(rowData, inputTypes);\n\n    // Add the formattedRowData object to the data array\n    data.push(formattedRowData);\n  }\n\n  // Convert the data array to an object with indices as keys\n  const dataObject = data.reduce((obj, item, index) => {\n    obj[index] = item; // Using the index as the key\n    return obj;\n  }, {});\n\n  // Convert the data object to JSON string\n  const jsonData = JSON.stringify(dataObject);\n\n  // Send the JSON data using XMLHttpRequest\n  const xhr = new XMLHttpRequest();\n  xhr.open(\"POST\", endpoint, true);\n  xhr.setRequestHeader('Content-Type', 'application/json');\n  xhr.onreadystatechange = function() {\n    if (xhr.readyState === XMLHttpRequest.DONE) {\n      if (xhr.status === 200) {\n        console.log('Data saved successfully:', xhr.responseText);\n      } else {\n        console.error('Failed to save data. Status:', xhr.status);\n      }\n    }\n  };\n  xhr.send(jsonData);\n}\n\n\n    function parseValue(value, elementId) {\n      // If the elementId a name, 'sn' or 'pn', always treat the value as a string\n      if (elementId === 'sn' || elementId === 'pn') {\n        return value.length > 20 ? value.substring(0, 20) : value;\n      }\n\n      // Check for comma-separated values and convert to array if all are numbers\n      if (value.includes(',')) {\n        const valuesArray = value.split(',').map(item => item.trim());\n        if (valuesArray.every(item => !isNaN(item) && item)) {\n          return valuesArray.map(item => parseFloat(item));\n        }\n      }\n\n      // Convert to number if it's a valid number, otherwise return as string\n      if (!isNaN(value) && value.trim() !== '') {\n        return parseFloat(value);\n      } else {\n        // Truncate the string to the first 8 characters if it's longer\n        return value.length > 8 ? value.substring(0, 8) : value;\n      }\n    }\n\n    function formatDataItem(item, inputTypes) {\n      // Helper function to parse string to array of numbers\n      function parseStringToArray(str) {\n        // Check if the input string is empty and return an empty array if true\n        if (str === \"\") {\n          return [];\n        }\n        // Otherwise, split the string and convert to numbers as before\n        return str.split(',').map(s => s.trim()).map(Number).filter(n => !isNaN(n));\n      }\n\n      // Iterate over each key in the item\n      for (const key in item) {\n        const expectedType = inputTypes[key];\n        let value = item[key];\n\n        // Preprocess string values for 'array' and 'timetable' types\n        if (typeof value === 'string' && (expectedType === 'array' || expectedType === 'timetable')) {\n          //console.log(\"RAW Logging array data: \", key, \" val: \", value);\n          value = parseStringToArray(value);\n        }\n\n        switch (expectedType) {\n          case 'array':\n            //console.log(\"Logging array data: \", key, \" val: \", value);\n            // Ensure the value is an array and contains only numbers, or an empty array if no valid numbers\n            item[key] = Array.isArray(value) && value.length > 0 ? value : [];\n            break;\n          case 'string':\n            // Ensure the value is a string with a maximum of 20 characters, or an empty string if invalid\n            item[key] = typeof value === 'string' ? value.substring(0, 20) : '';\n            break;\n          case 'number':\n            // Ensure the value is a number (int or float), negatives allowed, or 0 if invalid\n            item[key] = !isNaN(parseFloat(value)) && isFinite(value) ? Number(value) : 0;\n            break;\n          case 'timetable':\n            // Convert array of hours to a binary representation, or 0 if the array is empty\n            item[key] = Array.isArray(value) && value.length > 0 ? value.reduce((binary, hour) => binary | (1 << hour), 0) : 0;\n            console.log(\"Logging timetable value : \", value, \" item key: \", item[key]);\n            break;\n          // Add more cases as needed for different types\n        }\n      }\n      return item;\n    }\n\n    function initializeTable(config) {\n      console.log('Initializing table with id:', config.tableId);\n\n      const table = document.getElementById(config.tableId);\n      if (!table) {\n        console.error('Table not found:', config.tableId);\n        return;\n      }\n\n      // Clear existing table rows, except the header\n      //console.log('Clearing existing rows except the header');\n      while (table.rows.length > 1) {\n        //console.log('Deleting row:', table.rows[1].innerHTML);\n        table.deleteRow(1);\n      }\n\n      console.log('Table cleared, now repopulating with new data');\n      const keys = Object.keys(config.keysMapping);\n      const fragment = document.createDocumentFragment();\n\n      // Helper function to convert number to timetable array\n      function numberToTimetable(num) {\n        const hours = [];\n        for (let i = 0; i < 24; i++) {\n          if (num & (1 << i)) {\n            hours.push(i);\n          }\n        }\n        return hours;\n      }\n\n      // Populate table with data using the fragment\n      Object.values(config.data).forEach((item, index) => {\n        const newRow = fragment.appendChild(document.createElement('tr'));\n        keys.forEach((key) => {\n          const shortKey = config.keysMapping[key];\n          let value = item.hasOwnProperty(shortKey) ? item[shortKey] : '';\n\n          // Handle the 'timetable' case\n          if (shortKey === 'wt') {\n            value = numberToTimetable(value);\n          }\n\n          const cell = newRow.appendChild(document.createElement('td'));\n          cell.innerHTML = Array.isArray(value) ? value.join(',') : value;\n        });\n\n        // Add action buttons at the end of the row\n        const actionCell = newRow.appendChild(document.createElement('td'));\n        actionCell.appendChild(createButton('Edit', 'edit-button', () => editItem(newRow, config)));\n        actionCell.appendChild(createButton('Save', 'save-button', () => saveItem(newRow, config), { display: 'none' }));\n        actionCell.appendChild(createButton('Delete', 'delete-button', () => deleteItem(newRow, config)));\n\n        //console.log(`Added row ${index + 1}:`, newRow.innerHTML);\n      });\n\n      // Append the fragment to the table\n      table.appendChild(fragment);\n      console.log('Table initialized successfully with new data');\n    }\n\n    function createButton(text, className, handler, style = {}) {\n      const button = document.createElement('button');\n      button.textContent = text;\n      button.className = className;\n      Object.assign(button.style, style);\n      button.onclick = handler; // Use onclick for simplicity\n      return button;\n    }\n\n    function addItem(config) {\n      const table = document.getElementById(config.tableId);\n      const newRow = table.insertRow();\n\n      // Iterate over the config.keysMapping to get values and set empty fields to 0 or convert to number\n      Object.entries(config.keysMapping).forEach(([displayName, dataName]) => {\n        const element = document.getElementById(dataName);\n        if (!element) return; // Skip if the element is not found\n        let value = element.value;\n        const cell = newRow.insertCell();\n        cell.innerHTML = value;\n      });\n\n      // Add action buttons at the end of the row using arrow functions\n      const actionCell = newRow.insertCell();\n      actionCell.appendChild(createButton('Edit', 'edit-button', () => editItem(newRow, config)));\n      actionCell.appendChild(createButton('Save', 'save-button', () => saveItem(newRow, config), { display: 'none' })); // Save button starts hidden\n      actionCell.appendChild(createButton('Delete', 'delete-button', () => deleteItem(newRow, config)));\n\n      // Call saveData to save the entire table\n      saveData(config.tableId, config.endpoint, config.keysMapping, inputTypes);\n      loadAndInitializeTable(plantConfig);\n    }\n\n    function editItem(row, config) {\n      // Convert all cells except the action cell to editable inputs\n      for (let i = 0; i < row.cells.length - 1; i++) {\n        const cell = row.cells[i];\n        const text = cell.innerText;\n        cell.innerHTML = `<input type='text' value='${text}' />`;\n      }\n\n      // Hide the 'Edit' and 'Delete' buttons and show the 'Save' button\n      row.querySelector('.edit-button').style.display = 'none';\n      row.querySelector('.delete-button').style.display = 'none';\n      row.querySelector('.save-button').style.display = 'inline';\n    }\n\n    function saveItem(row, config) {\n      // Save the new values from the input fields\n      for (let i = 0; i < row.cells.length - 1; i++) {\n        const input = row.cells[i].querySelector('input');\n        const text = input ? input.value : '';\n        row.cells[i].innerText = text;\n      }\n\n      // Show the 'Edit' button, hide the 'Save' button, and make 'Delete' button visible again\n      row.querySelector('.edit-button').style.display = 'inline';\n      row.querySelector('.save-button').style.display = 'none';\n      row.querySelector('.delete-button').style.display = 'inline';\n\n      // Call saveData to save the entire table\n      saveData(config.tableId, config.endpoint, config.keysMapping, inputTypes);\n      loadAndInitializeTable(plantConfig);\n    }\n\n    function deleteItem(row, config) {\n      // Get the table element by ID\n      const table = document.getElementById(config.tableId);\n      // Check if the row has a defined rowIndex and is not the header row\n      if (row.rowIndex > 0) {\n        // Delete the row from the table\n        table.deleteRow(row.rowIndex);\n        // Log the deletion for debugging\n        console.log(`Deleted row at index: ${row.rowIndex} from table: ${config.tableId}`);\n        // Call saveData function here with the provided endpoint\n        saveData(config.tableId, config.endpoint, config.keysMapping, inputTypes);\n        loadAndInitializeTable(plantConfig);\n      } else {\n        console.error('Attempted to delete a non-data row.');\n      }\n    }\n\n    /* Device Config */\n\n    function saveForm(formData, config) {\n      // Fetch existing data from dataEndpoint\n      fetch(config.dataEndpoint)\n        .then(response => {\n          if (!response.ok) {\n            throw new Error('Failed to fetch existing data');\n          }\n          return response.json();\n        })\n        .then(existingData => {\n          // Merge formData with existingData\n          const newData = { ...existingData, ...formData };\n\n          // Convert the data to JSON string\n          const jsonData = JSON.stringify(newData);\n\n          // Send the JSON data using XMLHttpRequest\n          const xhr = new XMLHttpRequest();\n          xhr.open(\"POST\", config.endpoint, true);\n          xhr.setRequestHeader('Content-Type', 'application/json');\n          xhr.onreadystatechange = function() {\n            if (xhr.readyState === XMLHttpRequest.DONE) {\n              if (xhr.status === 200) {\n                console.log('Data saved successfully:', xhr.responseText);\n              } else {\n                console.error('Failed to save data. Status:', xhr.status);\n              }\n            }\n          };\n          xhr.send(jsonData);\n        })\n        .catch(error => {\n          console.error('Error:', error.message);\n        });\n    }\n\n    function addConfig(config) {\n      // Get the form element\n      const form = document.getElementById(config.tableId);\n\n      // Serialize form data into an object\n      const formData = new FormData(form);\n      const dataObject = {};\n\n      // Iterate over each entry in keysMapping\n      Object.entries(config.keysMapping).forEach(([longName, shortName]) => {\n        // Find the form field corresponding to the short name\n        const formField = form.elements[shortName];\n        if (formField) {\n          // Check if the form field has a value\n          if (formField.type === 'checkbox') {\n            dataObject[shortName] = formField.checked ? 1 : 0;\n          } else if (formField.value.trim() !== '') {\n            dataObject[shortName] = formField.value;\n          }\n        }\n      });\n      // Save the serialized data\n      saveForm(dataObject, config);\n    }\n\n    function loadDeviceConfig(deviceConfig) {\n      fetch(deviceConfig.dataEndpoint)\n        .then(response => {\n          if (!response.ok) {\n            throw new Error('Network response was not ok');\n          }\n          return response.json();\n        })\n        .then(data => {\n          console.log('Fetched device config data:', data); // Log the fetched data\n\n          // Prefill the device name\n          const deviceNameInput = document.getElementById('dn');\n          if (deviceNameInput) {\n            deviceNameInput.value = data['dn'] || '';\n          } else {\n            console.error('Device name input not found');\n          }\n\n          // Set the checkbox state for 'mssr'\n          const mssrCheckbox = document.getElementById('mssr');\n          if (mssrCheckbox) {\n            mssrCheckbox.checked = data['mssr'] === 1;\n          } else {\n            console.error('MSSR checkbox not found');\n          }\n\n          // Set the checkbox state for 'irig'\n          const irigCheckbox = document.getElementById('irig');\n          if (irigCheckbox) {\n            irigCheckbox.checked = data['irig'] === 1;\n          } else {\n            console.error('IRIG checkbox not found');\n          }\n\n          // Handle other fields similarly\n        })\n        .catch(error => {\n          console.error('Error loading device config:', error);\n          // Handle error by showing a message to the user or retrying the fetch\n        });\n    }\n\n    /* Constants */\n    const plantConfig = {\n      tableId: 'plantTable',\n      keysMapping: {\n        \"Plant Name\": \"pn\",\n        \"Default Water\": \"pw\",\n        \"Plant Size\": \"pls\",\n        \"Pot Size\": \"pts\",\n        \"Water Times\": \"wt\",\n        \"vPins\": \"pp\",\n        \"Set\": \"ps\"\n      },\n      endpoint: '/bewae/save-plant',\n      dataEndpoint: '/bewae/get-irrig-config'\n    };\n\n    const sensorConfig = {\n      tableId: 'sensorTable',\n      keysMapping: {\n        \"Sensor Name\": \"sn\",\n        \"Field\": \"sf\",\n        \"vPins\": \"sp\",\n        \"High Limit\": \"hl\",\n        \"Low Limit\": \"ll\",\n        \"Set\": \"ss\"\n      },\n      endpoint: '/bewae/sensor-save',\n      dataEndpoint: '/bewae/get-sensor-config'\n    };\n\n    const deviceConfig = {\n      tableId: 'deviceConfigForm',\n      keysMapping: {\n        \"Device Name\": \"dn\",\n        \"System\":\"main\",\n        \"Measurements\":\"mssr\",\n        \"Irrigation\":\"irig\"\n      },\n      endpoint: '/bewae/device-save',\n      dataEndpoint: '/bewae/get-device-config'\n    };\n\n    // Define a mapping of keys to their expected types\n    const inputTypes = {\n      'pn': 'string',\n      'pw': 'number',\n      'pls': 'number',\n      'pts': 'number',\n      'wt': 'timetable',\n      'pp': 'array',\n      'ps': 'number',\n      'sn': 'string',\n      'sf': 'string',\n      'sp': 'number',\n      'hl': 'number',\n      'll': 'number',\n      'ss': 'number'\n    };\n\n    /* Init & load */\n    function loadAndInitializeTable(config) {\n      console.log(`Loading data for table with id: ${config.tableId}`);\n      \n      loadData(config.dataEndpoint).then(data => {\n        console.log(`Data loaded for table with id: ${config.tableId}, initializing table.`);\n        config.data = data; // Assign the loaded data to the config\n        initializeTable(config); // Initialize the table with the new data\n      }).catch(error => {\n        console.error(`Error loading data for table with id: ${config.tableId}:`, error);\n      });\n    }\n\n    // load data\n    function loadData(path) {\n      return fetch(path)\n        .then(response => {\n          if (!response.ok) {\n            throw new Error('Network response was not ok');\n          }\n          return response.json();\n        })\n        .then(data => {\n          console.log('Data loaded:', data);\n          return data;\n        })\n        .catch(error => {\n          console.error('There has been a problem with your fetch operation:', error);\n        });\n    }\n\n    function showSection(sectionId) {\n      // Hide all sections\n      document.querySelectorAll('.main-content > div').forEach(function(div) {\n        div.style.display = 'none';\n      });\n      // Show the selected section\n      document.getElementById(sectionId).style.display = 'block';\n    }\n\n    document.addEventListener('DOMContentLoaded', (event) => {\n      loadAndInitializeTable(plantConfig); // plant table\n      loadAndInitializeTable(sensorConfig); // sensor table\n      loadDeviceConfig(deviceConfig); // device configuration data\n    });\n\n    // Show the welcome section by default\n    showSection('welcome');\n  </script>\n</body>\n</html>\n",
+        "template": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Bewae V3</title>\n  <style>\n  body {\n    margin: 0;\n    padding: 0;\n    font-family: Arial, sans-serif;\n  }\n\n  .violet-bar {\n    background-color: rgba(80, 30, 120, 0.9);\n    color: white;\n    padding: 20px;\n    text-align: left;\n    position: fixed;\n    width: 100%;\n    top: 0;\n    z-index: 2;\n  }\n\n  .sidebar {\n    height: 100%;\n    width: 250px;\n    position: fixed;\n    z-index: 1;\n    top: 58px;\n    left: 0;\n    background-color: rgba(80, 30, 120, 0.6);\n    overflow-x: hidden;\n    padding-top: 20px;\n  }\n\n  .sidebar a {\n    padding: 6px 8px 6px 16px;\n    text-decoration: none;\n    font-size: 25px;\n    color: #fff;\n    display: block;\n  }\n\n  .main-content {\n    margin-left: 250px;\n    padding: 20px;\n    margin-top: 60px;\n  }\n\n  .sidebar a:hover {\n    color: #f1f1f1;\n    background-color: rgba(255, 255, 255, 0.1);\n  }\n\n  /* Watering Table specific styling */\n  .table-container {\n    width: 100%;\n    margin: 0 auto;\n  }\n\n  #plantTable {\n    border-collapse: collapse;\n    width: 100%;\n  }\n\n  #plantTable th, #plantTable td {\n    border: 1px solid #ddd;\n    padding: 8px;\n    text-align: center;\n  }\n\n  #plantTable th {\n    background-color: #f2f2f2;\n  }\n\n  /* Style for every second row of the plant table */\n  #plantTable tr:nth-child(even) {\n    background-color: #d2abff; /* A light violet shade */\n  }\n\n  .plant-form {\n    margin-top: 20px;\n  }\n\n  .plant-form label {\n    display: block;\n    margin-bottom: 5px;\n  }\n\n  .plant-form input[type=\"text\"],\n  .plant-form input[type=\"number\"] {\n    width: 100%;\n    padding: 8px;\n    margin-bottom: 10px;\n    box-sizing: border-box;\n  }\n\n  .plant-form .add-plant-button {\n    background-color: #4CAF50;\n    color: white;\n    padding: 10px 20px;\n    border: none;\n    cursor: pointer;\n  }\n  \n  .plant-form .add-plant-button:hover {\n    background-color: #45a049;\n  }\n\n  /* Edit button specific styling */\n  .edit-button {\n    background-color: #f39c12;\n    color: black;\n  }\n  .edit-button:hover{\n    background-color: #f3ca12;\n  }\n\n  /* Delete button specific styling */\n  .delete-button {\n    background-color: #8e44ad;\n  }\n  .delete-button:hover {\n    background-color: #da4ced;\n  }\n  \n  /* Button hover effect for edit, delete, and add actions */\n  .edit-button:hover, .delete-button:hover, .add-plant-button:hover {\n    box-shadow: 0 6px 12px 0 rgba(0,0,0,0.3);\n  }\n\n  /* Save button specific styling */\n  .save-button {\n    background-color: #f39c12;\n    color: black;\n    display: none; /* Save button starts hidden */\n  }\n\n  .save-button:hover {\n    background-color: #f3ca12;\n    box-shadow: 0 6px 12px 0 rgba(0,0,0,0.3);\n  }\n\n  /* Ensure the text color remains solid on interaction */\n  .edit-button, .save-button, .delete-button {\n    /* ... existing styles ... */\n    color: black; /* Explicitly set the text color */\n  }\n\n  .edit-button:focus, .save-button:focus, .delete-button:focus,\n  .edit-button:active, .save-button:active, .delete-button:active {\n    opacity: 1; /* Maintain full opacity on focus/active */\n    color: black; /* Maintain text color on focus/active */\n  }\n\n  .button-container {\n    margin-top: 1.5em; /* This will be relative to the current font size */\n  }\n\n  /* Style for Add Device button with black border */\n  #addDeviceButton {\n    background-color: #4CAF50; /* Green background */\n    color: white; /* White text */\n    border: 1px solid black; /* Black border */\n    border-radius: 5px; /* Rounded edges */\n    padding: 8px 12px;\n  }\n\n  #addDeviceButton:hover {\n    background-color: #45a049; /* Darker green background on hover */\n  }\n\n  /* Style for Delete Device button with black border */\n  #deleteDeviceButton {\n    background-color: #f44336; /* Red background */\n    color: white; /* White text */\n    border: 1px solid black; /* Black border */\n    border-radius: 5px; /* Rounded edges */\n    padding: 8px 12px;\n  }\n\n  #deleteDeviceButton:hover {\n    background-color: #d32f2f; /* Lighter red background on hover */\n  }\n\n  /* Sensor Table specific styling */\n  #sensorTable {\n    border-collapse: collapse;\n    width: 100%;\n  }\n\n  #sensorTable th, #sensorTable td {\n    border: 1px solid #ddd;\n    padding: 8px;\n    text-align: center;\n  }\n\n  #sensorTable th {\n    background-color: #f2f2f2;\n  }\n\n  /* Style for every second row of the sensor table */\n  #sensorTable tr:nth-child(even) {\n    background-color: #d2abff; /* A light violet shade */\n  }\n\n  /* Sensor Form specific styling */\n  .sensor-form {\n    margin-top: 20px;\n  }\n\n  .sensor-form label {\n    display: block;\n    margin-bottom: 5px;\n  }\n\n  .sensor-form input[type=\"text\"],\n  .sensor-form input[type=\"number\"] {\n    width: 100%;\n    padding: 8px;\n    margin-bottom: 10px;\n    box-sizing: border-box;\n  }\n\n  #additionalConfig .save-config-button {\n    background-color: #4CAF50;\n    color: white;\n    padding: 10px 20px;\n    border: none;\n    cursor: pointer;\n  }\n\n  #additionalConfig .save-config-button:hover {\n    background-color: #45a049;\n  }\n\n\n  /* Style the form rows */\n  .form-row {\n    margin-bottom: 15px;\n  }\n\n  /* The switch - the box around the slider */\n  .switch {\n    position: relative;\n    display: inline-block;\n    width: 50px; /* Adjusted width */\n    height: 25px; /* Adjusted height */\n  }\n\n  /* Hide default HTML checkbox */\n  .switch input {\n    opacity: 0;\n    width: 0;\n    height: 0;\n  }\n\n  /* The slider */\n  .slider {\n    position: absolute;\n    cursor: pointer;\n    top: 0;\n    left: 0;\n    right: 0;\n    bottom: 0;\n    background-color: #ccc; /* Light grey background */\n    -webkit-transition: .4s;\n    transition: .4s;\n  }\n\n  .slider:before {\n    position: absolute;\n    content: \"\";\n    height: 21px; /* Adjusted height */\n    width: 21px; /* Adjusted width */\n    left: 2px; /* Adjusted left position */\n    bottom: 2px; /* Adjusted bottom position */\n    background-color: #808080; /* Default grey color for ball */\n    -webkit-transition: .4s;\n    transition: .4s;\n  }\n\n  input:checked + .slider {\n    background-color: #d2abff; /* Light violet shade when on */\n  }\n\n  input:focus + .slider {\n    box-shadow: 0 0 1px #d2abff; /* Light violet shade for focus */\n  }\n\n  input:checked + .slider:before {\n    background-color: #8e44ad; /* Deep purple color for ball when on */\n    -webkit-transform: translateX(25px); /* Adjusted translateX value */\n    -ms-transform: translateX(25px); /* Adjusted translateX value */\n    transform: translateX(25px); /* Adjusted translateX value */\n  }\n\n  /* Rounded sliders */\n  .slider.round {\n    border-radius: 34px;\n  }\n\n  .slider.round:before {\n    border-radius: 50%;\n  }\n\n  .sensor-form .add-sensor-button {\n    background-color: #4CAF50;\n    color: white;\n    padding: 10px 20px;\n    border: none;\n    cursor: pointer;\n  }\n\n  .sensor-form .add-sensor-button:hover {\n    background-color: #45a049;\n  }\n\n  /* Dropdown Selectors Styling */\n  select {\n    padding: 8px 12px;\n    //border: 1px solid #ccc;\n    border: 1px solid black;\n    border-radius: 5px;\n    background-color: #d2abff; /* Light violet shade to match the table row */\n    cursor: pointer;\n    outline: none;\n    color: #333; /* Text color for better readability */\n  }\n\n  select:hover {\n    background-color: #e4c7ff; /* A lighter violet shade for hover state */\n  }\n\n  select:focus {\n    border-color: #8e44ad; /* Violet shade for focus border to match the delete button */\n  }\n\n  /* Dropdown Menu specific styling */\n  /* Dropdown Button */\n  .dropbtn {\n    background-color: #4CAF50;\n    color: white;\n    padding: 16px;\n    font-size: 16px;\n    border: none;\n    cursor: pointer;\n  }\n\n  /* The container <div> - needed to position the dropdown content */\n  .dropdown {\n    position: relative;\n    display: inline-block;\n  }\n\n  /* Dropdown Content (Hidden by Default) */\n  .dropdown-content {\n    display: none;\n    position: absolute;\n    background-color: #f9f9f9;\n    min-width: 160px;\n    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);\n    z-index: 1;\n  }\n\n  /* Links inside the dropdown */\n  .dropdown-content a {\n    color: black;\n    padding: 12px 16px;\n    text-decoration: none;\n    display: block;\n  }\n\n  /* Change color of dropdown links on hover */\n  .dropdown-content a:hover {background-color: #f1f1f1}\n\n  /* Show the dropdown menu when the button is clicked */\n  .dropdown-content.show {\n    display: block;\n  }\n</style>\n\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <!-- Your head content -->\n</head>\n<body>\n  <!-- Navigation bar with title -->\n  <div class=\"violet-bar\">Bewae V3</div>\n\n  <!-- Sidebar -->\n  <div class=\"sidebar\">\n    <a href=\"#welcome\" onclick=\"showSection('welcome')\">Welcome Page</a>\n    <a href=\"#additionalConfig\" onclick=\"showSection('additionalConfig')\">Device</a>\n    <a href=\"#watering\" id=\"wateringLink\" onclick=\"showSection('watering')\">Irrigation</a>\n    <a href=\"#sensors\" onclick=\"showSection('sensors')\">Sensors</a>\n  </div>\n\n  <!-- Main content area -->\n  <div class=\"main-content\">\n    <!-- Welcome content -->\n    <div id=\"welcome2\">\n      <h2>Welcome to Bewae V3!</h2>\n      <p>Please select an option from the sidebar to get started.</p>\n    </div>\n\n  <!-- Welcome content -->\n  <div id=\"welcome\">\n    <h2>Welcome to Bewae V3!</h2>\n    <p>Please select an option from the sidebar to get started.</p>\n\n      <div id=\"deviceSelector\">\n        <label for=\"devices\">Choose a device:</label>\n        <select id=\"devices\"></select>\n        <input type=\"text\" id=\"jsonInput\" placeholder=\"Enter new device name\">\n        <button id=\"addDeviceButton\" onclick=\"addDeviceFromInput()\">Add Device</button>\n        <button id=\"deleteDeviceButton\" onclick=\"deleteSelectedDevice()\">Delete Device</button>\n        </div>\n    </div>\n\n    <!-- Watering System content -->\n    <div id=\"watering\" style=\"display:none;\">\n      <div class=\"table-container\">\n        <h2>Watering System Configuration</h2>\n        <!-- Table container for displaying plant data -->\n        <div class=\"table-container\">\n          <table id=\"plantTable\">\n            <tr>\n              <th>Plant Name</th>\n              <th>Default Water</th>\n              <th>Plant Size</th>\n              <th>Pot Size</th>\n              <th>Water Times</th>\n              <th>vPins</th>\n              <th>Set</th>\n              <th>Actions</th>\n            </tr>\n            <!-- Rows with plant data will be dynamically added here -->\n          </table>\n        </div>\n\n        <!-- Form for adding new plant data -->\n        <div class=\"plant-form\">\n          <form id=\"plantForm\">\n            <label for=\"pn\">Plant Name:</label>\n            <input type=\"text\" id=\"pn\">\n\n            <label for=\"pw\">Default Water:</label>\n            <input type=\"number\" id=\"pw\">\n\n            <label for=\"pls\">Plant Size:</label>\n            <input type=\"number\" id=\"pls\">\n\n            <label for=\"pts\">Pot Size:</label>\n            <input type=\"number\" id=\"pts\">\n\n            <label for=\"wt\">Water Times (comma-separated):</label>\n            <input type=\"text\" id=\"wt\">\n\n            <label for=\"pp\">vPins (comma-separated):</label>\n            <input type=\"text\" id=\"pp\">\n\n            <label for=\"ps\">Set:</label>\n            <select id=\"ps\">\n              <option value=\"1\">True</option>\n              <option value=\"0\">False</option>\n            </select>\n            <!-- Add a div with a class for styling the button -->\n            <div class=\"button-container\">\n              <button type=\"button\" class=\"add-plant-button\" onclick=\"addItem(plantConfig)\">Add Plant</button>\n            </div>\n          </form>\n        </div>\n      </div>\n    </div>\n\n    <!-- Sensors content -->\n    <div id=\"sensors\" style=\"display:none;\">\n      <h2>Sensor Configuration</h2>\n      <div class=\"table-container\">\n        <table id=\"sensorTable\">\n          <tr>\n            <th>Sensor Name</th>\n            <th>Field</th>\n            <th>vPins</th>\n            <th>High Limit</th>\n            <th>Low Limit</th>\n            <th>Set</th>\n            <th>Actions</th>\n          </tr>\n          <!-- Rows with sensor data will be dynamically added here -->\n        </table>\n      </div>\n\n      <!-- Sensor Form -->\n      <div class=\"sensor-form\">\n        <form id=\"sensorForm\">\n          <label for=\"sn\">Sensor Name:</label>\n          <input type=\"text\" id=\"sn\">\n\n          <label for=\"sf\">Field:</label>\n          <select id=\"sf\" name=\"field\">\n            <option value=\"bmetemp\">BME280 Temperature</option>\n            <option value=\"bmehum\">BME280 Humidity</option>\n            <option value=\"bmepress\">BME280 Pressure</option>\n            <option value=\"soiltemp\">Soil Temperature</option>\n            <option value=\"analog\">Analog Measurement</option>\n            <option value=\"vanalog\">V Analog Measurement</option>\n            <!-- Add more options as needed -->\n          </select>\n\n          <label for=\"sp\">vPin:</label>\n          <input type=\"number\" id=\"sp\">\n\n          <label for=\"hl\">High Limit:</label>\n          <input type=\"number\" id=\"hl\">\n\n          <label for=\"ll\">Low Limit:</label>\n          <input type=\"number\" id=\"ll\">\n\n          <label for=\"ss\">Set:</label>\n          <select id=\"ss\">\n            <option value=\"1\">True</option>\n            <option value=\"0\">False</option>\n          </select>\n\n          <!-- Add a div with a class for styling the button -->\n          <div class=\"button-container\">\n            <button type=\"button\" class=\"add-sensor-button\" onclick=\"addItem(sensorConfig)\">Add Sensor</button>\n          </div>\n          \n        </form>\n      </div>\n    </div>\n\n    <!-- Device Config content -->\n    <div id=\"additionalConfig\" style=\"display:none;\">\n      <h2>Device Configuration</h2>\n      <form id=\"deviceConfigForm\">\n        <div class=\"form-row\">\n          <label for=\"dn\">Device Name:</label>\n          <input type=\"text\" id=\"dn\" name=\"deviceName\">\n        </div>\n        \n        <!-- Toggle switch for 'mssr' -->\n        <div class=\"form-row\">\n          <label for=\"mssr\">Datalogging Switch:</label>\n          <label class=\"switch\">\n            <input type=\"checkbox\" id=\"mssr\" name=\"mssr\">\n            <span class=\"slider round\"></span>\n          </label>\n        </div>\n\n        <!-- Toggle switch for 'irig' -->\n        <div class=\"form-row\">\n          <label for=\"irig\">Irrigation System Switch:</label>\n          <label class=\"switch\">\n            <input type=\"checkbox\" id=\"irig\" name=\"irig\">\n            <span class=\"slider round\"></span>\n          </label>\n        </div>\n\n        <!-- Add other configuration fields as needed -->\n        \n        <div class=\"button-container\">\n          <button type=\"button\" class=\"save-config-button\" onclick=\"addConfig(deviceConfig)\">Save Configuration</button>\n        </div>\n      </form>\n    </div>\n\n\n<script>\n\n  function saveDataOLD(arg_config, inputTypes) {\n    const table = document.getElementById(arg_config.tableId);\n    const rows = table.rows;\n    const data = [];\n    // Iterate over each row (skip the header row)\n    for (let i = 1; i < rows.length; i++) {\n      const row = rows[i];\n      const cells = row.cells;\n      const rowData = {};\n      // Iterate over each cell in the row\n      for (let j = 0; j < cells.length - 1; j++) {\n        const key = Object.keys(arg_config.keysMapping)[j];\n        const shortKey = arg_config.keysMapping[key];\n        let value = cells[j].innerText;\n        rowData[shortKey] = value;\n        // Uncomment and implement parseValue if needed\n        //rowData[shortKey] = parseValue(value, shortKey);\n      }\n      // Format the rowData object to ensure consistent data types\n      const formattedRowData = formatDataItem(rowData, inputTypes);\n      // Add the formattedRowData object to the data array\n      data.push(formattedRowData);\n    }\n\n    // Convert the data array to an object with indices as keys\n    const dataObject = data.reduce((obj, item, index) => {\n      obj[index] = item; // Using the index as the key\n      return obj;\n    }, {});\n\n    // Loading existing data\n    loadData(arg_config.dataEndpoint).then(existingData => {\n      console.log(`Data loaded for table with id: ${arg_config.tableId}, initializing table.`);\n      var active_device = getSelectedDevice(); // get selected device\n      existingData[active_device] = dataObject; // Update the data for the active device\n      arg_config.data = existingData; // Assign updated data to the config\n\n      // Send the updated arg_config.data using XMLHttpRequest\n      const xhr = new XMLHttpRequest();\n      xhr.open(\"POST\", arg_config.endpoint, true);\n      xhr.setRequestHeader('Content-Type', 'application/json');\n      xhr.onreadystatechange = function() {\n        if (xhr.readyState === XMLHttpRequest.DONE) {\n          if (xhr.status === 200) {\n            console.log('Data saved successfully:', xhr.responseText);\n          } else {\n            console.error('Failed to save data. Status:', xhr.status);\n          }\n        }\n      };\n      xhr.send(JSON.stringify(arg_config.data)); // Send the updated data as JSON\n    }).catch(error => {\n      console.error(`Error loading data for table with id: ${arg_config.tableId}:`, error);\n    });\n  }\n\n  function parseValue(value, elementId) {\n    // If the elementId a name, 'sn' or 'pn', always treat the value as a string\n    if (elementId === 'sn' || elementId === 'pn') {\n      return value.length > 20 ? value.substring(0, 20) : value;\n    }\n\n    // Check for comma-separated values and convert to array if all are numbers\n    if (value.includes(',')) {\n      const valuesArray = value.split(',').map(item => item.trim());\n      if (valuesArray.every(item => !isNaN(item) && item)) {\n        return valuesArray.map(item => parseFloat(item));\n      }\n    }\n\n    // Convert to number if it's a valid number, otherwise return as string\n    if (!isNaN(value) && value.trim() !== '') {\n      return parseFloat(value);\n    } else {\n      // Truncate the string to the first 8 characters if it's longer\n      return value.length > 8 ? value.substring(0, 8) : value;\n    }\n  }\n\n  function formatDataItem(arg_item, inputTypes) {\n    // Helper function to parse string to array of numbers\n    function parseStringToArray(str) {\n      // Check if the input string is empty and return an empty array if true\n      if (str === \"\") {\n        return [];\n      }\n      // Otherwise, split the string and convert to numbers as before\n      return str.split(',').map(s => s.trim()).map(Number).filter(n => !isNaN(n));\n    }\n\n    // Iterate over each key in the item\n    for (const key in arg_item) {\n      const expectedType = inputTypes[key];\n      let value = arg_item[key];\n\n      // Preprocess string values for 'array' and 'timetable' types\n      if (typeof value === 'string' && (expectedType === 'array' || expectedType === 'timetable')) {\n        //console.log(\"RAW Logging array data: \", key, \" val: \", value);\n        value = parseStringToArray(value);\n      }\n\n      switch (expectedType) {\n        case 'array':\n          //console.log(\"Logging array data: \", key, \" val: \", value);\n          // Ensure the value is an array and contains only numbers, or an empty array if no valid numbers\n          arg_item[key] = Array.isArray(value) && value.length > 0 ? value : [];\n          break;\n        case 'string':\n          // Ensure the value is a string with a maximum of 20 characters, or an empty string if invalid\n          arg_item[key] = typeof value === 'string' ? value.substring(0, 20) : '';\n          break;\n        case 'number':\n          // Ensure the value is a number (int or float), negatives allowed, or 0 if invalid\n          arg_item[key] = !isNaN(parseFloat(value)) && isFinite(value) ? Number(value) : 0;\n          break;\n        case 'timetable':\n          // Convert array of hours to a binary representation, or 0 if the array is empty\n          arg_item[key] = Array.isArray(value) && value.length > 0 ? value.reduce((binary, hour) => binary | (1 << hour), 0) : 0;\n          console.log(\"Logging timetable value : \", value, \" item key: \", arg_item[key]);\n          break;\n        // Add more cases as needed for different types\n      }\n    }\n    return arg_item;\n  }\n\n  function createButton(text, className, handler, style = {}) {\n    const button = document.createElement('button');\n    button.textContent = text;\n    button.className = className;\n    Object.assign(button.style, style);\n    button.onclick = handler; // Use onclick for simplicity\n    return button;\n  }\n\n  function addItemOLD(arg_config) {\n    const table = document.getElementById(arg_config.tableId);\n    const newRow = table.insertRow();\n\n    // Iterate over the arg_config.keysMapping to get values and set empty fields to 0 or convert to number\n    Object.entries(arg_config.keysMapping).forEach(([displayName, dataName]) => {\n      const element = document.getElementById(dataName);\n      if (!element) return; // Skip if the element is not found\n      let value = element.value;\n      const cell = newRow.insertCell();\n      cell.innerHTML = value;\n    });\n\n    // Add action buttons at the end of the row using arrow functions\n    const actionCell = newRow.insertCell();\n    actionCell.appendChild(createButton('Edit', 'edit-button', () => editItem(newRow, arg_config)));\n    actionCell.appendChild(createButton('Save', 'save-button', () => saveItem(newRow, arg_config), { display: 'none' })); // Save button starts hidden\n    actionCell.appendChild(createButton('Delete', 'delete-button', () => deleteItem(newRow, arg_config)));\n\n    // Call saveData to save the entire table\n    saveData(arg_config, inputTypes);\n    loadContent(arg_config);\n  }\n\n  function editItem(arg_row, arg_config) {\n    // Convert all cells except the action cell to editable inputs\n    for (let i = 0; i < arg_row.cells.length - 1; i++) {\n      const cell = arg_row.cells[i];\n      const text = cell.innerText;\n      cell.innerHTML = `<input type='text' value='${text}' />`;\n    }\n    // Hide the 'Edit' and 'Delete' buttons and show the 'Save' button\n    arg_row.querySelector('.edit-button').style.display = 'none';\n    arg_row.querySelector('.delete-button').style.display = 'none';\n    arg_row.querySelector('.save-button').style.display = 'inline';\n  }\n\n  function saveItemOLD(row, arg_config) {\n    // Save the new values from the input fields\n    for (let i = 0; i < row.cells.length - 1; i++) {\n      const input = row.cells[i].querySelector('input');\n      const text = input ? input.value : '';\n      row.cells[i].innerText = text;\n    }\n\n    // Show the 'Edit' button, hide the 'Save' button, and make 'Delete' button visible again\n    row.querySelector('.edit-button').style.display = 'inline';\n    row.querySelector('.save-button').style.display = 'none';\n    row.querySelector('.delete-button').style.display = 'inline';\n\n    // Call saveData to save the entire table\n    saveData(arg_config, inputTypes);\n    initializePage()\n  }\n\n  function deleteItemOLD(arg_row, arg_config) {\n    // Get the table element by ID\n    const table = document.getElementById(arg_config.tableId);\n    // Check if the row has a defined rowIndex and is not the header row\n    if (arg_row.rowIndex > 0) {\n      // Delete the row from the table\n      table.deleteRow(arg_row.rowIndex);\n      // Log the deletion for debugging\n      console.log(`Deleted row at index: ${arg_row.rowIndex} from table: ${arg_config.tableId}`);\n      // Call saveData function here with the provided endpoint\n      saveData(arg_config, inputTypes);\n      loadContent(arg_config);\n    } else {\n      console.error('Attempted to delete a non-data row.');\n    }\n  }\n\n  /* Device Config */\n\n  function saveFormOLD(formData, config) {\n    // Fetch existing data from dataEndpoint\n    fetch(config.dataEndpoint)\n      .then(response => {\n        if (!response.ok) {\n          throw new Error('Failed to fetch existing data');\n        }\n        return response.json();\n      })\n      .then(existingData => {\n        // Merge formData with existingData\n        const newData = { ...existingData, ...formData };\n\n        // Convert the data to JSON string\n        const jsonData = JSON.stringify(newData);\n\n        // Send the JSON data using XMLHttpRequest\n        const xhr = new XMLHttpRequest();\n        xhr.open(\"POST\", config.endpoint, true);\n        xhr.setRequestHeader('Content-Type', 'application/json');\n        xhr.onreadystatechange = function() {\n          if (xhr.readyState === XMLHttpRequest.DONE) {\n            if (xhr.status === 200) {\n              console.log('Data saved successfully:', xhr.responseText);\n            } else {\n              console.error('Failed to save data. Status:', xhr.status);\n            }\n          }\n        };\n        xhr.send(jsonData);\n      })\n      .catch(error => {\n        console.error('Error:', error.message);\n      });\n  }\n\n  function addConfigOLD(config) {\n    // Get the form element\n    const form = document.getElementById(config.tableId);\n\n    // Serialize form data into an object\n    const formData = new FormData(form);\n    const dataObject = {};\n\n    // Iterate over each entry in keysMapping\n    Object.entries(config.keysMapping).forEach(([longName, shortName]) => {\n      // Find the form field corresponding to the short name\n      const formField = form.elements[shortName];\n      if (formField) {\n        // Check if the form field has a value\n        if (formField.type === 'checkbox') {\n          dataObject[shortName] = formField.checked ? 1 : 0;\n        } else if (formField.value.trim() !== '') {\n          dataObject[shortName] = formField.value;\n        }\n      }\n    });\n    // Save the serialized data\n    saveForm(dataObject, config);\n  }\n\n  // load device configuration\n  function loadDeviceConfig(arg_deviceConfig, arg_deviceName) {\n    console.log('arg_deviceConfig content: ', arg_deviceConfig);\n    var active_device = getSelectedDevice(); // get selected device\n    fetch(arg_deviceConfig.dataEndpoint)\n      .then(response => {\n        if (!response.ok) {\n          throw new Error('Network response was not ok! Endpoint: ', arg_deviceConfig.dataEndpoint);\n        }\n        return response.json();\n      })\n      .then(data => {\n        console.log('Fetched device config data:', data); // Log the fetched data\n\n        // Prefill the device name\n        const deviceNameInput = document.getElementById('dn');\n        if (deviceNameInput) {\n          deviceNameInput.value = data[active_device][arg_deviceConfig.dataKey]['dn'] || '';\n        } else {\n          console.error('Device name input not found');\n        }\n\n        // Set the checkbox state for 'mssr'\n        const mssrCheckbox = document.getElementById('mssr');\n        if (mssrCheckbox) {\n          mssrCheckbox.checked = data[active_device][arg_deviceConfig.dataKey]['mssr'] === 1;\n        } else {\n          console.error('MSSR checkbox not found');\n        }\n\n        // Set the checkbox state for 'irig'\n        const irigCheckbox = document.getElementById('irig');\n        if (irigCheckbox) {\n          irigCheckbox.checked = data[active_device][arg_deviceConfig.dataKey]['irig'] === 1;\n        } else {\n          console.error('IRIG checkbox not found');\n        }\n\n        // Handle other fields similarly\n      })\n      .catch(error => {\n        console.error('Error loading device config:', error);\n        // Handle error by showing a message to the user or retrying the fetch\n      });\n  }\n\n  // load&populate table function\n  function prepTableOLD(arg_config, arg_deviceName) {\n    console.log(`Loading data for table with id: ${arg_config.tableId}`);\n    loadData(arg_config.dataEndpoint).then(data => {\n      console.log(`Data loaded for table with id: ${arg_config.tableId}, initializing table.`);\n      var active_device = getSelectedDevice(); // get selected device\n      // Clear existing data for the active device before setting new data\n      if (arg_config.data && arg_config.data[arg_deviceName]) {\n        console.log(`Clearing existing data for device: ${arg_deviceName}`);\n        arg_config.data[arg_deviceName] = null;\n      }\n      arg_config.data = data[arg_deviceName]; // assign data from active device to the config\n      initializeTable(arg_config); // Initialize the table with the new data\n    }).catch(error => {\n      console.error(`Error loading data for table with id: ${arg_config.tableId}:`, error);\n    });\n  }\n\n  // load data\n  function loadData(path) {\n    return fetch(path)\n      .then(response => {\n        if (!response.ok) {\n          throw new Error('Network response was not ok');\n        }\n        return response.json();\n      })\n      .then(data => {\n        console.log('Data loaded:', data);\n        return data;\n      })\n      .catch(error => {\n        console.error('There has been a problem with your fetch operation:', error);\n      });\n  }\n\n  function showSection(sectionId) {\n    // Hide all sections\n    document.querySelectorAll('.main-content > div').forEach(function(div) {\n      div.style.display = 'none';\n    });\n    // Show the selected section\n    document.getElementById(sectionId).style.display = 'block';\n  }\n\n  function getSavedDevices(arg_deviceConfig) {\n    console.log(\"Hello?\");\n    var active_device = getSelectedDevice(); // get selected device\n    var request = new XMLHttpRequest(); // Create a new instance\n    request.open('GET', arg_deviceConfig.dataEndpoint, false); // Initialize the request\n\n    try {\n      request.send(null); // Send the request\n      if (request.status === 200) {\n        console.log('Fetched device config data:', request.responseText);\n        let data = JSON.parse(request.responseText);\n        let keys = Object.keys(data);\n        console.log('Keys:', keys);\n        return keys; // Return the keys if the request is successful\n      }\n    } catch (e) {\n      console.error('Error fetching data:', e);\n    }\n\n    // Set a timeout for the request\n    var startTime = new Date().getTime();\n    while (new Date().getTime() < startTime + 500);\n\n    return []; // Return an empty list after timeout\n  }\n\n  // This function populates the 'devices' select element with options based on the keys\n  function populateDeviceOptions(keys) {\n    var selectElement = document.getElementById('devices');\n    selectElement.innerHTML = ''; // Clear existing options\n    keys.forEach(function(key) {\n      var option = document.createElement('option');\n      option.value = key;\n      option.textContent = key; // Display the key as the text content\n      selectElement.appendChild(option);\n    });\n  }\n\n  function getDeviceListFromSelector() {\n    var deviceSelect = document.getElementById('devices');\n    var deviceList = [];\n    for (var i = 0; i < deviceSelect.options.length; i++) {\n      deviceList.push(deviceSelect.options[i].text);\n    }\n    return deviceList;\n  }\n\n  function addDeviceFromInput() {\n    var inputStr = document.getElementById('jsonInput').value;\n    if (inputStr.trim() === '') {\n      alert('Please enter a device name.');\n      return;\n    }\n    var deviceList = getDeviceListFromSelector(); // Gather the device list from the selector\n    deviceList.push(inputStr); // Adds the input string to the end of the array\n    // Populate the device options and select the new device\n    populateDeviceOptions(deviceList);\n\n    // Find the index of the new option by the input string\n    var deviceSelect = document.getElementById('devices');\n    for (var i = 0; i < deviceSelect.options.length; i++) {\n      if (deviceSelect.options[i].text === inputStr) {\n        // Set the new option as selected\n        deviceSelect.selectedIndex = i;\n        break;\n      }\n    }\n    // Clear the input field\n    document.getElementById('jsonInput').value = '';\n    loadContent(getSelectedDevice());\n  }\n\n\n  function deleteSelectedDevice() {\n    var select = document.getElementById('devices');\n    if (select.selectedIndex !== -1) {\n      deviceData[select.options[select.selectedIndex].text] = undefined;\n      select.remove(select.selectedIndex);\n    }\n    loadContent(getSelectedDevice());\n  }\n\n  function getSelectedDevice() {\n    var selectElement = document.getElementById('devices');\n    var selectedIndex = selectElement.selectedIndex;\n    if (selectedIndex !== -1) { // Check if an option is selected\n      var selectedOption = selectElement.options[selectedIndex];\n      var selectedDevice = selectedOption.textContent;\n      return selectedDevice;\n    } else {\n      return null; // No option is selected\n    }\n  }\n\n  function getAllDeviceNames() {\n    var selectElement = document.getElementById('devices');\n    var deviceNames = [];\n    for (var i = 0; i < selectElement.options.length; i++) {\n      deviceNames.push(selectElement.options[i].value);\n    }\n    return deviceNames;\n  }\n\n  function getSelectedDevice() {\n    const deviceSelector = document.getElementById('devices');\n    return deviceSelector.value;\n  }\n\n  function loadContent(arg_deviceName) {\n    console.log('Device loaded, Name:', arg_deviceName);\n\n    // Delay the execution of the following code by 100 milliseconds\n    setTimeout(() => {\n      prepTableOLD(plantConfig, arg_deviceName); // Prepare plant table\n      prepTableOLD(sensorConfig, arg_deviceName); // Prepare sensor table\n      console.log('Device config: ', deviceConfig.dataEndpoint);\n      loadDeviceConfig(deviceConfig, arg_deviceName); // Load device configuration data\n    }, 250);\n  }\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n  // Function to fetch data from the endpoint and save it to configData\n  function fetchDataFromEndpointOLD() {\n    fetch(deviceConfig.dataEndpoint)\n      .then(response => {\n        if (!response.ok) {\n          throw new Error('Network response was not ok');\n        }\n        return response.json();\n      })\n      .then(data => {\n        // Save the fetched data into configData\n        configData = data;\n        // Log configData to the console\n        console.log('configData:', configData);\n      })\n      .catch(error => {\n        console.error('There has been a problem with your fetch operation:', error);\n      });\n  }\n\n  function fetchDataFromEndpointOLD2() {\n    fetch(deviceConfig.dataEndpoint)\n      .then(response => {\n        if (!response.ok) {\n          throw new Error('Network response was not ok');\n        }\n        return response.json();\n      })\n      .then(data => {\n        // Save the fetched data into configData\n        configData = data;\n        // Log configData to the console\n        console.log('configData:', configData);\n        // now load the page\n        populateDeviceSelector(getAllDevices());\n        getActiveDevice()\n      })\n      .catch(error => {\n        console.error('There has been a problem with your fetch operation:', error);\n      });\n  }\n\n// Function to fetch data from the endpoint\nfunction fetchDataFromEndpoint() {\n  return fetch(fullConfigEndpoint)\n    .then(response => {\n      if (!response.ok) {\n        throw new Error('Network response was not ok');\n      }\n      return response.json();\n    })\n    .then(data => {\n      // Save the fetched data into configData\n      configData = data;\n      console.log('configData:', configData);\n    })\n    .catch(error => {\n      console.error('There has been a problem with your fetch operation:', error);\n    });\n}\n\n  // Function to initialize the page\n  function initializePage() {\n    console.log(\"---------------------- Initializing page ----------------------\");\n    fetchDataFromEndpoint().then(() => {\n      // Ensure configData is defined before proceeding\n      if (configData) {\n        populateDeviceSelector(getAllDevices());\n        //getActiveDevice();\n        // Add any other functions that need to run after fetching data\n        prepContent(getActiveDevice());\n        // showSection('welcome');\n      }\n    });\n  }\n\n  // returns list of keys within global configData json\n  function getAllDevices() {\n    // Check if configData is not undefined or null\n    if (!configData) {\n      console.error('configData is not defined.');\n      return [];\n    }\n    // Extract the keys from the configData object\n    const deviceNames = Object.keys(configData);\n    // Log the list of device names ensuring there are no duplicates\n    console.log(\"list return:\", [...new Set(deviceNames)]);\n    // Return the device names ensuring there are no duplicates\n    return [...new Set(deviceNames)];\n  }\n\n\n  function populateDeviceSelectorOLD(deviceNames) {\n    // Get the select element by its ID\n    const selector = document.getElementById('devices');\n    // Clear existing options\n    selector.innerHTML = '';\n    // Create a new option element for each device name and append it to the selector\n    deviceNames.forEach(deviceName => {\n      const option = document.createElement('option');\n      option.value = deviceName;\n      option.textContent = deviceName;\n      selector.appendChild(option);\n    });\n  }\n\n  function populateDeviceSelector(deviceNames) {\n    // Get the select element by its ID\n    const selector = document.getElementById('devices');\n    \n    // Check if the selector exists\n    if (!selector) {\n      console.error('Selector element not found!');\n      return; // Exit the function if the selector doesn't exist\n    }\n    \n    // Save the current selection\n    const currentSelection = selector.value;\n    \n    // Clear existing options\n    selector.innerHTML = '';\n    \n    // Create a new option element for each device name and append it to the selector\n    deviceNames.forEach(deviceName => {\n      const option = document.createElement('option');\n      option.value = deviceName;\n      option.textContent = deviceName;\n      selector.appendChild(option);\n    });\n    \n    // Re-select the previously selected device if it still exists in the list\n    if (deviceNames.includes(currentSelection)) {\n      selector.value = currentSelection;\n    }\n  }\n\n  // get active device name\n  function getActiveDevice() {\n    const selector = document.getElementById('devices');\n    const selectedDevice = selector.value;\n    // Return the selected device name as a string\n    return selectedDevice;\n  }\n\n  function prepContentOLD() {\n    console.log(\"prepContent called.\");\n    prepTable(plantConfig);\n    prepTable(sensorConfig);\n    //prepDevice();\n  }\n\n  function prepContentOLD2() {\n    console.log(\"prepContent called.\");\n    // update data\n    fetchDataFromEndpoint().then(() => {\n      plantConfig.data\n      // After the data is fetched and configData is updated, call prepTable\n      prepTable(plantConfig);\n      prepTable(sensorConfig);\n      // Call prepDevice or any other functions that depend on the fetched data\n      // prepDevice();\n    }).catch(error => {\n      // Handle any errors that occurred during fetchDataFromEndpoint\n      console.error('Error during data fetch (preparing content):', error);\n    });\n  }\n\n  function prepContent() {\n    console.log(\"prepContent called.\");\n    // update data\n    fetchDataFromEndpoint().then(() => {\n      const activeDeviceName = getActiveDevice();\n      // TODO write verify function for better reuse\n      // Verify and update plantConfig.data\n      if (configData && configData[activeDeviceName] && plantConfig.dataKey) {\n        plantConfig.data = configData[activeDeviceName][plantConfig.dataKey];\n      } else {\n        console.error('Error: Unable to update plantConfig.data. Check if configData, activeDeviceName, or plantConfig.tableId are defined.');\n      }\n      // Verify and update sensorConfig.data\n      if (configData && configData[activeDeviceName] && sensorConfig.dataKey) {\n        sensorConfig.data = configData[activeDeviceName][sensorConfig.dataKey];\n      } else {\n        console.error('Error: Unable to update sensorConfig.data. Check if configData, activeDeviceName, or sensorConfig.tableId are defined.');\n      }\n      // Verify and update deviceConfig.data\n      if (configData && configData[activeDeviceName] && deviceConfig.dataKey) {\n        deviceConfig.data = configData[activeDeviceName][deviceConfig.dataKey];\n      } else {\n        console.error('Error: Unable to update deviceConfig.data. Check if configData, activeDeviceName, or deviceConfig.tableId are defined.');\n      }\n\n      // After the data is fetched and configs are updated, call prepTable for each config\n      prepTable(plantConfig);\n      prepTable(sensorConfig);\n      //prepDevice(deviceConfig);\n      // Call prepDevice or any other functions that depend on the fetched data\n      prepDevice(deviceConfig);\n    }).catch(error => {\n      // Handle any errors that occurred during fetchDataFromEndpoint\n      console.error('Error during data fetch (preparing content):', error);\n    });\n  }\n\n  // prepare table using configData, make sure config data is up to date before use\n  function prepTable(arg_tableConfig) {\n    console.log(\"Prepare Table: \", arg_tableConfig.tableId)\n    console.log(\"With data key: \", arg_tableConfig.dataKey)\n    // Get the active device name\n    const activeDeviceName = getActiveDevice();\n    // validation:\n    if (!configData[activeDeviceName]) {\n      console.error('Active device data is not available.');\n      return;\n    }\n    // preperation:\n    // Once the data is prepared, call initializeTable to populate the HTML table\n    console.log(\"Data: \", deviceData);\n    initializeTable(arg_tableConfig);\n  }\n\n  function initializeTable(arg_config) {\n    // arg_config is table configuration element which holds its data & additional config\n    console.log('Initializing table with id:', arg_config.tableId);\n    const table = document.getElementById(arg_config.tableId);\n    if (!table) {\n      console.error('Table not found:', arg_config.tableId);\n      return;\n    }\n    // Clear existing table rows, except the header\n    while (table.rows.length > 1) {\n      table.deleteRow(1);\n    }\n    console.log('Table cleared, now repopulating with new data');\n    const keys = Object.keys(arg_config.keysMapping);\n    const fragment = document.createDocumentFragment();\n    // Helper function to convert number to timetable array format\n    function numberToTimetable(num) {\n      const hours = [];\n      for (let i = 0; i < 24; i++) {\n        if (num & (1 << i)) {\n          hours.push(i);\n        }\n      }\n      return hours;\n    }\n    // Populate table with data using the fragment (arg_config.data)\n    Object.values(configData[getActiveDevice()][arg_config.dataKey]).forEach((item, index) => {\n      const newRow = fragment.appendChild(document.createElement('tr'));\n      keys.forEach((key) => {\n        const shortKey = arg_config.keysMapping[key];\n        let value = item.hasOwnProperty(shortKey) ? item[shortKey] : '';\n        // Handle the 'timetable' case\n        if (shortKey === 'wt') {\n          value = numberToTimetable(value);\n        }\n        const cell = newRow.appendChild(document.createElement('td'));\n        cell.innerHTML = Array.isArray(value) ? value.join(',') : value;\n      });\n      // Add action buttons at the end of the row\n      const actionCell = newRow.appendChild(document.createElement('td'));\n      actionCell.appendChild(createButton('Edit', 'edit-button', () => editItem(newRow, arg_config)));\n      actionCell.appendChild(createButton('Save', 'save-button', () => saveItem(newRow, arg_config), { display: 'none' }));\n      actionCell.appendChild(createButton('Delete', 'delete-button', () => deleteItem(newRow, arg_config)));\n    });\n    // Append the fragment to the table\n    table.appendChild(fragment);\n    console.log('Table initialized successfully with new data');\n  }\n\n  // prepare device using configData, make sure config data is up to date before use\n  function prepDevice(arg_deviceConfig) {\n    console.log(\"Prepare Device: \", arg_deviceConfig.tableId)\n    console.log(\"With data key: \", arg_deviceConfig.dataKey)\n    var active_device = getActiveDevice(); // get selected device\n    console.log('Device config data:', configData[active_device][arg_deviceConfig.dataKey]); // Log the fetched data\n    // Prefill the device name\n    const deviceNameInput = document.getElementById('dn');\n    if (deviceNameInput) {\n      deviceNameInput.value = configData[active_device][arg_deviceConfig.dataKey]['dn'] || '';\n    } else {\n      console.error('Device name input not found');\n    }\n    // Set the checkbox state for 'mssr'\n    const mssrCheckbox = document.getElementById('mssr');\n    if (mssrCheckbox) {\n      mssrCheckbox.checked = configData[active_device][arg_deviceConfig.dataKey]['mssr'] === 1;\n    } else {\n      console.error('MSSR checkbox not found');\n    }\n    // Set the checkbox state for 'irig'\n    const irigCheckbox = document.getElementById('irig');\n    if (irigCheckbox) {\n      irigCheckbox.checked = configData[active_device][arg_deviceConfig.dataKey]['irig'] === 1;\n    } else {\n      console.error('IRIG checkbox not found');\n    }\n    // Handle other fields similarly\n  }\n\n  function saveData(arg_config, inputTypes) {\n    console.log(\"Saving Data: \", arg_config.tableId);\n    console.log(\"Device: \", getActiveDevice());\n    const table = document.getElementById(arg_config.tableId);\n    const rows = table.rows;\n    const data = [];\n    // Iterate over each row (skip the header row)\n    for (let i = 1; i < rows.length; i++) {\n      const row = rows[i];\n      const cells = row.cells;\n      const rowData = {};\n      // Iterate over each cell in the row\n      for (let j = 0; j < cells.length - 1; j++) {\n        const key = Object.keys(arg_config.keysMapping)[j];\n        const shortKey = arg_config.keysMapping[key];\n        let value = cells[j].innerText;\n        rowData[shortKey] = value;\n        // Uncomment and implement parseValue if needed\n        //rowData[shortKey] = parseValue(value, shortKey);\n      }\n      // Format the rowData object to ensure consistent data types\n      const formattedRowData = formatDataItem(rowData, inputTypes);\n      // Add the formattedRowData object to the data array\n      data.push(formattedRowData);\n    }\n    // Convert the data array to an object with indices as keys\n    const dataObject = data.reduce((obj, item, index) => {\n      obj[index] = item; // Using the index as the key\n      return obj;\n    }, {});\n    // Loading existing data\n    fetchDataFromEndpoint().then(() => {\n      // Ensure configData is defined before proceeding\n      if (!configData) {\n        console.log('Error config data not valid!');\n      }\n      let active_device = getSelectedDevice(); // get selected device\n      configData[active_device][arg_config.dataKey] = {}; // empty array\n      configData[active_device][arg_config.dataKey] = dataObject;\n      console.log('Gathered table data: ', dataObject);\n      console.log(`Existing Data loaded for table: ${arg_config.tableId}, initializing table.`);\n      console.log('Data merged', configData[active_device][arg_config.dataKey]);\n      // Send the updated arg_config.data using XMLHttpRequest\n      const xhr = new XMLHttpRequest();\n      xhr.open(\"POST\", fullConfigSavepoint, true); // OLD: arg_config.endpoint\n      xhr.setRequestHeader('Content-Type', 'application/json');\n      xhr.onreadystatechange = function() {\n        if (xhr.readyState === XMLHttpRequest.DONE) {\n          if (xhr.status === 200) {\n            console.log('Data saved successfully:', xhr.responseText);\n          } else {\n            console.error('Failed to save data. Status:', xhr.status);\n          }\n        }\n      };\n      xhr.send(JSON.stringify(configData)); // Send the updated data as JSON\n    }).catch(error => {\n      console.error(`Error loading data for table with id: ${arg_config.tableId}:`, error);\n    });\n  }\n\n\n\n\n\n  function createButton(text, className, handler, style = {}) {\n    const button = document.createElement('button');\n    button.textContent = text;\n    button.className = className;\n    Object.assign(button.style, style);\n    button.onclick = handler; // Use onclick for simplicity\n    return button;\n  }\n\n  function addItem(arg_config) {\n    const table = document.getElementById(arg_config.tableId);\n    const newRow = table.insertRow();\n    // Iterate over the arg_config.keysMapping to get values and set empty fields to 0 or convert to number\n    Object.entries(arg_config.keysMapping).forEach(([displayName, dataName]) => {\n      const element = document.getElementById(dataName);\n      if (!element) return; // Skip if the element is not found\n      let value = element.value;\n      const cell = newRow.insertCell();\n      cell.innerHTML = value;\n    });\n    // Add action buttons at the end of the row using arrow functions\n    const actionCell = newRow.insertCell();\n    actionCell.appendChild(createButton('Edit', 'edit-button', () => editItem(newRow, arg_config)));\n    actionCell.appendChild(createButton('Save', 'save-button', () => saveItem(newRow, arg_config), { display: 'none' })); // Save button starts hidden\n    actionCell.appendChild(createButton('Delete', 'delete-button', () => deleteItem(newRow, arg_config)));\n    // Call saveData to save the entire table\n    saveData(arg_config, inputTypes);\n    initializePage();\n  }\n\n  function editItem(arg_row, arg_config) {\n    // Convert all cells except the action cell to editable inputs\n    for (let i = 0; i < arg_row.cells.length - 1; i++) {\n      const cell = arg_row.cells[i];\n      const text = cell.innerText;\n      cell.innerHTML = `<input type='text' value='${text}' />`;\n    }\n    // Hide the 'Edit' and 'Delete' buttons and show the 'Save' button\n    arg_row.querySelector('.edit-button').style.display = 'none';\n    arg_row.querySelector('.delete-button').style.display = 'none';\n    arg_row.querySelector('.save-button').style.display = 'inline';\n  }\n\n  function saveItem(row, arg_config) {\n    // Save the new values from the input fields\n    for (let i = 0; i < row.cells.length - 1; i++) {\n      const input = row.cells[i].querySelector('input');\n      const text = input ? input.value : '';\n      row.cells[i].innerText = text;\n    }\n    // Show the 'Edit' button, hide the 'Save' button, and make 'Delete' button visible again\n    row.querySelector('.edit-button').style.display = 'inline';\n    row.querySelector('.save-button').style.display = 'none';\n    row.querySelector('.delete-button').style.display = 'inline';\n    // Call saveData to save the entire table\n    saveData(arg_config, inputTypes);\n    initializePage()\n  }\n\n  function deleteItem(arg_row, arg_config) {\n    // Get the table element by ID\n    const table = document.getElementById(arg_config.tableId);\n    // Check if the row has a defined rowIndex and is not the header row\n    if (arg_row.rowIndex > 0) {\n      // Delete the row from the table\n      table.deleteRow(arg_row.rowIndex);\n      // Log the deletion for debugging\n      console.log(`Deleted row at index: ${arg_row.rowIndex} from table: ${arg_config.tableId}`);\n      // Call saveData function here with the provided endpoint\n      saveData(arg_config, inputTypes);\n      initializePage();\n    } else {\n      console.error('Attempted to delete a non-data row.');\n    }\n  }\n\n  /* Device Config */\n  // save form data\n  function saveForm(formData, arg_config) {\n    // Loading existing data\n    fetchDataFromEndpoint().then(() => {\n      // Ensure configData is defined before proceeding\n      if (!configData) {\n        console.log('Error config data not valid!');\n      }\n      console.log(`Data loaded for table with id: ${arg_config.tableId}, initializing table.`);\n      let active_device = getSelectedDevice(); // get selected device\n      let existingData = configData[active_device][arg_config.dataKey];\n      let newData = { ...existingData, ...formData };\n      configData[active_device][arg_config.dataKey] = newData;\n      // Send the JSON data using XMLHttpRequest\n      const xhr = new XMLHttpRequest();\n      xhr.open(\"POST\", fullConfigSavepoint, true); // OLD: arg_config.endpoint\n      xhr.setRequestHeader('Content-Type', 'application/json');\n      xhr.onreadystatechange = function() {\n        if (xhr.readyState === XMLHttpRequest.DONE) {\n          if (xhr.status === 200) {\n            console.log('Data saved successfully:', xhr.responseText);\n          } else {\n            console.error('Failed to save data. Status:', xhr.status);\n          }\n        }\n      };\n      xhr.send(JSON.stringify(configData));\n    })\n    .catch(error => {\n      console.error('Error:', error.message);\n    });\n  }\n\n  function addConfig(arg_config) {\n    // Get the form element\n    const form = document.getElementById(arg_config.tableId);\n    // Serialize form data into an object\n    const formData = new FormData(form);\n    const dataObject = {};\n    // Iterate over each entry in keysMapping\n    Object.entries(arg_config.keysMapping).forEach(([longName, shortName]) => {\n      // Find the form field corresponding to the short name\n      const formField = form.elements[shortName];\n      if (formField) {\n        // Check if the form field has a value\n        if (formField.type === 'checkbox') {\n          dataObject[shortName] = formField.checked ? 1 : 0;\n        } else if (formField.value.trim() !== '') {\n          dataObject[shortName] = formField.value;\n        }\n      }\n    });\n    // Save the serialized data\n    saveForm(dataObject, arg_config);\n  }\n\n  /* Constants */\n  const plantConfig = {\n    tableId: 'plantTable',\n    dataKey: 'plantConfig',\n    keysMapping: {\n      \"Plant Name\": \"pn\",\n      \"Default Water\": \"pw\",\n      \"Plant Size\": \"pls\",\n      \"Pot Size\": \"pts\",\n      \"Water Times\": \"wt\",\n      \"vPins\": \"pp\",\n      \"Set\": \"ps\"\n    },\n    endpoint: '/bewae/save-plant',\n    dataEndpoint: '/bewae/get-irrig-config'\n  };\n\n  const sensorConfig = {\n    tableId: 'sensorTable',\n    dataKey: 'sensorConfig',\n    keysMapping: {\n      \"Sensor Name\": \"sn\",\n      \"Field\": \"sf\",\n      \"vPins\": \"sp\",\n      \"High Limit\": \"hl\",\n      \"Low Limit\": \"ll\",\n      \"Set\": \"ss\"\n    },\n    endpoint: '/bewae/sensor-save',\n    dataEndpoint: '/bewae/get-sensor-config'\n  };\n\n  const deviceConfig = {\n    tableId: 'deviceConfigForm',\n    dataKey: 'deviceConfig',\n    keysMapping: {\n      \"Device Name\": \"dn\",\n      \"System\":\"main\",\n      \"Measurements\":\"mssr\",\n      \"Irrigation\":\"irig\"\n    },\n    endpoint: '/bewae/device-save',\n    dataEndpoint: '/bewae/get-device-config'\n  };\n\n  // Define a mapping of keys to their expected types\n  const inputTypes = {\n    'pn': 'string',\n    'pw': 'number',\n    'pls': 'number',\n    'pts': 'number',\n    'wt': 'timetable',\n    'pp': 'array',\n    'ps': 'number',\n    'sn': 'string',\n    'sf': 'string',\n    'sp': 'number',\n    'hl': 'number',\n    'll': 'number',\n    'ss': 'number'\n  };\n\n  var configData; // global json data variable\n  const fullConfigEndpoint = \"/bewae/get-backendconfig-full\"; // global data endpoint GET\n  const fullConfigSavepoint = \"/bewae/save-backendconfig-full\"; // global data endpoint SAVE\n  var deviceData = [\"default\"]; // deviceList\n\n  /* Page Init */\n  /*\n  document.addEventListener('DOMContentLoaded', (event) => {\n  // Add the 'change' event listener to the dropdown\n  const deviceSelector = document.getElementById('devices');\n  deviceSelector.addEventListener('change', (event) => {\n    loadContent(getSelectedDevice(plantConfig));\n  });\n  // Populate the device options in the dropdown\n  populateDeviceOptions(getSavedDevices(plantConfig));\n  // Existing code to load content for the selected device at startup\n  loadContent(getSelectedDevice());\n  // Show the welcome section by default\n  showSection('welcome');\n});*/\n\n\ndocument.addEventListener('DOMContentLoaded', (event) => {\n  // Add the 'change' event listener to the dropdown\n  const deviceSelector = document.getElementById('devices');\n  deviceSelector.addEventListener('change', (event) => {\n    initializePage();\n  });\n  // Call the function to fetch data when the page loads\n  initializePage();\n});\n\n//prepContent(getActiveDevice());\nshowSection('welcome');\n\n</script>\n</body>\n</html>\n",
         "output": "str",
-        "x": 560,
-        "y": 120,
+        "x": 600,
+        "y": 140,
         "wires": [
             [
-                "fe21dd6a2328e721",
-                "b913867cc4dad89a"
+                "80ab72c90ad5181b",
+                "7223f907b698eaf4"
             ]
         ]
     },
     {
-        "id": "fe21dd6a2328e721",
+        "id": "80ab72c90ad5181b",
         "type": "http response",
-        "z": "ca18495f6f6a16ae",
+        "z": "450f83c2a1abd42e",
         "name": "",
         "statusCode": "",
         "headers": {},
-        "x": 910,
-        "y": 120,
+        "x": 970,
+        "y": 140,
         "wires": []
     },
     {
-        "id": "7b7e8139040bf458",
-        "type": "http in",
-        "z": "ca18495f6f6a16ae",
-        "name": "[get] irrigation config file",
-        "url": "/bewae/get-irrig-config",
-        "method": "get",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 180,
-        "y": 300,
+        "id": "7223f907b698eaf4",
+        "type": "debug",
+        "z": "450f83c2a1abd42e",
+        "name": "debug 30",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 960,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "2039804f6623f1ce",
+        "type": "json",
+        "z": "450f83c2a1abd42e",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 590,
+        "y": 240,
         "wires": [
             [
-                "42af19a34bb54402"
+                "e1c2fc8c388408ed",
+                "e794e4abd17eefaf"
             ]
         ]
     },
     {
-        "id": "42af19a34bb54402",
+        "id": "99d91d906d85dd81",
+        "type": "http in",
+        "z": "450f83c2a1abd42e",
+        "name": "[get] full config file",
+        "url": "/bewae/get-backendconfig-full",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 210,
+        "y": 240,
+        "wires": [
+            [
+                "d8d9957100971ae5"
+            ]
+        ]
+    },
+    {
+        "id": "d8d9957100971ae5",
         "type": "file in",
-        "z": "ca18495f6f6a16ae",
+        "z": "450f83c2a1abd42e",
         "name": "read file",
-        "filename": "/home/yourUsr/bewae/web-config.json",
+        "filename": "/home/homepi/bewae/full-config.json",
         "filenameType": "str",
         "format": "utf8",
         "chunk": false,
         "sendError": false,
         "encoding": "none",
         "allProps": false,
-        "x": 400,
-        "y": 300,
+        "x": 440,
+        "y": 240,
         "wires": [
             [
-                "53827f0afa4f6d0c"
+                "2039804f6623f1ce"
             ]
         ]
     },
     {
-        "id": "111cbba3243539ee",
+        "id": "e1c2fc8c388408ed",
         "type": "http response",
-        "z": "ca18495f6f6a16ae",
+        "z": "450f83c2a1abd42e",
         "name": "return config File",
         "statusCode": "",
         "headers": {},
-        "x": 870,
-        "y": 300,
+        "x": 930,
+        "y": 240,
         "wires": []
     },
     {
-        "id": "b913867cc4dad89a",
+        "id": "e794e4abd17eefaf",
         "type": "debug",
-        "z": "ca18495f6f6a16ae",
-        "name": "debug 10",
+        "z": "450f83c2a1abd42e",
+        "name": "debug 37",
         "active": false,
         "tosidebar": true,
         "console": false,
@@ -133,31 +150,14 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 900,
-        "y": 80,
+        "x": 960,
+        "y": 200,
         "wires": []
     },
     {
-        "id": "212711423decc1dd",
-        "type": "debug",
-        "z": "ca18495f6f6a16ae",
-        "name": "debug 11",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 900,
-        "y": 260,
-        "wires": []
-    },
-    {
-        "id": "b237a7278448b73d",
+        "id": "e7967eb7e0e6da5c",
         "type": "inject",
-        "z": "ca18495f6f6a16ae",
+        "z": "450f83c2a1abd42e",
         "name": "",
         "props": [
             {
@@ -169,139 +169,57 @@
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "payload": "{   \"1\": { \"pn\": \"Big Tomato15\", \"pw\": 20, \"pls\": 3, \"pts\": 0.3, \"wt\": 25, \"pp\": [1], \"ps\": 0 },   \"2\": { \"pn\": \"Red Rose20\", \"pw\": 15, \"pls\": 2, \"pts\": 0.2, \"wt\": 128, \"pp\": [2, 3], \"ps\": 1 },   \"3\": { \"pn\": \"Green Basil10\", \"pw\": 25, \"pls\": 1, \"pts\": 0.15, \"wt\": 129, \"pp\": [4], \"ps\": 1 },   \"4\": { \"pn\": \"Yellow Sunflower30\", \"pw\": 18, \"pls\": 4, \"pts\": 0.4, \"wt\": 1, \"pp\": [5], \"ps\": 1 } }",
+        "payload": "{\"default\":{\"plantConfig\":{\"1\":{\"pn\":\"Big Tomato15\",\"pw\":20,\"pls\":3,\"pts\":0.3,\"wt\":25,\"pp\":[1],\"ps\":0},\"2\":{\"pn\":\"Red Rose20\",\"pw\":15,\"pls\":2,\"pts\":0.2,\"wt\":128,\"pp\":[2,3],\"ps\":1},\"3\":{\"pn\":\"Green Basil10\",\"pw\":25,\"pls\":1,\"pts\":0.15,\"wt\":129,\"pp\":[4],\"ps\":1},\"4\":{\"pn\":\"Yellow Sunflower30\",\"pw\":18,\"pls\":4,\"pts\":0.4,\"wt\":1,\"pp\":[5],\"ps\":1}},\"sensorConfig\":{\"1\":{\"sn\":\"bme280\",\"sf\":\"temp\",\"sm\":\"bmetemp\",\"ss\":0},\"2\":{\"sn\":\"bme280\",\"sf\":\"hum\",\"sm\":\"bmehum\",\"ss\":0},\"3\":{\"sn\":\"bme280\",\"sf\":\"press\",\"sm\":\"bmepress\",\"ss\":0},\"4\":{\"sn\":\"Soil\",\"sf\":\"temp\",\"sm\":\"soiltemp\",\"ss\":0},\"5\":{\"sn\":\"Soil\",\"sf\":\"moisture\",\"sm\":\"analog\",\"sp\":15,\"hl\":600,\"ll\":250,\"ss\":0}},\"deviceConfig\":{\"dn\":\"Test\",\"mssr\":1,\"main\":1,\"irig\":0,\"dummy\":99}},\"garden\":{\"plantConfig\":{\"1\":{\"pn\":\"Little Cucumber5\",\"pw\":10,\"pls\":1,\"pts\":0.1,\"wt\":50,\"pp\":[1,2],\"ps\":1},\"2\":{\"pn\":\"Blue Lavender8\",\"pw\":8,\"pls\":2,\"pts\":0.05,\"wt\":60,\"pp\":[3,4],\"ps\":1}},\"sensorConfig\":{\"1\":{\"sn\":\"Soil\",\"sf\":\"moisture\",\"sm\":\"analog\",\"sp\":15,\"hl\":600,\"ll\":250,\"ss\":0}},\"deviceConfig\":{\"dn\":\"Hello\",\"mssr\":0,\"main\":0,\"irig\":1,\"dummy\":99}}}",
         "payloadType": "json",
-        "x": 390,
-        "y": 340,
+        "x": 430,
+        "y": 280,
         "wires": [
             [
-                "d3921adb377ee432"
+                "d86642a38e36784a"
             ]
         ]
     },
     {
-        "id": "3f6b73c3391536fa",
-        "type": "json",
-        "z": "ca18495f6f6a16ae",
-        "name": "",
-        "property": "payload",
-        "action": "",
-        "pretty": false,
-        "x": 550,
-        "y": 480,
-        "wires": [
-            [
-                "5b6540b0fedda5d9",
-                "e1473193a459dd30"
-            ]
-        ]
-    },
-    {
-        "id": "b5c05a3b575dd7d0",
+        "id": "5633dea088a16dc3",
         "type": "http in",
-        "z": "ca18495f6f6a16ae",
-        "name": "[get] sensor config file",
-        "url": "/bewae/get-sensor-config",
-        "method": "get",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 180,
-        "y": 480,
-        "wires": [
-            [
-                "273063d63e34b5b6"
-            ]
-        ]
-    },
-    {
-        "id": "273063d63e34b5b6",
-        "type": "file in",
-        "z": "ca18495f6f6a16ae",
-        "name": "read file",
-        "filename": "/home/yourUsr/bewae/web-sensor-config.json",
-        "filenameType": "str",
-        "format": "utf8",
-        "chunk": false,
-        "sendError": false,
-        "encoding": "none",
-        "allProps": false,
-        "x": 400,
-        "y": 480,
-        "wires": [
-            [
-                "3f6b73c3391536fa"
-            ]
-        ]
-    },
-    {
-        "id": "5b6540b0fedda5d9",
-        "type": "http response",
-        "z": "ca18495f6f6a16ae",
-        "name": "return config File",
-        "statusCode": "",
-        "headers": {},
-        "x": 870,
-        "y": 480,
-        "wires": []
-    },
-    {
-        "id": "e1473193a459dd30",
-        "type": "debug",
-        "z": "ca18495f6f6a16ae",
-        "name": "debug 12",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 900,
-        "y": 440,
-        "wires": []
-    },
-    {
-        "id": "fdb5238a4f624efb",
-        "type": "http in",
-        "z": "ca18495f6f6a16ae",
-        "name": "[post] sensor config file",
-        "url": "/bewae/sensor-save",
+        "z": "450f83c2a1abd42e",
+        "name": "[post] save full config file",
+        "url": "/bewae/save-backendconfig-full",
         "method": "post",
         "upload": false,
         "swaggerDoc": "",
-        "x": 180,
-        "y": 560,
+        "x": 230,
+        "y": 320,
         "wires": [
             [
-                "42d43881a8b1c569"
+                "d86642a38e36784a"
             ]
         ]
     },
     {
-        "id": "d7250034925e4dae",
+        "id": "68092efd52b7328b",
         "type": "file",
-        "z": "ca18495f6f6a16ae",
+        "z": "450f83c2a1abd42e",
         "name": "write file",
-        "filename": "/home/yourUsr/bewae/web-sensor-config.json",
+        "filename": "/home/homepi/bewae/full-config.json",
         "filenameType": "str",
         "appendNewline": true,
         "createDir": false,
         "overwriteFile": "true",
         "encoding": "utf8",
-        "x": 560,
-        "y": 560,
+        "x": 600,
+        "y": 320,
         "wires": [
             [
-                "76dc92b07056a1bf"
+                "8f40ba3335823372"
             ]
         ]
     },
     {
-        "id": "76dc92b07056a1bf",
+        "id": "8f40ba3335823372",
         "type": "debug",
-        "z": "ca18495f6f6a16ae",
-        "name": "debug 13",
+        "z": "450f83c2a1abd42e",
+        "name": "debug 38",
         "active": false,
         "tosidebar": true,
         "console": false,
@@ -309,291 +227,121 @@
         "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 900,
-        "y": 560,
+        "x": 960,
+        "y": 320,
         "wires": []
     },
     {
-        "id": "959a791205616d04",
-        "type": "inject",
-        "z": "ca18495f6f6a16ae",
-        "name": "",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "{   \"1\": { \"sn\": \"bme280\", \"sf\": \"temp\", \"sm\": \"bmetemp\", \"ss\":0},   \"2\": { \"sn\": \"bme280\", \"sf\": \"hum\", \"sm\": \"bmehum\", \"ss\":0},   \"3\": { \"sn\": \"bme280\", \"sf\": \"press\", \"sm\": \"bmepress\", \"ss\":0},   \"4\": { \"sn\": \"Soil\", \"sf\": \"temp\", \"sm\": \"soiltemp\", \"ss\":0},   \"5\": { \"sn\": \"Soil\", \"sf\": \"moisture\", \"sm\": \"analog\", \"sp\": 15, \"hl\": 600, \"ll\": 250, \"ss\":0} }",
-        "payloadType": "json",
-        "x": 390,
-        "y": 520,
-        "wires": [
-            [
-                "42d43881a8b1c569"
-            ]
-        ]
-    },
-    {
-        "id": "42d43881a8b1c569",
+        "id": "d86642a38e36784a",
         "type": "json",
-        "z": "ca18495f6f6a16ae",
+        "z": "450f83c2a1abd42e",
         "name": "",
         "property": "payload",
         "action": "str",
         "pretty": true,
-        "x": 390,
-        "y": 560,
+        "x": 430,
+        "y": 320,
         "wires": [
             [
-                "d7250034925e4dae"
+                "68092efd52b7328b"
             ]
         ]
     },
     {
-        "id": "9cf0277461519ffa",
-        "type": "json",
-        "z": "ca18495f6f6a16ae",
-        "name": "",
-        "property": "payload",
-        "action": "",
-        "pretty": false,
-        "x": 550,
-        "y": 660,
-        "wires": [
-            [
-                "c4744d7fba1a051e",
-                "431ab81035252336"
-            ]
-        ]
-    },
-    {
-        "id": "8ee17cd07c32a9e7",
-        "type": "http in",
-        "z": "ca18495f6f6a16ae",
-        "name": "[get] system config file",
-        "url": "/bewae/get-device-config",
-        "method": "get",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 180,
-        "y": 660,
-        "wires": [
-            [
-                "d55f828529a7be77"
-            ]
-        ]
-    },
-    {
-        "id": "d55f828529a7be77",
-        "type": "file in",
-        "z": "ca18495f6f6a16ae",
-        "name": "read file",
-        "filename": "/home/yourUsr/bewae/web-bewae-config.json",
-        "filenameType": "str",
-        "format": "utf8",
-        "chunk": false,
-        "sendError": false,
-        "encoding": "none",
-        "allProps": false,
-        "x": 400,
-        "y": 660,
-        "wires": [
-            [
-                "9cf0277461519ffa"
-            ]
-        ]
-    },
-    {
-        "id": "c4744d7fba1a051e",
-        "type": "http response",
-        "z": "ca18495f6f6a16ae",
-        "name": "return config File",
-        "statusCode": "",
-        "headers": {},
-        "x": 870,
-        "y": 660,
+        "id": "10955840b7dc329f",
+        "type": "comment",
+        "z": "450f83c2a1abd42e",
+        "name": "All-in-one Config file (Backend)",
+        "info": "",
+        "x": 250,
+        "y": 200,
         "wires": []
     },
     {
-        "id": "431ab81035252336",
-        "type": "debug",
-        "z": "ca18495f6f6a16ae",
-        "name": "debug 14",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 900,
-        "y": 620,
-        "wires": []
-    },
-    {
-        "id": "c94b4efef886dc04",
-        "type": "http in",
-        "z": "ca18495f6f6a16ae",
-        "name": "[post] system config file",
-        "url": "/bewae/device-save",
-        "method": "post",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 180,
-        "y": 740,
-        "wires": [
-            [
-                "1e7e92d0f8173722"
-            ]
-        ]
-    },
-    {
-        "id": "6df907323d5f4a5c",
-        "type": "file",
-        "z": "ca18495f6f6a16ae",
-        "name": "write file",
-        "filename": "/home/yourUsr/bewae/web-bewae-config.json",
-        "filenameType": "str",
-        "appendNewline": true,
-        "createDir": false,
-        "overwriteFile": "true",
-        "encoding": "utf8",
-        "x": 560,
-        "y": 740,
-        "wires": [
-            [
-                "db95ff0fed7f5f09"
-            ]
-        ]
-    },
-    {
-        "id": "db95ff0fed7f5f09",
-        "type": "debug",
-        "z": "ca18495f6f6a16ae",
-        "name": "debug 15",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 900,
-        "y": 740,
-        "wires": []
-    },
-    {
-        "id": "1007fc40cc701edb",
-        "type": "inject",
-        "z": "ca18495f6f6a16ae",
-        "name": "",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "{\"dn\":\"Test\",\"mssr\":1,\"main\":1,\"irig\":0,\"dummy\":99}",
-        "payloadType": "json",
-        "x": 390,
-        "y": 700,
-        "wires": [
-            [
-                "1e7e92d0f8173722"
-            ]
-        ]
-    },
-    {
-        "id": "1e7e92d0f8173722",
-        "type": "json",
-        "z": "ca18495f6f6a16ae",
-        "name": "",
-        "property": "payload",
-        "action": "str",
-        "pretty": true,
-        "x": 390,
-        "y": 740,
-        "wires": [
-            [
-                "6df907323d5f4a5c"
-            ]
-        ]
-    },
-    {
-        "id": "e4b9f1f7d373f35c",
-        "type": "http in",
-        "z": "ca18495f6f6a16ae",
-        "name": "[post] irrigation config file",
-        "url": "/bewae/save-plant",
-        "method": "post",
-        "upload": false,
-        "swaggerDoc": "",
+        "id": "b7f2f26bc56804ea",
+        "type": "comment",
+        "z": "450f83c2a1abd42e",
+        "name": "Config page",
+        "info": "",
         "x": 190,
-        "y": 380,
-        "wires": [
-            [
-                "d3921adb377ee432"
-            ]
-        ]
+        "y": 100,
+        "wires": []
     },
     {
-        "id": "b07bb4e680299ed8",
-        "type": "file",
-        "z": "ca18495f6f6a16ae",
-        "name": "write file",
-        "filename": "/home/yourUsr/bewae/web-config.json",
-        "filenameType": "str",
-        "appendNewline": true,
-        "createDir": false,
-        "overwriteFile": "true",
-        "encoding": "utf8",
-        "x": 560,
-        "y": 380,
-        "wires": [
-            [
-                "bd1152747d94e61b"
-            ]
-        ]
-    },
-    {
-        "id": "bd1152747d94e61b",
-        "type": "debug",
-        "z": "ca18495f6f6a16ae",
-        "name": "debug 9",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 900,
+        "id": "68cc2880ef961bd1",
+        "type": "comment",
+        "z": "450f83c2a1abd42e",
+        "name": "Device Config file (Microcontroller)",
+        "info": "",
+        "x": 260,
         "y": 380,
         "wires": []
     },
     {
-        "id": "d3921adb377ee432",
-        "type": "json",
-        "z": "ca18495f6f6a16ae",
-        "name": "",
-        "property": "payload",
-        "action": "str",
-        "pretty": true,
-        "x": 390,
-        "y": 380,
+        "id": "e8af3f1d.4c5d",
+        "type": "http in",
+        "z": "450f83c2a1abd42e",
+        "name": "[get] device config",
+        "url": "/bewae/get-config",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 210,
+        "y": 420,
         "wires": [
             [
-                "b07bb4e680299ed8"
+                "a1b4c1d9.6a8d"
+            ]
+        ]
+    },
+    {
+        "id": "7db2c1d9.6a8d",
+        "type": "function",
+        "z": "450f83c2a1abd42e",
+        "name": "filter config",
+        "func": "/*\nvar deviceName = msg.req.query.deviceName;\nvar config = JSON.parse(msg.payload);\nmsg.payload = config[deviceName];\nreturn msg;*/\n/*\nvar deviceName = msg.req.query.deviceName;\nvar fileType = msg.req.query.fileType;\ntry {\n    var config = JSON.parse(msg.payload);\n    if (config[deviceName] && fileType === \"irrigation\") {\n        msg.payload = config[deviceName];\n    } else {\n        msg.payload = {}; // Return empty if the deviceName is not found or fileType is not 'irrigation'\n    }\n} catch (error) {\n    msg.payload = {}; // Return empty if a problem with given data occurs\n}\nreturn msg;*/\n\n/*\n// Extract query parameters\nvar deviceName = msg.req.query.deviceName;\nvar fileType = msg.req.query.fileType;\n\ntry {\n    var config = JSON.parse(msg.payload);\n\n    // Function to return an empty payload\n    function returnEmpty() {\n        msg.payload = {};\n        return msg;\n    }\n\n    // No query parameters provided, return the whole config\n    if (!deviceName && !fileType) {\n        msg.payload = config;\n        return msg;\n    }\n\n    // Only deviceName is provided, return the configuration for the device\n    if (deviceName && !fileType) {\n        if (config[deviceName]) {\n            msg.payload = config[deviceName];\n            return msg;\n        } else {\n            return returnEmpty();\n        }\n    }\n\n    // Both deviceName and fileType are provided, check if fileType is 'irrigation'\n    if (deviceName && fileType) {\n        if (config[deviceName] && fileType === \"irrigation\") {\n            msg.payload = config[deviceName];\n            return msg;\n        } else {\n            return returnEmpty();\n        }\n    }\n\n    // If only fileType is provided or any other invalid combination\n    return returnEmpty();\n} catch (error) {\n    // Return empty if a problem with given data occurs\n    return returnEmpty();\n}\n*/\n\n// Extract query parameters\nvar deviceName = msg.req.query.deviceName;\nvar fileType = msg.req.query.fileType;\n\ntry {\n    var config = JSON.parse(msg.payload);\n\n    // Function to return an empty payload\n    function returnEmpty() {\n        msg.payload = {};\n        return msg;\n    }\n\n    // No query parameters provided, return the whole config\n    if (!deviceName && !fileType) {\n        msg.payload = config;\n        return msg;\n    }\n\n    // Only deviceName is provided, return the configuration for the device\n    if (deviceName && !fileType) {\n        if (config[deviceName]) {\n            msg.payload = config[deviceName];\n            return msg;\n        } else {\n            return returnEmpty();\n        }\n    }\n\n    // Both deviceName and fileType are provided\n    if (deviceName && fileType) {\n        if (config[deviceName] && config[deviceName][fileType]) {\n            // Return the configuration for the device and fileType\n            msg.payload = config[deviceName][fileType];\n            return msg;\n        } else {\n            return returnEmpty();\n        }\n    }\n\n    // If only fileType is provided or any other invalid combination\n    return returnEmpty();\n} catch (error) {\n    // Return empty if a problem with given data occurs\n    return returnEmpty();\n}\n\n",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 610,
+        "y": 420,
+        "wires": [
+            [
+                "9b8b33f5.6c74d"
+            ]
+        ]
+    },
+    {
+        "id": "9b8b33f5.6c74d",
+        "type": "http response",
+        "z": "450f83c2a1abd42e",
+        "name": "Return Config",
+        "statusCode": "",
+        "headers": {},
+        "x": 940,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "a1b4c1d9.6a8d",
+        "type": "file in",
+        "z": "450f83c2a1abd42e",
+        "name": "read file",
+        "filename": "/home/homepi/bewae/web-config.json",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 440,
+        "y": 420,
+        "wires": [
+            [
+                "7db2c1d9.6a8d"
             ]
         ]
     }
