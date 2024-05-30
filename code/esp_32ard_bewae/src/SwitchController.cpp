@@ -56,11 +56,11 @@ SwitchController::SwitchController(HelperBase* helper) : helper(helper) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool SwitchController::saveSwitches() { // save class variables
-  String sensorPathString = String(DEVICE_CONFIG_PATH) + String(JSON_SUFFIX);
-  const char* sensorPath = sensorPathString.c_str();
+  String configPathString = String(DEVICE_CONFIG_PATH) + String(JSON_SUFFIX);
+  const char* configPath = configPathString.c_str();
 
   // Load the config file
-  DynamicJsonDocument jsonDoc = helper->readConfigFile(sensorPath);
+  DynamicJsonDocument jsonDoc = helper->readConfigFile(configPath);
   if (jsonDoc.isNull()) {
     return false;
   }
@@ -73,7 +73,7 @@ bool SwitchController::saveSwitches() { // save class variables
   jsonDoc["dmmy"] = this->placeholder3;
   
   // Save the updated config file
-  bool success = helper->writeConfigFile(jsonDoc, sensorPath);
+  bool success = helper->writeConfigFile(jsonDoc, configPath);
   if (!success) {
     #ifdef DEBUG
     Serial.println("Error: could not save switches to config file.");

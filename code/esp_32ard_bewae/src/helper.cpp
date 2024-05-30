@@ -885,13 +885,15 @@ String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
 // The updateConfig function retrieves new JSON data from a server and updates the config file,
 // paths get automatically converted to WEB and LOCAL file path (adding Pre-/Suffix where needed)
 // Returns a bool value indicating the success
-bool HelperBase::updateConfig(const char* path){
+bool HelperBase::updateConfig(const char* fileType){
   // Check if the device is connected to WiFi
   if (WiFi.status() == WL_CONNECTED) {
-    String webPath = String(WEB_PREFIX) + String(path);
+    String pt1 = String(WEB_PREFIX)+String(F("?deviceName="))+String(DEVICE_NAME);
+    String pt2 = String(F("&fileType="))+String(fileType);
+    String webPath = pt1+pt2;
     // Retrieve new JSON data from the server
     DynamicJsonDocument newdoc(CONF_FILE_SIZE);
-    newdoc = HelperBase::getJSONConfig(SERVER, SERVER_PORT, webPath.c_str());
+    newdoc = HelperBase::getJSONConfig(SERVER, NODERED_PORT, webPath.c_str());
 
     //DynamicJsonDocument newdoc = HelperBase::getJSONData(SERVER, SERVER_PORT, path);
     // Check if the retrieved data is not null
@@ -902,7 +904,7 @@ bool HelperBase::updateConfig(const char* path){
       return false;
     }
     // Write the updated JSON data to the config file
-    String localPath = String(path) + String(JSON_SUFFIX);
+    String localPath = String(fileType) + String(JSON_SUFFIX);
     return HelperBase::writeConfigFile(newdoc, localPath.c_str());
   }
   else{
@@ -912,6 +914,7 @@ bool HelperBase::updateConfig(const char* path){
     return false;
   }
 }
+
 bool HelperBase::updateConfigOLD(const char* path){
   return false;
 }

@@ -93,7 +93,7 @@ public:
     // calculate hash of a json doc without optional contained hash value ("checksum")
     String calculateJSONHash(DynamicJsonDocument& JSONdata);
     // routine to check and update config file (from raspberrypi server)
-    bool updateConfig(const char* path);
+    bool updateConfig(const char* fileType);
     bool updateConfigOLD(const char* path); // REPLACEMENT FUNCTION WIP
     // sync config with server
     bool syncConfig();
