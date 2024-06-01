@@ -441,7 +441,6 @@ bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PA
   }
   //Serial.print("Free heap memory: ");
   //Serial.println(ESP.getFreeHeap());
-
   // open old file
   DynamicJsonDocument oldFile_buff(CONF_FILE_SIZE);
   oldFile_buff = readConfigFile(path);
@@ -495,7 +494,6 @@ bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PA
     #endif
     return true;
   }
-
   // open new file to save changes
   fs::File newFile = SPIFFS.open(path, "w"); // open the config file for writing
   if (!newFile) { // check if file was opened successfully
@@ -886,15 +884,18 @@ String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
 // paths get automatically converted to WEB and LOCAL file path (adding Pre-/Suffix where needed)
 // Returns a bool value indicating the success
 bool HelperBase::updateConfig(const char* fileType){
+  #ifdef DEBUG
+  Serial.print(F("Updating file: ")); Serial.println(fileType);
+  #endif
   // Check if the device is connected to WiFi
   if (WiFi.status() == WL_CONNECTED) {
-    String pt1 = String(WEB_PREFIX)+String(F("?deviceName="))+String(DEVICE_NAME);
-    String pt2 = String(F("&fileType="))+String(fileType);
-    String webPath = pt1+pt2;
+    String fileTypeNoSlash = String(fileType).substring(1); // Remove the first character
+    String pt1 = String(WEB_PREFIX) + String(F("?deviceName=")) + String(DEVICE_NAME);
+    String pt2 = String(F("&fileType=")) + fileTypeNoSlash; // Use the modified fileType
+    String webPath = pt1 + pt2;
     // Retrieve new JSON data from the server
     DynamicJsonDocument newdoc(CONF_FILE_SIZE);
     newdoc = HelperBase::getJSONConfig(SERVER, NODERED_PORT, webPath.c_str());
-
     //DynamicJsonDocument newdoc = HelperBase::getJSONData(SERVER, SERVER_PORT, path);
     // Check if the retrieved data is not null
     if(newdoc.isNull()){

@@ -22,11 +22,7 @@
 #endif
 
 #ifndef WEB_PREFIX
-#define WEB_PREFIX "/bewae"
-#endif
-
-#ifndef WEB_CONFIG
-#define WEB_CONFIG "/get-config"
+#define WEB_PREFIX "/bewae/get-config"
 #endif
 
 #ifndef DEVICE_CONFIG_PATH
