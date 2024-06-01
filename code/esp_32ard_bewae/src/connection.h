@@ -61,6 +61,11 @@
     #define INFLUXDB_ORG "example-org"
     #endif
 
+  // BEWAE DEVICE
+    #ifndef DEVICE_NAME
+    #define DEVICE_NAME "Default" // name must match WebConfig name
+    #endif
+
   // MQTT (currently unused)
     #ifndef mqtt_server
     #define mqtt_server "************"

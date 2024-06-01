@@ -22,19 +22,19 @@
 #endif
 
 #ifndef WEB_PREFIX
-#define WEB_PREFIX "/bewae"
+#define WEB_PREFIX "/bewae/get-config"
 #endif
 
 #ifndef DEVICE_CONFIG_PATH
-#define DEVICE_CONFIG_PATH "/get-device-config"
+#define DEVICE_CONFIG_PATH "/deviceConfig"
 #endif
 
 #ifndef IRRIG_CONFIG_PATH
-#define IRRIG_CONFIG_PATH "/get-irrig-config"
+#define IRRIG_CONFIG_PATH "/plantConfig"
 #endif
 
 #ifndef SENS_CONFIG_PATH
-#define SENS_CONFIG_PATH "/get-sensor-config"
+#define SENS_CONFIG_PATH "/sensorConfig"
 #endif
 
 #ifndef JSON_SUFFIX
