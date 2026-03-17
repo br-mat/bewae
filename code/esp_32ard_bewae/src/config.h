@@ -67,6 +67,15 @@
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Board / hardware selection — change this one line to switch hardware configuration
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Supported:  Helper_config1_Board5v5  (Board 5, current)
+// Legacy:     Helper_config1_Board1v3838, Helper_config1_main  (active installs only)
+#ifndef HW_BOARD
+#define HW_BOARD Helper_config1_Board5v5
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // default variable definitions & constants
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // reverse shiftregister output in case of optocoupler (v-pins)
@@ -96,7 +105,7 @@
 
 // pump & transistor max on time
 #ifndef max_active_time_sec
-#define max_active_time_sec 40 //max time active of each solenoid ==> SECOND
+#define max_active_time_sec 50 //max time active of each solenoid ==> SECOND
 #endif
 
 #ifndef measure_intervall
@@ -113,7 +122,7 @@
 
 // number of possible solenoids (v-pins)
 #ifndef max_groups
-#define max_groups 16
+#define max_groups 32
 #endif
 
 // time factors

@@ -56,7 +56,23 @@ LoadDriverPin controller_pins[max_groups] =
   {12},
   {13},
   {14},
-  {15}
+  {15},
+  {16},
+  {17},
+  {18},
+  {19},
+  {20},
+  {21},
+  {22},
+  {23},
+  {24},
+  {25},
+  {26},
+  {27},
+  {28},
+  {29},
+  {30},
+  {31}
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -163,7 +179,7 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
   this->name[MAX_GROUP_LENGTH] = '\0';  // Ensure null-termination
 
   // Extract the values from the groupData object
-  this->is_set = groupData["ps"].as<bool>();
+  this->is_set = bool(groupData["ps"].as<int16_t>());
   this->timetable = groupData["wt"].as<uint32_t>();
   this->water_time = groupData["pw"].as<int16_t>();
   JsonArray pinsArray = groupData["pp"].as<JsonArray>();
@@ -294,7 +310,7 @@ bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], cons
 
   // Update the values in the configuration file with the values of the member variables
   jsonDoc[grp_name]["pn"] = this->name;
-  jsonDoc[grp_name]["ps"] = this->is_set;
+  jsonDoc[grp_name]["ps"] = int(this->is_set);
   jsonDoc[grp_name]["wt"] = this->timetable;
   jsonDoc[grp_name]["pw"] = this->water_time;
 

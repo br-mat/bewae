@@ -18,7 +18,6 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <WiFi.h>
-#include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <DallasTemperature.h>
 
@@ -66,9 +65,8 @@ Adafruit_BME280 bme;
 // initialise WiFi
 WiFiClient wificlient;
 
-// initialise Hardware Helper class
-Helper_config1_Board5v5 HWHelper;
-//Helper_config1_Board5v5 HWHelper;
+// initialise Hardware Helper class — board selected via HW_BOARD in config.h
+HW_BOARD HWHelper;
 
 // Create a BasicSensor instance
 BasicSensor Sensors(&HWHelper, &bme, soilsensorGlobal);
@@ -185,24 +183,25 @@ void setup() {
   HWHelper.wakeModemSleep();
   delay(1);
   //uncomment if want to set the time (NOTE: only need to do this once not every time!)
-  //HWHelper.set_time(00,56,18,01,11,9,23);
+  //HWHelper.set_time(00,21,23,01,23,8,24);
   //seting time (second,minute,hour,weekday,date_day,date_month,year)
-  struct tm localTime = HWHelper.readTimeNTP();
+  //struct tm localTime = HWHelper.readTimeNTP();
 
   // automatically set time (requires WIFI access!!)
   struct tm local = HWHelper.readTimeNTP();
+  Serial.print("TEST TIME YEAR: "); Serial.println(local.tm_year);
   if(HWHelper.verifyTM(local)){
     #ifdef DEBUG
     Serial.println(F("Info: Synched time!"));
     #endif
-    HWHelper.setTime(local);
+    //HWHelper.setTime(local); // TODO REWORK SOMETHING FAILS HERE
+    HWHelper.set_time(local.tm_sec,local.tm_min,local.tm_hour,local.tm_wday,local.tm_mday,local.tm_mon,local.tm_year);
   }
   #ifdef DEBUG
   else{
     Serial.println(F("Setup Warning: Could not verify time!"));
   }
   #endif
-
   delay(100);
   //initialize global time
   bool condition = HWHelper.readTime(&oldtimeMark);
@@ -219,26 +218,24 @@ void setup() {
   // TEST DEVICE CONFIGURATION
   SwitchController status_switches(&HWHelper); // initialize switch class
 
-Serial.print("Free heap memory: ");
-Serial.println(ESP.getFreeHeap());
-Serial.print("Test DEVICE CONFIG!");
-DynamicJsonDocument doc(512);
-Serial.print("Free heap memory: ");
-Serial.println(ESP.getFreeHeap());
-String p = IRRIG_CONFIG_PATH; // Make sure IRRIG_CONFIG_PATH is defined somewhere
-String p2 = JSON_SUFFIX;
-String filePath = p + p2; // Concatenate to form the file path
-DynamicJsonDocument jsonDoc = HWHelper.readConfigFile(filePath.c_str());
-Serial.println("TESTING FILE RETURNS!");
-Serial.println(jsonDoc.isNull());
-String f_jsonDoc;
-serializeJson(jsonDoc, f_jsonDoc);
-Serial.println("Irrig file: ");
-Serial.println(f_jsonDoc);
-
-Serial.print("Free heap memory: ");
-Serial.println(ESP.getFreeHeap());
-
+  #ifdef DEBUG
+  Serial.print("Free heap memory: ");
+  Serial.println(ESP.getFreeHeap());
+  Serial.print("Test DEVICE CONFIG!");
+  DynamicJsonDocument doc(512);
+  Serial.print("Free heap memory: ");
+  Serial.println(ESP.getFreeHeap());
+  String p = IRRIG_CONFIG_PATH; // Make sure IRRIG_CONFIG_PATH is defined somewhere
+  String p2 = JSON_SUFFIX;
+  String filePath = p + p2; // Concatenate to form the file path
+  DynamicJsonDocument jsonDoc = HWHelper.readConfigFile(filePath.c_str());
+  Serial.println("TESTING FILE RETURNS!");
+  Serial.println(jsonDoc.isNull());
+  String f_jsonDoc;
+  serializeJson(jsonDoc, f_jsonDoc);
+  Serial.println("Irrig file: ");
+  Serial.println(f_jsonDoc);
+  #endif
   HWHelper.system_sleep(); //power down prepare sleep
   delay(100);
 
@@ -255,7 +252,7 @@ void loop(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // manage sleep and updating of configuration
-while(checkSleepTask()){
+while(checkSleepTask()){ // uncomment for Test (TESTRUN FLAG)
 }
 Serial.print(F("INIT SWITCHES:"));
 SwitchController status_switches(&HWHelper); // initialize switch class
@@ -265,7 +262,7 @@ SwitchController status_switches(&HWHelper); // initialize switch class
 #ifdef DEBUG
 Serial.println(F("Config: ")); Serial.print(F("Main switch: ")); Serial.println(status_switches.getMainSwitch());
 Serial.print(F("Irrigation switch: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
-Serial.print(F("Measurement switch: ")); Serial.println(status_switches.getDatalogingSwitch());
+Serial.print(F("Measurement switch: ")); Serial.println(status_switches.getDataloggingSwitch());
 Serial.print(F("Timetable: ")); Serial.println(timetable, BIN);
 #endif
 
@@ -277,9 +274,11 @@ Serial.print(F("Datalogphase: ")); Serial.println(millis() > nextActionTime);
 Serial.print(F("Next action time: ")); Serial.println(nextActionTime);
 #endif
 //if(true)
-if((status_switches.getDatalogingSwitch()) && (millis() > nextActionTime))
+if((status_switches.getDataloggingSwitch()) && (millis() > nextActionTime))
 {
   // Sensoring implementation
+// TODO CHECK nextActionTime calculation might not go as intended since last change return of sensoringTask timestamp
+// set 2 times longer why?
   nextActionTime = sensoringTask() + measure_intervall; // sensoring task returns finishing timestamp
 }
 else{
@@ -290,11 +289,12 @@ else{
 // watering - return true if finished
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timing is handled by irrigation class
+  Serial.print(F("Irrigation set, satus: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
   irrigationTask();
 }
 #ifdef DEBUG
 else{
-Serial.print(F("Irrigation not set, satus: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
+Serial.print(F("Irrigation NOT set, satus: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
 }
 #endif
 
@@ -391,11 +391,11 @@ long sensoringTask(){
 // watering - return true if NOT fnished
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool irrigationTask(){
-//thirsty = true; //uncoment for testing only
+//thirsty = true; //uncoment for testing only (TESTRUN FLAG)
   HWHelper.enablePeripherals();
 
   #ifdef DEBUG
-  Serial.println(F("Enter watering phase"));
+  Serial.println(F("Check watering phase"));
   #endif
   delay(30);
 
@@ -413,7 +413,7 @@ bool irrigationTask(){
   groups = doc.as<JsonObject>();
   int numgroups = groups.size();
   // sanity check
-  if (numgroups > max_groups) {
+  if (numgroups > groups) {
     #ifdef DEBUG
     Serial.println(F("Warning: too many groups! Exiting procedure"));
     #endif
@@ -450,14 +450,7 @@ bool irrigationTask(){
       Group[j].reset();
       break;
     }
-    /*
-#ifdef DEBUG
-Serial.print(F("Error: Failed to load schedule, for: '["));
-Serial.print(groupIterator->key().c_str());
-JsonObject groupData = groupIterator->value();
-Serial.print(F("] data: "));
-serializeJson(groupData, Serial); Serial.println(F("'"));
-#endif*/
+
     // Increment j for the next group
     j++;
   }
@@ -470,6 +463,7 @@ serializeJson(groupData, Serial); Serial.println(F("'"));
   //         NEVER INTERUPT WHILE WATERING!
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   while((nextActionTime > millis()) && (thirsty)){
+  //while(true){ // TEMP DEBUG ONLY!!!
     // process will trigger multiple loop iterations until thirsty is set false
     // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
     delay(15);
@@ -525,8 +519,7 @@ bool checkSleepTask(){
   Serial.print(F("Info: Rtc Status: ")); Serial.println(!rtc_status);
   #endif
   #ifdef DEBUG
-  String time = HWHelper.timestampNTP();
-  Serial.println(time);
+  String timentp = HWHelper.timestampNTP(); Serial.print("NTP TIME: "); Serial.println(timentp);
   #endif
 
   // look for config updates once an hour should be good
@@ -539,9 +532,9 @@ bool checkSleepTask(){
   // load update configuration
   SwitchController controller_switches(&HWHelper);
   controller_switches.updateSwitches();
-  /*
+  
   #ifdef DEBUG
-  Serial.print(F("NEW Time: "));
+  Serial.print(F("current Time: "));
   Serial.print(newtimeMark.tm_hour); // Print hours
   Serial.print(F(":"));
   Serial.print(newtimeMark.tm_min);  // Print minutes
@@ -551,7 +544,7 @@ bool checkSleepTask(){
   Serial.print(newtimeMark.tm_mon + 1); // Print month (tm_mon is 0-11, so add 1)
   Serial.print(F("/"));
   Serial.println(newtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
-  Serial.print(F("OLD Time: "));
+  Serial.print(F("OLD hour Timemark: "));
   Serial.print(oldtimeMark.tm_hour); // Print hours
   Serial.print(F(":"));
   Serial.print(oldtimeMark.tm_min);  // Print minutes
@@ -562,9 +555,11 @@ bool checkSleepTask(){
   Serial.print(F("/"));
   Serial.println(oldtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
   #endif
-  */
+  
+  //oldtimeMark.tm_hour = 0; // DEBUG DEBUGING ONLY
+  
   // check for hour change and update config
-  //if(true){
+  //if(true){ //DEBUGING ONLY (TESTRUN FLAG)
   if((newtimeMark.tm_hour != oldtimeMark.tm_hour) && (rtc_status) && (controller_switches.getMainSwitch())){
     // check for hour change
     HWHelper.readTime(&oldtimeMark); // update long time timestamp
@@ -586,7 +581,7 @@ bool checkSleepTask(){
       if(controller_switches.getIrrigationSystemSwitch())
       {
         thirsty = true; //initialize watering phase
-        Serial.println(F("Watering ON: starting"));
+        Serial.println(F("Watering ON: Set watering flag"));
       }
       else{
         thirsty = false;
@@ -606,14 +601,14 @@ bool checkSleepTask(){
 
   // prepare sleep
   unsigned long breakTime = 0;
-  if(nextActionTime > 600000UL + millis()){
-    breakTime = millis() + 600000UL; // reduce time to once per hour if intervall is bigger
+  if((nextActionTime > 600000UL + millis()) || (nextActionTime < millis())){
+    breakTime = millis() + 600000UL; // reduce time to once per 10 min if intervall is bigger
   }
   else{
-    breakTime = nextActionTime + millis() + 10;
+    breakTime = nextActionTime + 1;
   }
   #ifdef DEBUG
-  Serial.print(F("Waking in: ")); Serial.print(breakTime/1000);
+  Serial.print(F("Waking in: ")); Serial.print((breakTime-millis())/1000);
   Serial.println(F(" seconds!"));
   #endif
 
@@ -621,7 +616,7 @@ bool checkSleepTask(){
   while(true){ // sleep until break
     if(breakTime < millis()){
       #ifdef DEBUG
-      Serial.println(F("Break loop!"));
+      Serial.println(F("Break time reached, exiting sleep!"));
       #endif
       break; //break loop to start doing stuff
     }
@@ -632,12 +627,6 @@ bool checkSleepTask(){
     Serial.print(F("Sleeping: Wifi status: ")); Serial.println(WiFi.status());
     #endif
   }
-  #ifdef DEBUG
-  Serial.println(F("Config: ")); Serial.print(F("Main switch: ")); Serial.println(controller_switches.getMainSwitch());
-  Serial.print(F("Irrigation switch: ")); Serial.println(controller_switches.getIrrigationSystemSwitch());
-  Serial.print(F("Measurement switch: ")); Serial.println(controller_switches.getDatalogingSwitch());
-  Serial.print(F("Timetable: ")); Serial.println(timetable, BIN);
-  #endif
   // exit whole loop only if system is switched ON
   if(controller_switches.getMainSwitch()){ // condition get checked with little delay!
     return false;

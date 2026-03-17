@@ -61,11 +61,11 @@ float BasicSensor::analogVhandler(uint8_t virtualPin){
 float BasicSensor::onewirehandler(){
     HWHelper.enablePeripherals();
     this->ds18b20Module.begin();
-    delayMicroseconds(10); // give sensor time to start up
+    delayMicroseconds(200); // give sensor time to start up
 
     // Request temperature
     this->ds18b20Module.requestTemperatures();
-    delay(1);
+    delay(2);
 
     // Read temperature from DS18B20 sensor
     float temperatureC = 0;
@@ -77,6 +77,8 @@ float BasicSensor::onewirehandler(){
 
 float BasicSensor::bmetemphandler(){
     HWHelper.enablePeripherals();
+    HWHelper.enableSensor();
+    delay(1); // give sensor time to settle
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
         #ifdef DEBUG
         Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
@@ -90,6 +92,8 @@ float BasicSensor::bmetemphandler(){
 
 float BasicSensor::bmehumhandler(){
     HWHelper.enablePeripherals();
+    HWHelper.enableSensor();
+    delay(1); // give sensor time to settle
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
         #ifdef DEBUG
         Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
@@ -103,6 +107,8 @@ float BasicSensor::bmehumhandler(){
 
 float BasicSensor::bmepresshandler(){
     HWHelper.enablePeripherals();
+    HWHelper.enableSensor();
+    delay(1); // give sensor time to settle
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
         #ifdef DEBUG
         Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));

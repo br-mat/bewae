@@ -88,7 +88,7 @@ bool HelperBase::setTime(struct tm timeinfo)
     Serial.println(F("ERROR: DS3231 not connected"));
     return false;
   }
-
+  delay(2);
   // DS3231 ist verbunden, setze Zeit und Datum
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
   Wire.write(0); // set next input to start at the seconds register
@@ -98,7 +98,7 @@ bool HelperBase::setTime(struct tm timeinfo)
   Wire.write(dec_bcd(timeinfo.tm_wday)); // set day of week (1=Sunday, 7=Saturday)
   Wire.write(dec_bcd(timeinfo.tm_mday)); // set date (1 to 31)
   Wire.write(dec_bcd(timeinfo.tm_mon + 1)); // set month
-  Wire.write(dec_bcd(timeinfo.tm_year - 100)); // set year (0 to 99)
+  Wire.write(dec_bcd(timeinfo.tm_year - 2000)); // set year (0 to 99)
   status = Wire.endTransmission();
 
   if (status != 0) {
@@ -115,6 +115,9 @@ bool HelperBase::setTime(struct tm timeinfo)
 // new implementation using tm struct
 bool HelperBase::readTime(struct tm* timeinfo)
 {
+  #ifdef DEBUG
+  Serial.println("readTime function started");
+  #endif
   bool status = false;
   memset(timeinfo, 0, sizeof(struct tm)); // set all values to zero
 
@@ -124,7 +127,7 @@ bool HelperBase::readTime(struct tm* timeinfo)
   // read time
   if (status) { // verify rtc
     #ifdef DEBUG
-    Serial.print(F("RTC time:"));
+    Serial.print(F("RTC time: "));
     Serial.println(timestamp(*timeinfo).c_str());
     #endif
     return true;
@@ -134,14 +137,14 @@ bool HelperBase::readTime(struct tm* timeinfo)
   // read time
   if (status) { // verify NTP
     #ifdef DEBUG
-    Serial.print(F("NTP time:"));
+    Serial.print(F("NTP time: "));
     Serial.println(timestamp(*timeinfo).c_str());
     #endif
     return true;
   }
 
   #ifdef DEBUG
-  Serial.println(F("Error: time could net be set correctly!"));
+  Serial.println(F("Error: TIME WARNING! Neither NTP nor RTC working!"));
   #endif
   return false; // bad
 }
@@ -155,7 +158,7 @@ struct tm HelperBase::readTimeRTC()
 
   // enable rtc module
   HWHelper.enablePeripherals();
-  delayMicroseconds(300);
+  delay(2);
 
   // set up transmission
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
@@ -177,18 +180,32 @@ struct tm HelperBase::readTimeRTC()
     i++;
   }
 
-  // read time
-  if (status == 0) { // no error
+  // Read time if communication was successful
+  if (status == 0) { // No error
     Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
-    // request seven bytes of data from DS3231 starting from register 00h
+
     timeinfo.tm_sec = bcd_dec(Wire.read() & 0x7f);
     timeinfo.tm_min = bcd_dec(Wire.read());
     timeinfo.tm_hour = bcd_dec(Wire.read() & 0x3f);
     timeinfo.tm_wday = bcd_dec(Wire.read());
     timeinfo.tm_mday = bcd_dec(Wire.read());
     timeinfo.tm_mon = bcd_dec(Wire.read()) - 1; // tm_mon is months since January, in the range 0 to 11
-    timeinfo.tm_year = bcd_dec(Wire.read()) + 100; // tm_year is years since 1900
-  } else { // error occurred
+    timeinfo.tm_year = bcd_dec(Wire.read()); // tm_year is years since 1900
+
+    #ifdef DEBUG_SPAM
+    Serial.print(F("RAW: RTC Time read: "));
+    Serial.print(timeinfo.tm_hour); Serial.print(F(":"));
+    Serial.print(timeinfo.tm_min); Serial.print(F(":"));
+    Serial.println(timeinfo.tm_sec);
+    Serial.print(F("RAW: RTC Date read: "));
+    Serial.print(timeinfo.tm_mday); Serial.print(F("/"));
+    Serial.print(timeinfo.tm_mon + 1); Serial.print(F("/"));
+    Serial.println(timeinfo.tm_year + 1900);
+    #endif
+    #ifdef DEBUG
+    Serial.println(F("RTC read: OK!"));
+    #endif
+  } else { // Error occurred
     #ifdef DEBUG
     Serial.println(F("Warning: DS3231 not connected"));
     #endif
@@ -373,6 +390,12 @@ void HelperBase::disableBluetooth(){
 
 // waking up system
 void HelperBase::wakeModemSleep() {
+  if (WiFi.status() == WL_CONNECTED) {
+    #ifdef DEBUG
+    Serial.println(F("Wifi connection already established"));
+    #endif
+    return;
+  }
   #ifdef DEBUG
   Serial.println(F("Waking up modem!"));
   #endif
@@ -494,6 +517,7 @@ bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PA
     #endif
     return true;
   }
+
   // open new file to save changes
   fs::File newFile = SPIFFS.open(path, "w"); // open the config file for writing
   if (!newFile) { // check if file was opened successfully
@@ -828,6 +852,9 @@ bool HelperBase::verifyTM(struct tm timeinfo){
       timeinfo.tm_year == 0) {
     return false;
   }
+  if ((timeinfo.tm_year == 1970) || (timeinfo.tm_year == 70)) {
+    return false;
+  }
   return true; // all good
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -884,7 +911,7 @@ String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
 // paths get automatically converted to WEB and LOCAL file path (adding Pre-/Suffix where needed)
 // Returns a bool value indicating the success
 bool HelperBase::updateConfig(const char* fileType){
-  #ifdef DEBUG
+  #ifdef DEBUG_SPAM
   Serial.print(F("Updating file: ")); Serial.println(fileType);
   #endif
   // Check if the device is connected to WiFi
@@ -1034,7 +1061,7 @@ void Helper_config1_Board1v3838::shiftvalue(uint32_t val, uint8_t numBits, bool 
     val = ~val;  // Invert the value if the invert flag is set
   }
 
-  #ifdef DEBUG_SPAM
+  #ifdef DEBUG //_SPAM TEMPORARY
   Serial.print(F("Shifting '"));
   Serial.print(val, BIN); Serial.println(F("'"));
   #endif
@@ -1176,29 +1203,33 @@ void Helper_config1_Board1v3838::controll_mux(uint8_t channel, String mode, int 
 
 // Activate system
 void Helper_config1_Board1v3838::enablePeripherals() {
-  digitalWrite(Pins::SW_3_3V, HIGH); delay(5);
+  digitalWrite(Pins::SW_3_3V, HIGH); digitalWrite(Pins::SW_SENS, HIGH);
+  HWHelper.enableSensor();
+  delay(50); // give shift register time to react
   HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
-  digitalWrite(Pins::SW_SENS, HIGH);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Disable system
 void Helper_config1_Board1v3838::disablePeripherals() {
-    digitalWrite(Pins::SW_3_3V, LOW); delay(5);
+    digitalWrite(Pins::SW_3_3V, LOW); delay(25);
     HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
     digitalWrite(Pins::SW_SENS, LOW);
+    HWHelper.disableSensor();
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Activate additional sensor rail
 void Helper_config1_Board1v3838::enableSensor() {
   digitalWrite(Pins::SW_SENS2, HIGH);
+  digitalWrite(Pins::SW_3_3V, HIGH);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Disable additional sensor rail
 void Helper_config1_Board1v3838::disableSensor() {
-  digitalWrite(Pins::SW_SENS, LOW);
+  digitalWrite(Pins::SW_SENS2, LOW);
+  digitalWrite(Pins::SW_3_3V, LOW);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1273,7 +1304,7 @@ void Helper_config1_Board5v5::shiftvalue(uint32_t val, uint8_t numBits, bool inv
     val = ~val;  // Invert the value if the invert flag is set
   }
 
-  #ifdef DEBUG_SPAM
+  #ifdef DEBUG //_SPAM TEMPORARY
   Serial.println();
   Serial.print(F("Shifting '"));
   Serial.print(val, BIN); Serial.println(F("'"));
@@ -1309,15 +1340,15 @@ void Helper_config1_Board5v5::system_sleep() {
 
 // Activate system
 void Helper_config1_Board5v5::enablePeripherals() {
-  digitalWrite(Pins::SW_3_3V, HIGH); delay(5);
+  digitalWrite(Pins::SW_3_3V, HIGH); digitalWrite(Pins::SW_SENS, HIGH);
+  delay(50); // give shift register time to react
   HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
-  digitalWrite(Pins::SW_SENS, HIGH);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Disable system
 void Helper_config1_Board5v5::disablePeripherals() {
-    digitalWrite(Pins::SW_3_3V, LOW); delay(5);
+    digitalWrite(Pins::SW_3_3V, LOW); delay(25);
     HWHelper.shiftvalue(0, max_groups, INVERT_SHIFTOUT);
     digitalWrite(Pins::SW_SENS, LOW);
 }

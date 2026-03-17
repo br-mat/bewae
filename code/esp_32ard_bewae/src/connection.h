@@ -33,8 +33,8 @@
     #define SERVER_PATH "/get-conf" // server path
     #endif
 
-    #ifndef SERVER_PORT
-    #define SERVER_PORT 1880
+    #ifndef NODERED_PORT
+    #define NODERED_PORT 1880
     #endif
 
   // NTP
@@ -66,17 +66,4 @@
     #define DEVICE_NAME "Default" // name must match WebConfig name
     #endif
 
-  // MQTT (currently unused)
-    #ifndef mqtt_server
-    #define mqtt_server "************"
-    #endif
-
-    #ifndef mqtt_username
-    #define mqtt_username "example" // MQTT username (currently unused)
-    #endif
-
-    #ifndef mqtt_password
-    #define mqtt_password "************" // MQTT password (currently unused)
-    #endif
-    
 #endif

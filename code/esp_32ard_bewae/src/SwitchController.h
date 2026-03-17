@@ -20,7 +20,7 @@ class SwitchController {
 
     // SWITCH VARIABLES:
     bool main_switch; // main switch
-    bool dataloging_switch; // dataloging switch
+    bool datalogging_switch; // dataloging switch
     bool irrigation_system_switch; // irrigation system switch
     bool placeholder3; // switch
 
@@ -40,13 +40,13 @@ class SwitchController {
     // Getters
     String getName();
     bool getMainSwitch();
-    bool getDatalogingSwitch();
+    bool getDataloggingSwitch();
     bool getIrrigationSystemSwitch();
     bool getPlaceholder3();
 
     // Setters
     void setMainSwitch(bool value);
-    void setDatalogingSwitch(bool value);
+    void setDataloggingSwitch(bool value);
     void setIrrigationSystemSwitch(bool value);
     void setPlaceholder3(bool value);
 };

@@ -31,7 +31,7 @@ SwitchController::SwitchController(HelperBase* helper) : helper(helper) {
     main_switch = jsonDoc["main"] | false; // main - main system ON/OFF
     placeholder3 = jsonDoc["dmmy"] | false; // placeholder - placeholder ON/OFF
     irrigation_system_switch = jsonDoc["irig"] | false; // irig - irrigation system ON/OFF
-    dataloging_switch = jsonDoc["mssr"] | false; // mssr - measurement ON/OFF
+    datalogging_switch = jsonDoc["mssr"] | false; // mssr - measurement ON/OFF
     
     // Check for reading errors
     if (jsonDoc["dn"].isNull()) reading_errors++;
@@ -68,7 +68,7 @@ bool SwitchController::saveSwitches() { // save class variables
   // Update the switch values in the config file
   jsonDoc["dn"]= this->name;
   jsonDoc["main"] = this->main_switch;
-  jsonDoc["mssr"] = this->dataloging_switch;
+  jsonDoc["mssr"] = this->datalogging_switch;
   jsonDoc["irig"] = this->irrigation_system_switch;
   jsonDoc["dmmy"] = this->placeholder3;
   
@@ -109,7 +109,7 @@ bool SwitchController::updateSwitches(){
     this->name = String("");
   }
   this->main_switch = jsonDoc["main"] | false;
-  this->dataloging_switch = jsonDoc["mssr"] | false;
+  this->datalogging_switch = jsonDoc["mssr"] | false;
   this->irrigation_system_switch = jsonDoc["irig"] | false;
   this->placeholder3 = jsonDoc["dmmy"] | false;
 
@@ -133,7 +133,7 @@ bool SwitchController::updateSwitches(){
     main_switch = jsonDoc["main"].as<bool>() | false; // main - main system ON/OFF
     placeholder3 = jsonDoc["dmmy"].as<bool>() | false; // placeholder - placeholder ON/OFF
     irrigation_system_switch = jsonDoc["irig"].as<bool>() | false; // irig - irrigation system ON/OFF
-    dataloging_switch = jsonDoc["mssr"].as<bool>() | false; // mssr - measurement ON/OFF
+    datalogging_switch = jsonDoc["mssr"].as<bool>() | false; // mssr - measurement ON/OFF
     
     // Check for reading errors
     if (jsonDoc["dn"].isNull()) reading_errors++;
@@ -175,8 +175,8 @@ bool SwitchController::getMainSwitch() {
   return main_switch;
 }
 
-bool SwitchController::getDatalogingSwitch() {
-  return dataloging_switch;
+bool SwitchController::getDataloggingSwitch() {
+  return datalogging_switch;
 }
 
 bool SwitchController::getIrrigationSystemSwitch() {
@@ -193,8 +193,8 @@ void SwitchController::setMainSwitch(bool value) {
   main_switch = value;
 }
 
-void SwitchController::setDatalogingSwitch(bool value) {
-  dataloging_switch = value;
+void SwitchController::setDataloggingSwitch(bool value) {
+  datalogging_switch = value;
 }
 
 void SwitchController::setIrrigationSystemSwitch(bool value) {
