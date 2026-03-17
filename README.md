@@ -1,314 +1,159 @@
-# Bewae - Bewässerungsprojekt v3.3
+# bewae — Automated Irrigation System v3.3
 
-v3.3final versions are not stable (work in progress).
-
-## About
-
-Automatisiert Sensorgesteuerte Bewässerung mit Raspberry Pi & Arduino
-<br>
-
-**Ziele:**
-
-+ Sensorgesteuerte Automatisierte Bewässerung der Balkonpflanzen
-+ Speichern & Darstellung von Sensordaten
-+ Überwachung & Steuerung von unterwegs
-+ (Zukünftig) Abfrage von Wetterdaten & Bewässerung mit Machine Learning
-
-## Inhalt:
-
-- [Introduction (EN)](/README_EN.md)
-- [Einleitung (DE)](#einleitung-de)
-- [Steuerung des Systems](#steuerung-des-systems)
-- [Setup](#setup)
-- [Details](#details)
-- [Bilder & Entstehung](#bilder--entstehung)
-
-## Einleitung (DE)
-Diese Version ist eher als Testversion zu sehen. <br>
-Bei der bisherigen Aufarbeitung handelt es sich nicht um eine Schritt-für-Schritt-Anleitung. Es wird ein gewisses Grundwissen im Umgang mit Linux und Mikrokontrollern vorausgesetzt. Ziel ist es, lediglich einen Einblick in das Projekt zu geben und den Wiederaufbau im Frühjahr oder an neuen Standorten zu erleichtern. <br>
-
-### Beschreibung
-
-Zur Steuerung wird ein ESP-32 verwendet. Verschiedene Sensoren und Module erfassen eine Vielzahl von Daten, darunter Bodenfeuchtigkeits-, Temperatur-, Luftfeuchtigkeits- und Luftdruckdaten sowie Sonnenscheindauer. Diese Daten werden mithilfe eines InfluxDB-Clients an einen Raspberry Pi gesendet und in InfluxDB 2.0 gespeichert. <br>
-
-Die Bewässerung folgt einem Zeitplan, der entweder mit vorprogrammierten Werten arbeitet oder über das Netzwerk gesteuert werden kann. Durch Einrichten eines VPNs (z.B. PiVPN) kann man auch von unterwegs seine Pflanzen im Auge behalten und bewässern. <br>
-
-**Versorgung:**
-Das System ist mit einem kleinen PV-Modul, einem Blei-Akku und einem kleinen 100l Wassertank ausgestattet. Je nach Temperatur muss nun nur noch einmal pro Woche daran gedacht werden, den Tank zu füllen. <br>
-
-## Systemdiagramm
-
-### V3.3 Abbildung:
-
- System Setup:                  | Solar Setup:
-:-------------------------:|:-------------------------:
-![System](/docs/pictures/SystemdiagrammV3_3.png "Systemdiagramm 3.3") | ![Solar](/docs/pictures/systemdiagramSolar.png "Solar diagramm 3.3")
-zeigt grobe Skizzierung des Systems, Details zu Platinen siehe [(Details)](#details)
-
-## Steuerung des Systems
-
-### config.JSON
-
-In dieser Datei befinden sich alle relevanten Einstellungen. Auf dem Controller wird diese Datei im Flash hinterlegt. Um auf Änderungen einfacher reagieren zu können, kann mit Node-Red (auf einem RaspberryPi) innerhalb des Netzwerks diese Datei zur Verfügung gestellt werden. Hierfür muss die Adresse in der connection.h angepasst werden.
-
-Hinweis: Es ist auch möglich, ohne Verbindung zu einem RaspberryPi diese Datei zu verwenden, allerdings muss sie für Änderungen dann wieder neu aufgespielt werden.
-
-### Steuerung der Bewässerung
-
-Die Bewässerung wird mit den Einstellungen in der `config.JSON`-Datei gesteuert. Dabei werden zwei Variablen verwendet - timetable und water-time:
-
-- 'timetable': Wird durch die ersten 24 Bit einer Integer-Zahl repräsentiert, wobei jedes Bit für eine Stunde des Tages steht. Um Platz zu sparen, wird es als Long Integer abgespeichert.
-- 'water-time': Ist die Zeit (in Sekunden), die die jeweilige Gruppe bewässert wird. Hierbei können mehrere Ventile oder Ventil + Pumpe gleichzeitig gesetzt werden.
-
-<br>
-
-```cpp
-// Beispiel-Zeitplan                           23211917151311 9 7 5 3 1
-//                                              | | | | | | | | | | | |
-unsigned long int timetable_default = 0b00000000000100000000010000000000;
-//                                               | | | | | | | | | | | |
-// Dezimale Darstellung: 1049600                22201816141210 8 6 4 2 0
-//
-```
-
-Die Steuerung selbst kann auf folgenden Arten erfolgen:
-
-- Config-Datei: Entweder lokal im Flash (SPIFFS), oder über Node-red bereitgestellt
-- (currently not implemented) MQTT über W-LAN (App oder Pi) (noch nicht wieder implementiert)
-
-<br>
-
-Im File kann die Bewässerung wie im Beispiel unten konfiguriert werden:
-
-```json
-// JSON group template
-{"group": {
-    "Tomatoes": {         // name of grp
-    "is_set":1,           // indicates status
-    "vpins":[0,5],        // list of pins bound to group
-    "water-time":10,      // water time in seconds
-    "timetable":1049600,  // timetable (first 24 bit)
-    "lastup":[0,0],       // runtime variable - dont touch!
-    "watering":0          // runtime variable - dont touch!
-    },
-    .
-    .
-    .
-  }
-}
-```
-
-### Konfiguration der Sensoren:
-
-Die Sensoren können mithilfe des `config.JSON` zu jeder Zeit verändert werden. Dabei sind einige Messfunktionen mit gängigen Sensoren implementiert. Es können auch noch Änderungen vorgenommen werden, um zurückgegebenen Werte zu modifizieren oder auch relative Messwerte (%) ausgegeben werden. <br>
-
-Um einen Sensor korrekt zu konfigurieren ist es Notwendig eine Einzigartige ID als Json Key zu verwenden. Unter Diesem Key müssen noch 'name', 'field' und 'mode' vergeben werden. 'name' und 'field' entspricht dabei dem Eintrag in der DB unter dem der Messwert in InfluxDB zu finden ist. Implementierte 'mode' varianten können unten in der Tabelle entnommen werden, es kann erforderlich sein das noch weitere Dinge wie 'pin' etc. vorhanden sind.
-
-Beispielkonfiguration:
-
-```json
-  "sensor": {
-    "id00": {
-      "name": "bme280",
-      "field": "temp",
-      "mode": "bmetemp"
-    },
-    .
-    .
-    .
-    "id03": {
-      "name": "Soil",
-      "field": "temp",
-      "mode": "soiltemp"
-    },
-    .
-    .
-    .
-    "id08": {
-      "name": "Soil",
-      "field": "moisture",
-      "mode": "vanalog",
-      "vpin": 15,
-      "hlim": 600,
-      "llim": 250
-    }
-  },
-  .
-  .
-  .
-```
-
-<br>
-
-
-Konfiguration & Modifikatoren:
-| Property     | Description        |
-|--------------|--------------------|
-| `vpin`       | Definiert Virtuellen Pin als input, für erweiterte Messfunktionen notwendig    |
-| `pin`        | Definiert Normalen analogen Pin als input    |
-| `add`        | (OPTIONAL) Addieren einer konstanten zum Ergebnis, optional wird nur bei >0     |
-| `fac`        | (OPTIONAL) Multiplizieren einer konstanten zum Ergebnis, optional wird nur bei >0     |
-| `hlim`       | (OPTIONAL) Obergrenze für relative Messung (%), optional wird nur bei >0 berücksichtigt   |
-| `llim`       | (OPTIONAL) Untergrenze für relative Messung (%), optional wird nur bei >0 berücksichtigt    |
-
-<br>
-
-Messfunktionen: <br>
-| Measuring Mode | Description            | Requirements           |
-|----------------|------------------------|------------------------|
-| `analog`       | reads analog pin       | configured 'pin' in config.JSON      |
-| `vanalog`      | reads virtual analog pin | configured 'vpin' in config.JSON    |
-| `bmetemp`      | reads temperature from bme280 Sensor on Default address      | Connected BME280 |
-| `bmehum`       | reads humidity from bme280 Sensor on Default address       | Connected BME280 |
-| `bmepress`     | reads pressure from bme280 Sensor on Default address`     | Connected BME280 |
-| `soiltemp`     | reads temperature from ds18b20 sensor from default 1 wire pin     | Board need to have 1wire pin & connected Sensor |
-
-<br>
-
-## Setup Guide
-
-### Mikrokontroller ESP32:
-
-[Esp32 Code](./code/esp_32ard_bewae/) <br>
-
-#### PlatformIO IDE
-
-Stellen Sie zunächst sicher, dass PlatformIO in Visual Studio Code installiert ist. Dafür drücken Sie das 'Extensions' Icon in der linken Taskleiste und installieren 'PlatformIO IDE'. <br>
-
-Öffnen Sie dann den Projektordner 'bewae' in VS Code. Schließen Sie als Nächstes Ihren ESP-32-Controller an. Zum Hochladen des Codes auf den ESP32 klicken Sie auf das Pfeilsymbol in der PlatformIO-Taskleiste. Das Gerät sollte automatisch erkannt werden, es kann nötig sein, die Boot-Taste während des Upload-Vorgangs zu drücken. Weiterhin ist es wichtig, das 'Filesystem' hochzuladen, dies kann mit dem Unterpunkt 'Upload Filesystem Image' der PlatformIO-Erweiterung gemacht werden. <br>
-
-#### Config & WIFI (Optional)
-
-Nun ist es wichtig, in den Dateien `connection.h` seine Zugangsdaten für das lokale Netzwerk einzutragen. <br>
-Ebenfalls wären die IP des Systems worauf Node-red und die Datenbank installiert zu ändern. Sowie die dazugehörigen Daten. <br>
-Weiters könnte noch die Adresse des Zeitservers zu ändern sein.  <br>
-
-Für den Fall, dass keine Netzwerkverbindung möglich ist, sollte das Programm trotzdem funktionieren. Die Anpassung der Einstellungen ist dann allerdings schwieriger, da jedes Mal bei Änderungen das FileSystem neu hochgeladen werden muss. Außerdem muss die Zeit dann ebenfalls manuell gesetzt werden! Hierzu gibt es in der Helferklasse eine Funktion set_time. <br>
-
-#### Config Hardware
-
-Für die verschiedenen PCB-Layouts existieren unterschiedliche Hardware-Klassen. Diese leiten sich von der Helper-Klasse ab und schaffen eine Abstraktion der verwendeten Hardware. Dadurch wird es in Zukunft einfacher, andere Boards und sogar Mikrocontroller in das System zu integrieren.
-
-Um die Konfiguration zu ändern, passen Sie bitte die folgenden Zeilen an Ihr verwendetes Board an:
-
-##### ``main.cpp``
-```cpp
-// Initialisierung der Hardware Helper-Klasse
-Helper_ExampleBoard HWHelper;
-//Helper_config1_Board5v5 HWHelper;
-```
-
-
-##### ``Helper.h``
-```cpp
-// allowing to use HelperClass without having to create an instance of the class
-extern ExampleBoard HWHelper;
-```
-
-Die verfügbaren Boards mit ihren Spezifikationen können Sie weiter unten finden.
-
-### Raspberrypi
-
-InfluxDB 2.0 benötigt ein 64-Bit-OS. Daher verwende ich einen Raspberry Pi 4B mit einem vollwertigen 64-Bit-Image.
-
-#### Node-Red
-
-How to [install](https://nodered.org/docs/getting-started/raspberrypi). <br>
-
-Im Browser Your.Raspberry.Pi.IP:1880 Benutzer einrichten bzw. einloggen. Dann kann über das Web-Interface der [flow](/node-red-flows/flows.json) importiert werden. <br>
-Öffnen Sie den Flow und klicken Sie doppelt auf den orangefarbenen 'read config'-Knoten. Ändern Sie den Pfad zu dem Pfad Ihrer Konfigurationsdatei.
-
-#### InfluxDB 2.0
-
-How to [install](https://docs.influxdata.com/influxdb/v2/install/?t=Raspberry+Pi). <br>
-Influx kann auf zwei Arten aufgesetzt werden, entweder über das UI oder das CLI, Beschreibung dazu kann online gefunden werden (install link):
-
-Set up InfluxDB through the UI
-- With InfluxDB running, visit http://localhost:8086
-- Click Get Started
-- Set up your initial user
-- Enter a Username for your initial user.
-- Enter a Password and Confirm Password for your user.
-- Enter your initial Organization Name.
-- Enter your initial Bucket Name.
-- Click Continue.
-
-Die Berechtigungen für Buckets können recht einfach über das UI eingestellt werden und dazu dann ein Token generiert werden.
-
-- In der Option 'Load Data' auf 'API TOKENS' klicken
-- Klicken Sie auf 'Generate API TOKEN' -> Custom API Token
-- Token-Beschreibung eingeben und Berechtigung (Write) wählen -> Auf 'Generate' klicken
-- InfluxDB-Token nun in der `connection.h`-Datei ersetzen
+> Sensor-controlled balcony irrigation using ESP32 & Raspberry Pi. *(v3.3 — work in progress)*
 
 ---
 
-Nun sollte alles vorbereitet sein. Die Konfigurationsdatei (`config.JSON`) kann nach Bedarf angepasst werden, dazu einfach die benötigten Funktionen (siehe Tabellen) wie im Beispiel gezeigt konfigurieren. <br>
+## Overview
 
-Falls ein Relais-Modul verwendet wird mit invertierter Logik besteht die Option, die Ausgänge des Shift Registers zu invertieren, dazu in der `config.h`-Datei INVERT_SHIFTOUT auf true setzen. <br>
-Weiterhin können noch Flags gesetzt werden, die das Debugging erleichtern. <br>
+bewae automates the watering of balcony plants based on configurable schedules. An ESP32 reads soil moisture, temperature, humidity, pressure, and light data, stores it in InfluxDB on a Raspberry Pi, and controls irrigation valves and pumps via a shift register. The system is configured through a web interface served by Node-RED and can run standalone if no network is available.
 
-## Details
+**Key features:**
 
-### Platinen
+- Schedule-based irrigation with per-group timing control
+- Sensor data storage and visualization (InfluxDB 2.0 + Grafana)
+- Web-based configuration via Node-RED — no re-flashing required
+- Solar-powered operation (optional)
+- Remote monitoring via VPN (e.g. PiVPN)
 
-Die Schaltungen wurden mit Fritzing erstellt, die Steckbrettansicht bietet gute Übersicht und eignet sich ideal für Prototypen. Ab einer gewissen Größe des Projekts ist Fritzing allerdings nicht mehr ideal. Gerber-Dateien sind vorhanden. Für die Fritzing-Dateien ist lediglich die Platinenansicht relevant. Alle Boards verwenden den ESP-32 als Mikrocontroller. <br>
+---
 
+## System Diagram
 
- Board 1:                  | Board 3:                  | Board 5:
-:-------------------------:|:-------------------------:|:-------------------------:
-![Board1](/docs/pictures/bewae3_3_board1v3_838_Leiterplatte.png) | ![Board3](/docs/pictures/bewae3_3_board3v22_Leiterplatte.png) | ![Board5](/docs/pictures/bewae3_3_board5v5_final_Leiterplatte.png)
-Main Board (Älteres testboard) | Extention Board | Main Board (neustes) <br> 
+| System Setup | Solar Setup |
+| :-----------: | :-----------: |
+| ![System diagram](docs/pictures/SystemdiagrammV3_3.png) | ![Solar diagram](docs/pictures/systemdiagramSolar.png) |
 
-Steuerung der Ventile entweder über Optokoppler Relais (bis zu 8x mit adaption mehr) oder externe Beschaltung Board 3 und ähnliche. Die Ansteuerung ist über das Schieberegister (74hc595) vorgesehen.
+---
 
-#### **bewae3_3_board1v3_838.fzz** Hauptplatine (PCB)
+## Repository Structure
 
-Große Hauptplatine. Erfordert Board 3 oder externe Beschaltung für große Anzahl an analoger Sensoren. <br> Platz für bis zu 16 analoge Sensoren sowie BME280- und RTC-Modul über I2C. 8 Pins für Ventile/Pumpen (erweiterbar). Diese können entweder über Relais oder dem PCB Board 3 einfach verwendet werden.<br>
+```text
+bewae/
+├── code/esp_32ard_bewae/         # ESP32 firmware (PlatformIO)
+│   ├── src/                      # Main source files
+│   └── data/                     # Filesystem configs (SPIFFS)
+├── node-red-flows/               # Node-RED flows for Raspberry Pi
+│   └── bewaeConfigPageFlow.json  # Web config page (active)
+├── fzz-layout/                   # PCB designs (Fritzing + Gerber)
+└── docs/                         # Documentation & images
+```
 
-#### **bewae3_3_board3v22.fzz** als Erweiterung (PCB)
+---
 
-Als Erweiterung gedacht. Hat den Zweck, Steckplätze für Sensoren und weitere Verbraucher bereitzustellen. Zur Erweiterung der 8 Pins der Hauptplatine kann das Schieberegister verwendet werden. Insgesamt 16 Steckplätze für Sensoren inklusive Versorgung, sowie 2 Pumpen (*12V*) und 10 kleinere Ventile (*12V*).<br>
+## Hardware
 
-#### **bewae3_3_board5v5_final.fzz** als Hauptplatine (PCB)
+| Component | Details |
+|---|---|
+| Microcontroller | ESP32 (WROOM) |
+| Single-board computer | Raspberry Pi 4B (64-bit OS) |
+| Sensors | BME280 (temp/humidity/pressure), DS18B20 (soil temp), capacitive soil moisture, LDR |
+| Actuators | Up to 10× 12V valves, 1–2× 12V pumps via shift register (74HC595) |
+| Power | 20W 12V solar panel, 12Ah lead-acid battery, solar charge controller |
 
-Kleinere Hauptplatine (neueste). bietet die möglichkeit für eine Begrenzte anzahl an analogen Sensoren direkt am Board.
-Verzichtet jedoch auf eine größere Anzahl an (analogen) Sensoranschlüssen. <br> 8 Pins für Ventile/Pumpen (mit Schieberegister erweiterbar). Platz für 2x 5V Sensoren, 2x 3V Sensoren, 1x LDR, I2C-Bus, 1-Wire-Bus. BME280- und RTC-Modul sind ebenfalls vorgesehen.<br>
+The current supported PCB is **Board 5** (`bewae3_3_board5v5_final.fzz`) — compact main board with onboard I2C + 1-Wire, 2× 5V / 2× 3V sensor slots, LDR, and up to 8 valve/pump outputs expandable via shift register. Gerber files for manufacturing are included in `fzz-layout/`.
 
-### aktueller Aufbau
+---
 
-- ESP32 Board 1 & 3; Esp32 Board 5
-- RaspberryPi 4 B (4GB)
-- 10 Ventile 12V
-- 2 Pumpen (aktuell nur eine 12V im Betrieb)
-- 16 Analoge/Digitale Pins für Sensoren & andere Messungen (Bodenfeuchte, Photoresistor, etc.)
-- BME280 Temperatur/Luftfeuchtigkeit/Druck Sensor
-- RTC DS3231 Real Time Clock
-- Bewässerungs Kit: Schläuche, Sprinkler, etc.
-- 20W 12V Solar Panel
-- 12 Ah 12V Bleiakku
-- Solarladeregler
+## Setup
 
-## Bilder & Entstehung
+### Prerequisites
 
-**Entstehung:** <br>
+- Visual Studio Code with the [PlatformIO IDE](https://platformio.org/) extension
+- Raspberry Pi running a 64-bit OS with:
+  - [Node-RED](https://nodered.org/docs/getting-started/raspberrypi)
+  - [InfluxDB 2.0](https://docs.influxdata.com/influxdb/v2/install/?t=Raspberry+Pi)
 
-Das Projekt entstand aus einer mehrwöchigen Abwesenheit, während der die Balkonpflanzen ohne Versorgung gewesen wären. Die Pflanzen sollten mithilfe eines Bewässerungssets, Schläuchen, ein paar Düsen und einer Pumpe am Leben gehalten werden. Eine reguläre Bewässerung wie bei einer Zeitschaltuhr erschien mir jedoch zu langweilig, und mein Interesse an einem kleinen Bastelprojekt war geweckt. Kapazitive Bodenfeuchtesensoren und 4 kleine 12V Ventile wurden schnell bestellt, da ich zu Hause genügend Arduinos hatte. So kam es innerhalb einer Woche zur [Version 1](#v1), und das Überleben der Pflanzen war gesichert. Aus der Not heraus entstand ein Projekt, das mich eine Weile beschäftigte, und durch kontinuierliche Erweiterung und Verbesserung erfüllt es nach momentanem Stand weit mehr, als ursprünglich geplant. <br>
-<br>
+---
 
-Zum Abschluss eine kleine Sammlung von Fotos über mehrere Versionen des Projekts, die im Laufe der Zeit entstanden sind:
+### 1. ESP32 Firmware
 
-### V3
+1. Open `code/esp_32ard_bewae/` in VS Code with PlatformIO.
+2. Edit `src/connection.h` — set your Wi-Fi credentials, Raspberry Pi IP, InfluxDB token, and NTP server.
+3. In `src/config.h`, select the hardware class matching your PCB:
 
-![Bild](/docs/pictures/bewaeV3(Sommer).jpg) <br>
-![Bild](/docs/pictures/bewaeV3(Herbst).jpg) <br>
-![Bild](/docs/pictures/bewaeV3(Box).jpg) <br>
-![Bild](/docs/pictures/MainPCB.jpg) <br>
+   ```cpp
+   #define HW_BOARD Helper_config1_Board5v5
+   ```
 
-### V2
+4. Build and upload the firmware via the PlatformIO toolbar (arrow icon).
+5. Upload the filesystem: PlatformIO → **Upload Filesystem Image** (uploads `data/` to SPIFFS).
 
-![Bild](/docs/pictures/bewaeV2.jpg) <br>
+> If no network is available, the firmware still runs using locally stored config. Time must be set manually via `Helper::set_time()`.
 
-### V1
+---
 
-![Bild](/docs/pictures/bewaeV1(2).jpg) <br>
-![Bild](/docs/pictures/bewaeV1.jpg) <br>
+### 2. Raspberry Pi — InfluxDB 2.0
+
+1. Visit `http://localhost:8086` and complete initial setup (user, org, bucket).
+2. Generate an API token: **Load Data → API Tokens → Generate API Token → Custom** (Write permission).
+3. Enter the token and org in `src/connection.h`.
+
+---
+
+### 3. Raspberry Pi — Node-RED
+
+1. Access Node-RED at `http://<Pi-IP>:1880`.
+2. Import [`node-red-flows/bewaeConfigPageFlow.json`](node-red-flows/bewaeConfigPageFlow.json) via the Node-RED menu → **Import**.
+3. In the flow, update the **read-file** and **write-file** nodes to point to your `config.JSON` path on the Pi.
+4. Deploy the flow.
+
+---
+
+## Web Configuration
+
+The web config page is the primary way to configure the system without touching any code or files directly.
+
+**URL:**
+```
+http://<Pi-IP>:1880/bewae-working
+```
+
+The page is served by Node-RED and communicates with the ESP32 via HTTP. Changes made on the web page are saved to `config.JSON` on the Pi; the ESP32 fetches updates automatically on the next wake cycle.
+
+### What you can configure
+
+**Irrigation groups** — each group controls one or more valves/pumps:
+- Plant name and active state
+- Which output pins (vpins) open which valves
+- Water duration (seconds per cycle)
+- Watering schedule — a 24-bit timetable where each bit represents one hour of the day
+
+**Sensors** — each sensor entry defines a measurement point:
+- Sensor name, measurement field, and mode (see [MANUAL_CONFIGURATION.md](MANUAL_CONFIGURATION.md) for all modes)
+- Optional calibration: offset (`add`), scaling factor (`fac`), percentage range (`hlim`/`llim`)
+
+**System switches** — enable or disable subsystems:
+
+- `main` — master on/off
+- `irig` — irrigation system enable
+- `mssr` — measurement/datalogging enable
+
+### How the config sync works
+
+```
+Web page  →  Node-RED saves config.JSON on Pi
+ESP32     →  polls Pi via HTTP GET on each wake cycle
+          →  updates local SPIFFS copy
+          →  runs irrigation and sensing based on current config
+```
+
+---
+
+## Images
+
+| V3 (Summer) | V3 (Box) | Main PCB |
+| :-----------: | :-----------: | :-----------: |
+| ![V3 Summer](docs/pictures/bewaeV3%28Sommer%29.jpg) | ![V3 Box](docs/pictures/bewaeV3%28Box%29.jpg) | ![Main PCB](docs/pictures/MainPCB.jpg) |
+
+---
+
+## Configuration Reference
+
+For a detailed reference of the JSON config format — irrigation groups, sensor modes, switch fields, and SPIFFS file layout — see [MANUAL_CONFIGURATION.md](MANUAL_CONFIGURATION.md).
+
+---
+
+## Roadmap
+
+See [roadmap.md](roadmap.md)
