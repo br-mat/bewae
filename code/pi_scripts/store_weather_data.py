@@ -11,7 +11,7 @@ import requests
 import json
 
 def get_weather(api_key, lat, lon):
-    base_url = "http://api.openweathermap.org/data/2.5/weather"
+    base_url = "https://api.openweathermap.org/data/2.5/weather"
     params = {
         'lat': lat,
         'lon': lon,
@@ -32,6 +32,7 @@ def get_weather(api_key, lat, lon):
 def transform_data(data):
     # Initialize an empty dictionary to store the transformed data
     transformed_data = {}
+    transformed_data["rain"] = 0  # default if no rain field present
     fields = ["main", "wind", "clouds"]
     # Iterate over the items in the data
     for key, value in data.items():
@@ -40,13 +41,11 @@ def transform_data(data):
             for subkey, subvalue in value.items():
                 # Add the unpacked values to the transformed_data dictionary
                 transformed_data[f"{key}_{subkey}"] = subvalue
-    if key == "rain":
-        transformed_data["rain"] = value.get("1h")
-    else:
-        transformed_data["rain"] = 0
-    transformed_data.pop("main_temp_min")
-    transformed_data.pop("main_temp_max")
-    transformed_data.pop("main_feels_like")
+        if key == "rain" and isinstance(value, dict):
+            transformed_data["rain"] = value.get("1h", 0)
+    transformed_data.pop("main_temp_min", None)
+    transformed_data.pop("main_temp_max", None)
+    transformed_data.pop("main_feels_like", None)
     return transformed_data
 
 def setup_logger():
@@ -68,7 +67,6 @@ def pubInfluxdb(client: InfluxDBClient, bucket: str, measurement: str, location:
         else:
             raise ValueError(f"Invalid value for {key}: {value}. Only int and float are allowed.")
     write_api.write(bucket=bucket, record=point)
-    client.__del__()
 
 def main():
     logger = setup_logger()
