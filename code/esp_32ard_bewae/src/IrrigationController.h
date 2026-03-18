@@ -70,6 +70,7 @@ class IrrigationController {
     int water_time; //[wt] defualt value of watering amount set for group, value will get saved to config
     int plant_size; //[pls]
     int pot_size; //[pts]
+    float weather_multiplier; //[wm] weather-based watering adjustment factor (0.0 - 2.0), default 1.0
     byte lastDay; //[pu][0] runntimevariable
     byte lastHour; //[pu][0] runntimevariable
     int watering; //[dty] runntimevariable

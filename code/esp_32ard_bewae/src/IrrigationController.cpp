@@ -81,7 +81,7 @@ LoadDriverPin controller_pins[max_groups] =
 
 // DEFAULT Constructor seting an empty class
 IrrigationController::IrrigationController()
-    : is_set(false), timetable(0), watering(0), water_time(0), name("NV") {
+    : is_set(false), timetable(0), watering(0), water_time(0), weather_multiplier(1.0f), name("NV") {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -190,6 +190,13 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
   }
   this->plant_size = groupData["pls"].as<int16_t>();
   this->pot_size = groupData["pts"].as<int16_t>();
+
+  // Weather multiplier (optional, default 1.0 for backward compatibility)
+  if (groupData.containsKey("wm")) {
+    this->weather_multiplier = constrain(groupData["wm"].as<float>(), 0.0f, 2.0f);
+  } else {
+    this->weather_multiplier = 1.0f;
+  }
 
   loadDuty(this->key);
 
@@ -339,6 +346,7 @@ void IrrigationController::reset() {
   timetable = 0;
   watering = 0;
   water_time = 0;
+  weather_multiplier = 1.0f;
   driver_pins.clear(); // Clear the elements of driver_pins vector
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -454,8 +462,13 @@ Serial.print("TODO: timetable = "); Serial.println(this->timetable);
     this->lastDay = day;
     this->lastHour = hour;
 
-    // write water_time to watering when starting watering process
-    this->watering = this->water_time; // multiply with factor to adjust wheater conditons when raspi not reachable?
+    // apply weather multiplier to base watering duration
+    this->watering = (int)(this->water_time * this->weather_multiplier);
+    if (this->watering < 0) this->watering = 0;
+    #ifdef DEBUG
+    Serial.print(F("Weather multiplier: ")); Serial.println(this->weather_multiplier);
+    Serial.print(F("Adjusted watering: ")); Serial.println(this->watering);
+    #endif
   }
 
   // get info if system is allowed to water
