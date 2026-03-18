@@ -7,5 +7,12 @@
   "weatherAPI": "APIToken",
   "lat": "22.22",
   "lon": "11.11",
-  "location": "City"
+  "location": "City",
+  "baseline_temp": 25,
+  "baseline_humidity": 50,
+  "baseline_wind": 5,
+  "rain_threshold_mm": 5,
+  "rain_hard_cutoff_mm": 15,
+  "multiplier_max": 2.0,
+  "config_path": "/home/homepi/bewae/full-config.json"
 }
