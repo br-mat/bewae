@@ -79,7 +79,6 @@ class IrrigationController {
     //HelperBase* helper;
 
     // PRIVATE METHODS:
-    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath); // OUTDATED
     // Member function to activate watering using PWM
     void activatePWM(int time_s);
     // Member function to activate watering

@@ -26,8 +26,6 @@ class SwitchController {
 
     HelperBase* helper;
 
-    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath);
-
   public:
     // Constructor
     SwitchController(HelperBase* helper);

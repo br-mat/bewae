@@ -525,39 +525,33 @@ Serial.print("TODO: timetable = "); Serial.println(this->timetable);
 
     // update watering variable
     this->watering = this->watering - active_time; // update the water time
-
-    String path = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
-
-    // save water time variable
-    if (!saveScheduleConfig(path.c_str(), this->key)){ // WARNING: calling this too ofthen could wear out flash memory
-      #ifdef DEBUG
-      Serial.println(F("Failed to save status!"));
-      #endif
-      return 0; // saving variable error
-    }
+    if (this->watering < 0) this->watering = 0;
 
     // Activate watering process
     activate(active_time);
+
+    // Only save to flash when cycle finishes to reduce SPIFFS wear.
+    // If ESP32 resets mid-cycle it will re-water that hour on next wake (safe for plants).
+    if (this->watering == 0) {
+      String path = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
+      if (!saveScheduleConfig(path.c_str(), this->key)){
+        #ifdef DEBUG
+        Serial.println(F("Failed to save status!"));
+        #endif
+      }
+    }
   }
 
-  // check if group is NOT done
-  if(watering!=0){
-    return 1;
-  }
   // check if group is done
   if(watering == 0){
     #ifdef DEBUG
     Serial.print(F("Group '"));
-    Serial.print(name); Serial.println(F("' finished! OLD STATEMENT"));
+    Serial.print(name); Serial.println(F("' finished!"));
     #endif
     return 0;
   }
 
-  #ifdef DEBUG
-  Serial.println(F("Warning: something unhandeled occured in warterOn!"));
-  #endif
-
-  return 0;
+  return 1; // not finished
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

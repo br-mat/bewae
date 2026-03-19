@@ -180,6 +180,14 @@ void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // init time and date
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef OFFLINE_TEST
+  // OFFLINE_TEST: skip NTP/WiFi time sync — leave oldtimeMark at zero so
+  // checkSleepTask() detects an hour change on the first loop iteration.
+  #ifdef DEBUG
+  Serial.println(F("OFFLINE_TEST: skipping time sync, oldtimeMark stays at hour 0"));
+  #endif
+  delay(30);
+#else
   HWHelper.wakeModemSleep();
   delay(1);
   //uncomment if want to set the time (NOTE: only need to do this once not every time!)
@@ -206,15 +214,22 @@ void setup() {
   //initialize global time
   bool condition = HWHelper.readTime(&oldtimeMark);
   delay(30);
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //init Irrigation Controller instance and update config
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifndef OFFLINE_TEST
   HWHelper.wakeModemSleep();
   delay(1);
   // update the config file stored in spiffs
   // in order to work a RasPi with node-red and configured flow is needed
   HWHelper.syncConfig();
+#else
+  #ifdef DEBUG
+  Serial.println(F("OFFLINE_TEST: skipping syncConfig in setup"));
+  #endif
+#endif
   // TEST DEVICE CONFIGURATION
   SwitchController status_switches(&HWHelper); // initialize switch class
 
@@ -413,7 +428,7 @@ bool irrigationTask(){
   groups = doc.as<JsonObject>();
   int numgroups = groups.size();
   // sanity check
-  if (numgroups > groups) {
+  if (numgroups > max_groups) {
     #ifdef DEBUG
     Serial.println(F("Warning: too many groups! Exiting procedure"));
     #endif
@@ -427,8 +442,12 @@ bool irrigationTask(){
     return false; // break loop and continue programm
   }
 
-  // load empty irrigationcontroller instances 
-  IrrigationController Group[numgroups];
+  // use static array to avoid stack overflow from VLA with dynamic numgroups
+  static IrrigationController Group[max_groups];
+  // reset all entries to avoid stale state from previous calls
+  for (int i = 0; i < max_groups; i++) {
+    Group[i].reset();
+  }
   int j = 0;
 
   // Iterate over each group and load the config
@@ -523,11 +542,18 @@ bool checkSleepTask(){
   #endif
 
   // look for config updates once an hour should be good
+#ifndef OFFLINE_TEST
   HWHelper.wakeModemSleep();
   delay(1);
   // update config
   // in order to work a RasPi with node-red and configured flow is needed
   HWHelper.syncConfig();
+#else
+  // OFFLINE_TEST: skip WiFi and server sync — using local SPIFFS files only
+  #ifdef DEBUG
+  Serial.println(F("OFFLINE_TEST: skipping WiFi and syncConfig"));
+  #endif
+#endif
 
   // load update configuration
   SwitchController controller_switches(&HWHelper);
@@ -577,17 +603,19 @@ bool checkSleepTask(){
     // check if current hour is in timetable
     //if(true){
     if(bitRead(timetable, newtimeMark.tm_hour)){
-      #ifdef DEBUG
       if(controller_switches.getIrrigationSystemSwitch())
       {
         thirsty = true; //initialize watering phase
+        #ifdef DEBUG
         Serial.println(F("Watering ON: Set watering flag"));
+        #endif
       }
       else{
         thirsty = false;
+        #ifdef DEBUG
         Serial.println(F("Watering OFF: do nothing"));
+        #endif
       }
-      #endif
     }
   }
 
@@ -612,6 +640,14 @@ bool checkSleepTask(){
   Serial.println(F(" seconds!"));
   #endif
 
+#ifdef OFFLINE_TEST
+  // OFFLINE_TEST: skip the entire sleep loop (normally waits up to 10 min).
+  // The while(true) + esp_light_sleep_start() block below is replaced entirely —
+  // we fall straight through to the return statement.
+  #ifdef DEBUG
+  Serial.println(F("OFFLINE_TEST: skipping sleep loop"));
+  #endif
+#else
   delay(3);
   while(true){ // sleep until break
     if(breakTime < millis()){
@@ -627,6 +663,7 @@ bool checkSleepTask(){
     Serial.print(F("Sleeping: Wifi status: ")); Serial.println(WiFi.status());
     #endif
   }
+#endif
   // exit whole loop only if system is switched ON
   if(controller_switches.getMainSwitch()){ // condition get checked with little delay!
     return false;

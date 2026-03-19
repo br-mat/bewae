@@ -115,6 +115,17 @@ bool HelperBase::setTime(struct tm timeinfo)
 // new implementation using tm struct
 bool HelperBase::readTime(struct tm* timeinfo)
 {
+#ifdef OFFLINE_TEST
+  // hardcoded time for offline testing — no RTC or NTP needed
+  memset(timeinfo, 0, sizeof(struct tm));
+  timeinfo->tm_hour = 9;  // matches timetable 8399362 (bit 9 set)
+  timeinfo->tm_min  = 0;
+  timeinfo->tm_sec  = 0;
+  timeinfo->tm_mday = 1;
+  timeinfo->tm_mon  = 2;   // March (0-indexed)
+  timeinfo->tm_year = 125; // 2025 (years since 1900)
+  return true;
+#endif
   #ifdef DEBUG
   Serial.println("readTime function started");
   #endif
@@ -224,7 +235,7 @@ struct tm HelperBase::readTimeNTP()
   // Zeitkonfiguration
   configTime(gmtOffset_hours * SECONDS_PER_HOUR, daylightOffset_hours * SECONDS_PER_HOUR, NTP_Server);
 
-  struct tm timeinfo;
+  struct tm timeinfo = {};  // zero-initialize so verifyTM() catches failures
   if(!getLocalTime(&timeinfo)){
     #ifdef DEBUG
     Serial.println(F("Error: Retrieving time via Network!"));
@@ -404,16 +415,6 @@ void HelperBase::wakeModemSleep() {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// search item in an array returning bool
-bool HelperBase::find_element(int *array, int item){
-  int len = sizeof(array);
-  for(int i = 0; i < len; i++){
-      if(array[i] == item){
-          return true;
-      }
-  }
-  return false;
-}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Reads the JSON file at the specified file path and returns the data as a DynamicJsonDocument.
@@ -641,63 +642,6 @@ DynamicJsonDocument HelperBase::getJsonDoc(const char* filepath, const char* key
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // HTTP GET request to the Raspberry Pi server
-DynamicJsonDocument HelperBase::getJSONConfigLEGACY(const char* server, int serverPort, const char* serverPath) {
-  // create buffer file
-  int max_retries = 3;
-  int retries = 0;
-  while (retries < max_retries) {
-    DynamicJsonDocument jsonConfdata(CONF_FILE_SIZE);
-    HTTPClient http;
-    http.begin(String("http://") + server + ":" + serverPort + serverPath);
-    int httpCode = http.GET();
-    String databuffer = http.getString();
-
-    // Check the status code
-    if (httpCode == HTTP_CODE_OK) {
-      // Parse the JSON data
-      // check for errors
-      DeserializationError error = deserializeJson(jsonConfdata, databuffer);
-      bool empty = false;
-      if (!(databuffer != String(""))) {
-        #ifdef DEBUG
-        Serial.println(F("Warning: retrieved file empty!"));
-        #endif
-        empty = true;
-      }
-      /* // NOT CURRENTLY IMPLEMENTED
-      // veryfy content of file using sha256 hash
-      bool verification = verifyChecksum(jsonConfdata);
-      if(!verification){
-        #ifdef DEBUG
-        Serial.println(F("Warning: File verification went wrong!"));
-        #endif
-      }*/
-
-      // check problems if all good return data
-      if ((bool)error || empty) {
-        #ifdef DEBUG
-        Serial.println(F("Error: Problem when parsing JSON data"));
-        #endif
-      } else {
-        // correct return
-        return jsonConfdata;
-      }
-
-    } else {
-      #ifdef DEBUG
-      Serial.println(F("Warning: Sending request to server went wrong ()"));
-      #endif
-    }
-    http.end();
-    retries++;
-  }
-  #ifdef DEBUG
-  Serial.println(F("Info: An error occurred while retrieving the JSON data! Exiting, returned empty doc."));
-  #endif
-  DynamicJsonDocument empty(CONF_FILE_SIZE);
-  return empty;
-}
-// HTTP GET request to the Raspberry Pi server
 DynamicJsonDocument HelperBase::getJSONConfig(const char* server, int serverPort, const char* serverPath) {
   // create buffer file
   int max_retries = 3;
@@ -722,14 +666,10 @@ DynamicJsonDocument HelperBase::getJSONConfig(const char* server, int serverPort
         #endif
         empty = true;
       }
-      /* // NOT IMPLEMENTED CURRENTLY
-      // verify content of file using sha256 hash
-      bool verification = verifyChecksum(jsonConfdata);
-      if(!verification){
-        #ifdef DEBUG
-        Serial.println(F("Warning: File verification went wrong!"));
-        #endif
-      }*/
+      // NOTE: Network-level checksum verification is not used here because ArduinoJson and
+      // JavaScript produce different serializations for the same JSON, making cross-platform
+      // hashing unreliable. Flash write-avoidance is handled locally by writeConfigFile()
+      // which compares hashes using the same serializer on both sides.
 
       // check problems if all good return data
       if ((bool)error || empty) {
@@ -757,37 +697,6 @@ DynamicJsonDocument HelperBase::getJSONConfig(const char* server, int serverPort
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// HTTP GET request to the Raspberry Pi server
-DynamicJsonDocument HelperBase::getJSONData(const char* server, int serverPort, const char* serverPath) {
-  // create buffer file
-  DynamicJsonDocument JSONdata(CONF_FILE_SIZE);
-  HTTPClient http;
-  http.begin(String("http://") + server + ":" + serverPort + serverPath);
-  int httpCode = http.GET();
-
-  // Check the status code
-  if (httpCode == HTTP_CODE_OK) {
-    // Parse the JSON data
-    DeserializationError error = deserializeJson(JSONdata, http.getString());
-
-    if (error) {
-      #ifdef DEBUG
-      Serial.println(F("Error parsing JSON data"));
-      #endif
-      return JSONdata;
-    } else {
-      return JSONdata;
-    }
-  } else {
-    #ifdef DEBUG
-    Serial.println(F("Error sending request to server"));
-    #endif
-    return JSONdata;
-  }
-
-  http.end();
-  return JSONdata;
-}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // (HEX) This function calculates the SHA-256 hash of the input content and returns the hash as a hexadecimal string.
@@ -859,32 +768,8 @@ bool HelperBase::verifyTM(struct tm timeinfo){
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-// calculate new hash of a json doc without optional contained hash value ("checksum")
-String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
-  // prepare hash
-  bool hadhash = false;
-  String oldhash = "";
-if(JSONdata.containsKey("checksum") && JSONdata["checksum"].as<String>().length() > 63){
-    oldhash = JSONdata["checksum"].as<String>();
-    JSONdata.remove("checksum");
-    hadhash = true;
-}
-  String fileStr = "";
-  serializeJson(JSONdata, fileStr);
-  fileStr.trim(); // Remove any whitespace at the start or end
-  // calculate hash
-  String hash = sha256(fileStr);
-  // Add the checksum field back to the original JSON data, in case no hash found add newly generated
-  JSONdata["checksum"] = oldhash;
-  if (!hadhash) {
-    JSONdata["checksum"] = hash;
-  }
-  return hash;
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/
-
-// calculate new hash of a json doc without optional contained hash value ("checksum")
+// Calculate hash of a JSON doc excluding the "checksum" field itself.
+// Used by writeConfigFile() to detect changes and avoid unnecessary flash writes.
 String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
   // Create a copy of the JSON data
   DynamicJsonDocument tempDoc(CONF_FILE_SIZE);
@@ -943,9 +828,6 @@ bool HelperBase::updateConfig(const char* fileType){
   }
 }
 
-bool HelperBase::updateConfigOLD(const char* path){
-  return false;
-}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool HelperBase::syncConfig(){
@@ -1382,7 +1264,9 @@ bool Helper_config1_Board5v5::checkAnalogPin(int pin_check)
 {
   int arraySize = sizeof(input_pins) / sizeof(input_pins[0]);
   for (int i = 0; i < arraySize; i++) {
-Serial.print("Pin to check"); Serial.print(pin_check); Serial.print(" pin found: "); Serial.println(input_pins[i]);
+    #ifdef DEBUG
+    Serial.print("Pin to check"); Serial.print(pin_check); Serial.print(" pin found: "); Serial.println(input_pins[i]);
+    #endif
     if ((uint8_t)pin_check == (uint8_t)input_pins[i]) {
       return true; // Valid pin found
     }

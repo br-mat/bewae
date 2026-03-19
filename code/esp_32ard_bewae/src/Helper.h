@@ -66,8 +66,6 @@ public:
     void wakeModemSleep();
     // disabling Bluetooth module (not used currently)
     void disableBluetooth();
-    // funciton searches an array for provided element returns true on hit
-    bool find_element(int *array, int item);
     // Loads the config file and sets the values of the member variables
     DynamicJsonDocument readConfigFile(const char path[PATH_LENGTH]);
     // Saves the values of the member variables to the config file
@@ -80,10 +78,6 @@ public:
     DynamicJsonDocument getJsonDoc(const char* filepath, const char* key = nullptr);
     // HTTP GET request to the a configured server retrieving JSON config data
     DynamicJsonDocument getJSONConfig(const char* server, int serverPort, const char* serverPath);
-    // OLD LEGACY CODE! (BACKUP TODO REMOVE LATER)
-    DynamicJsonDocument getJSONConfigLEGACY(const char* server, int serverPort, const char* serverPath);
-    // OLD HTTP GET
-    DynamicJsonDocument getJSONData(const char* server, int serverPort, const char* serverPath);
     // This function calculates the SHA-256 hash of the input content and returns the hash as a hexadecimal string.
     String sha256(String content);
     // This function verifies the integrity of received JSON data by comparing its checksum with a calculated checksum.
@@ -94,7 +88,6 @@ public:
     String calculateJSONHash(DynamicJsonDocument& JSONdata);
     // routine to check and update config file (from raspberrypi server)
     bool updateConfig(const char* fileType);
-    bool updateConfigOLD(const char* path); // REPLACEMENT FUNCTION WIP
     // sync config with server
     bool syncConfig();
     // create empty file

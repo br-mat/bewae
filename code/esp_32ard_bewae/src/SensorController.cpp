@@ -121,13 +121,12 @@ float BasicSensor::bmepresshandler(){
 }
 
 float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) {
-    int additive_;
-    float factor_;
+    int additive_ = 0;
+    float factor_ = 1.0;
     int high_limit_;
     int low_limit_;
     int virtualPin_;
     int hardwarePin_;
-    bool set_;
 
     float measurmentraw;
     float measurmentPub;
@@ -176,7 +175,12 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
     if (sensorConfig.containsKey("sm")) {
         String mode = sensorConfig["sm"];
         if (mode == String("analog")) {
-            HWHelper.checkAnalogPin(hardwarePin_);
+            if (!HWHelper.checkAnalogPin(hardwarePin_)) {
+                #ifdef DEBUG
+                Serial.println(F("Error: Invalid analog pin, skipping measurement!"));
+                #endif
+                return 0;
+            }
             measurmentraw = analoghandler(hardwarePin_);
         } else if (mode == String("vanalog")) {
             measurmentraw = analogVhandler(virtualPin_);
@@ -198,16 +202,6 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
             #endif
         }
     }
-    if (sensorConfig.containsKey("ss")) {
-        int value = sensorConfig["sp"].as<int>();
-        if (value == 1) {
-            set_ = true;
-        }
-        else{
-            set_ = false;
-        }
-    }
-
     // check if rel measurement is needed
     if ((high_limit_ != 0) && (low_limit_ != 0)) {
         float temp = (float)measurmentraw;
@@ -260,6 +254,18 @@ SensorData BasicSensor::measurePoint(HelperBase* helper, const String& id, const
         Serial.print(F("Warning: Field not found! set to default, Id:"));
         Serial.println(id);
         #endif
+    }
+
+    // check if sensor is enabled (ss flag)
+    if (sensorConfig.containsKey("ss") && sensorConfig["ss"].as<int>() != 1) {
+        #ifdef DEBUG
+        Serial.print(F("Info: Sensor not set, skipping: ")); Serial.println(id);
+        #endif
+        SensorData dataPoint;
+        dataPoint.name = name_;
+        dataPoint.field = field_;
+        dataPoint.data = 0;
+        return dataPoint;
     }
 
     // create and fill dataPoint
