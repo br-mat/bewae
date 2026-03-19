@@ -5,1048 +5,1190 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bewae V3</title>
   <style>
-  /* ── Reset & Base ──────────────────────────────────────────── */
+  :root {
+    --primary: #6b21a8;
+    --primary-light: #a855f7;
+    --primary-bg: rgba(107, 33, 168, 0.06);
+    --accent: #f59e0b;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
   body {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
   }
 
-  /* ── Top Bar ───────────────────────────────────────────────── */
-  .violet-bar {
-    background-color: rgba(80, 30, 120, 0.9);
+  /* ── Layout ─────────────────────────────────────────────── */
+  .app {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    grid-template-rows: 52px 1fr;
+    min-height: 100vh;
+  }
+
+  .header {
+    grid-column: 1 / -1;
+    background: var(--primary);
     color: white;
-    padding: 20px;
-    text-align: left;
-    position: fixed;
-    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    font-size: 1.15rem;
+    font-weight: 600;
+    position: sticky;
     top: 0;
-    z-index: 2;
-    box-sizing: border-box;
+    z-index: 10;
   }
 
-  /* ── Sidebar ───────────────────────────────────────────────── */
   .sidebar {
-    height: 100%;
-    width: 250px;
-    position: fixed;
-    z-index: 1;
-    top: 58px;
-    left: 0;
-    background-color: rgba(80, 30, 120, 0.6);
-    overflow-x: hidden;
-    padding-top: 20px;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    padding: 12px 0;
+    position: sticky;
+    top: 52px;
+    height: calc(100vh - 52px);
   }
 
-  .sidebar a {
-    padding: 6px 8px 6px 16px;
-    text-decoration: none;
-    font-size: 25px;
-    color: #fff;
+  .nav-item {
     display: block;
+    padding: 10px 20px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.9rem;
     cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background 150ms;
   }
 
-  .sidebar a:hover {
-    color: #f1f1f1;
-    background-color: rgba(255, 255, 255, 0.1);
+  .nav-item:hover { background: var(--primary-bg); }
+
+  .nav-item.active {
+    background: var(--primary-bg);
+    color: var(--primary);
+    font-weight: 600;
+    border-left-color: var(--primary);
   }
 
-  /* ── Main Content ──────────────────────────────────────────── */
-  .main-content {
-    margin-left: 250px;
-    padding: 20px;
-    margin-top: 60px;
+  .main {
+    padding: 24px 28px;
+    overflow-y: auto;
   }
 
-  /* ── Tables ────────────────────────────────────────────────── */
-  .table-scroll {
+  /* ── Cards ──────────────────────────────────────────────── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .card h2 {
+    font-size: 1.15rem;
+    margin-bottom: 14px;
+    color: var(--primary);
+  }
+
+  .card h3 {
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+  }
+
+  /* ── Tables ─────────────────────────────────────────────── */
+  .table-wrap {
     overflow-x: auto;
-    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
 
-  .config-table {
-    border-collapse: collapse;
-    width: 100%;
-    min-width: 900px;
+  table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; min-width: 920px; }
+
+  thead th {
+    background: var(--primary);
+    color: white;
+    padding: 9px 10px;
+    text-align: left;
+    font-weight: 500;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
   }
 
-  .config-table th,
-  .config-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: center;
+  tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
     white-space: nowrap;
   }
 
-  .config-table th {
-    background-color: #f2f2f2;
+  tbody tr:hover td { background: var(--primary-bg); }
+
+  .readonly-cell { color: var(--text-muted); font-style: italic; }
+
+  /* ── Click-to-edit cells ───────────────────────────────── */
+  .cell-val { cursor: pointer; padding: 2px 4px; border-radius: 4px; min-width: 20px; display: block; }
+  .cell-val:hover { background: rgba(107,33,168,0.08); }
+  .cell-input {
+    width: 100%; padding: 4px 6px; border: 1px solid var(--primary-light);
+    border-radius: 4px; font-size: 0.8125rem; outline: none;
+    box-shadow: 0 0 0 2px rgba(168,85,247,0.15);
+  }
+  .cell-input-num { width: 70px; }
+
+  /* ── Mini slider ───────────────────────────────────────── */
+  .mini-slider { display: flex; align-items: center; gap: 6px; }
+  .mini-slider input[type="range"] {
+    width: 70px; height: 4px; -webkit-appearance: none; appearance: none;
+    background: var(--border); border-radius: 2px; outline: none;
+  }
+  .mini-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px;
+    border-radius: 50%; background: var(--primary); cursor: pointer;
+  }
+  .mini-slider .slider-label {
+    font-size: 0.75rem; color: var(--text-muted); min-width: 32px;
   }
 
-  .config-table tr:nth-child(even) {
-    background-color: #d2abff;
+  /* ── Hour chips ────────────────────────────────────────── */
+  .chip-display { display: flex; flex-wrap: wrap; gap: 3px; cursor: pointer; min-height: 22px; }
+  .chip {
+    display: inline-block; padding: 1px 6px; border-radius: 10px;
+    background: var(--primary-bg); color: var(--primary);
+    font-size: 0.72rem; font-weight: 500;
+  }
+  .chip-popup {
+    position: fixed; z-index: 50; background: var(--card);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow-md); padding: 10px;
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;
+    width: 240px;
+  }
+  .chip-opt {
+    padding: 4px 0; text-align: center; border-radius: 4px;
+    font-size: 0.75rem; cursor: pointer; border: 1px solid var(--border);
+    background: var(--card); transition: all 100ms; user-select: none;
+  }
+  .chip-opt:hover { border-color: var(--primary-light); }
+  .chip-opt.sel {
+    background: var(--primary); color: white; border-color: var(--primary);
   }
 
-  .readonly-cell {
-    color: #666;
-    font-style: italic;
+  /* ── Weather badge ─────────────────────────────────────── */
+  .badge-wm {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    background: rgba(245,158,11,0.15); color: #92400e;
+    font-size: 0.75rem; font-weight: 600;
   }
 
-  /* ── Forms ─────────────────────────────────────────────────── */
-  .config-form {
-    margin-top: 20px;
-    max-width: 500px;
+  /* ── Delete icon ───────────────────────────────────────── */
+  .btn-del-icon {
+    width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%;
+    background: transparent; color: var(--danger); font-size: 1rem;
+    cursor: pointer; display: inline-flex; align-items: center;
+    justify-content: center; transition: background 150ms;
   }
+  .btn-del-icon:hover { background: rgba(239,68,68,0.1); }
 
-  .config-form label {
-    display: block;
-    margin-bottom: 5px;
-    margin-top: 10px;
-    font-weight: bold;
+  /* ── Form schedule picker ────────────────────────────────── */
+  .sched-picker { position: relative; display: inline-block; }
+  .sched-btn {
+    padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--card); font-size: 0.85rem; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; min-width: 140px;
   }
-
-  .config-form input[type="text"],
-  .config-form input[type="number"],
-  .config-form select {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 4px;
-    box-sizing: border-box;
-  }
-
-  .form-row {
-    margin-bottom: 15px;
-  }
-
-  .form-hint {
-    font-size: 0.85em;
-    color: #666;
-    margin-top: 2px;
-  }
-
-  /* ── Buttons ───────────────────────────────────────────────── */
-  .btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    color: white;
-  }
-
-  .btn:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
-  }
-
-  .btn-add {
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 20px;
-    margin-top: 12px;
-  }
-
-  .btn-add:hover {
-    background-color: #45a049;
-  }
-
-  .btn-edit {
-    background-color: #f39c12;
-    color: black;
-  }
-
-  .btn-edit:hover {
-    background-color: #f3ca12;
-  }
-
-  .btn-save {
-    background-color: #f39c12;
-    color: black;
+  .sched-btn:hover { border-color: var(--primary-light); }
+  .sched-btn .arrow { font-size: 0.6rem; color: var(--text-muted); margin-left: auto; }
+  .sched-drop {
+    position: absolute; z-index: 50; top: 100%; left: 0; margin-top: 4px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 10px;
     display: none;
   }
+  .sched-drop.open { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; width: 240px; }
 
-  .btn-save:hover {
-    background-color: #f3ca12;
+  /* ── Inline toggle in table ────────────────────────────── */
+  td .toggle { vertical-align: middle; }
+
+  /* ── Inline dropdown in table ──────────────────────────── */
+  td select.cell-dropdown {
+    padding: 3px 6px; border: 1px solid var(--border); border-radius: 4px;
+    font-size: 0.8rem; background: var(--card); cursor: pointer;
   }
-
-  .btn-delete {
-    background-color: #8e44ad;
-  }
-
-  .btn-delete:hover {
-    background-color: #da4ced;
-  }
-
-  .btn-device-add {
-    background-color: #4CAF50;
-    color: white;
-    border: 1px solid black;
-    border-radius: 5px;
-    padding: 8px 12px;
-  }
-
-  .btn-device-add:hover {
-    background-color: #45a049;
-  }
-
-  .btn-device-delete {
-    background-color: #f44336;
-    color: white;
-    border: 1px solid black;
-    border-radius: 5px;
-    padding: 8px 12px;
-  }
-
-  .btn-device-delete:hover {
-    background-color: #d32f2f;
-  }
-
-  .button-container {
-    margin-top: 1.5em;
-  }
-
-  /* ── Toggle Switch ─────────────────────────────────────────── */
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 25px;
-  }
-
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #ccc;
-    transition: 0.4s;
-  }
-
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 21px;
-    width: 21px;
-    left: 2px;
-    bottom: 2px;
-    background-color: #808080;
-    transition: 0.4s;
-  }
-
-  input:checked + .slider {
-    background-color: #d2abff;
-  }
-
-  input:checked + .slider:before {
-    background-color: #8e44ad;
-    transform: translateX(25px);
-  }
-
-  .slider.round {
-    border-radius: 34px;
-  }
-
-  .slider.round:before {
-    border-radius: 50%;
-  }
-
-  /* ── Dropdown Selectors ────────────────────────────────────── */
-  #devices {
-    padding: 8px 12px;
-    border: 1px solid black;
-    border-radius: 5px;
-    background-color: #d2abff;
-    cursor: pointer;
+  td select.cell-dropdown:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 2px rgba(168,85,247,0.15);
     outline: none;
-    color: #333;
   }
 
-  #devices:hover {
-    background-color: #e4c7ff;
+  /* ── Buttons ────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms;
   }
 
-  #devices:focus {
-    border-color: #8e44ad;
+  .btn:hover { box-shadow: var(--shadow-md); }
+
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-light); }
+  .btn-success { background: var(--success); color: white; }
+  .btn-warn    { background: var(--accent); color: #1e293b; }
+  .btn-danger  { background: var(--danger); color: white; }
+
+  .btn-sm { padding: 3px 8px; font-size: 0.75rem; }
+  .btn-hide { display: none; }
+  .btn-group { display: inline-flex; gap: 4px; }
+
+  /* ── Forms ──────────────────────────────────────────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    max-width: 560px;
   }
 
-  /* ── Status message ────────────────────────────────────────── */
-  .status-msg {
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field.full { grid-column: 1 / -1; }
+
+  .field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .field input, .field select {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+  }
+
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(168,85,247,0.1);
+  }
+
+  .hint { font-size: 0.72rem; color: var(--text-muted); }
+
+  /* ── Toggle ─────────────────────────────────────────────── */
+  .toggle { position: relative; width: 40px; height: 22px; display: inline-block; }
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+  .track {
+    position: absolute;
+    inset: 0;
+    background: #cbd5e1;
+    border-radius: 11px;
+    cursor: pointer;
+    transition: background 150ms;
+  }
+
+  .track::before {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 3px; top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 150ms;
+    box-shadow: var(--shadow);
+  }
+
+  .toggle input:checked + .track { background: var(--primary); }
+  .toggle input:checked + .track::before { transform: translateX(18px); }
+
+  /* ── Device bar ─────────────────────────────────────────── */
+  .device-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .device-bar select, .device-bar input {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+  }
+
+  /* ── Toast ──────────────────────────────────────────────── */
+  .toast {
     position: fixed;
     bottom: 20px;
     right: 20px;
     padding: 10px 20px;
-    border-radius: 6px;
+    border-radius: var(--radius);
     color: white;
-    font-weight: bold;
-    z-index: 10;
+    font-weight: 500;
+    font-size: 0.85rem;
+    z-index: 100;
     opacity: 0;
-    transition: opacity 0.3s;
+    transform: translateY(6px);
+    transition: all 250ms;
+    pointer-events: none;
   }
 
-  .status-msg.show {
-    opacity: 1;
-  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.ok { background: var(--success); }
+  .toast.err { background: var(--danger); }
 
-  .status-msg.success {
-    background-color: #4CAF50;
-  }
+  /* ── Sections ───────────────────────────────────────────── */
+  .section { display: none; }
+  .section.active { display: block; }
 
-  .status-msg.error {
-    background-color: #f44336;
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .main { padding: 14px; }
+    .form-grid { grid-template-columns: 1fr; }
   }
   </style>
 </head>
 <body>
-  <!-- Top bar -->
-  <div class="violet-bar">Bewae V3</div>
+<div class="app">
+  <header class="header">Bewae V3</header>
 
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <a onclick="showSection('welcome')">Welcome</a>
-    <a onclick="showSection('additionalConfig')">Device</a>
-    <a onclick="showSection('watering')">Irrigation</a>
-    <a onclick="showSection('sensors')">Sensors</a>
-  </div>
+  <nav class="sidebar">
+    <a class="nav-item active" data-section="welcome">Welcome</a>
+    <a class="nav-item" data-section="device">Device</a>
+    <a class="nav-item" data-section="irrigation">Irrigation</a>
+    <a class="nav-item" data-section="sensors">Sensors</a>
+  </nav>
 
-  <!-- Main content -->
-  <div class="main-content">
-
-    <!-- ═══ Welcome ═══ -->
-    <div id="welcome">
-      <h2>Welcome to Bewae V3!</h2>
-      <p>Select an option from the sidebar to get started.</p>
-
-      <div id="deviceSelector">
-        <label for="devices"><strong>Choose a device:</strong></label><br>
-        <select id="devices"></select>
-        <input type="text" id="newDeviceName" placeholder="Enter new device name"
-               style="padding:8px; border:1px solid #ccc; border-radius:5px; margin-left:8px;">
-        <button class="btn-device-add" onclick="addDevice()">Add Device</button>
-        <button class="btn-device-delete" onclick="deleteDevice()">Delete Device</button>
+  <main class="main">
+    <!-- Welcome -->
+    <div id="welcome" class="section active">
+      <div class="card">
+        <h2>Welcome</h2>
+        <p style="margin-bottom:14px;">Select a device to configure your irrigation system.</p>
+        <div class="device-bar">
+          <select id="devices"></select>
+          <input type="text" id="newDeviceName" placeholder="New device name">
+          <button class="btn btn-success btn-sm" onclick="addDevice()">Add</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteDevice()">Delete</button>
+        </div>
       </div>
     </div>
 
-    <!-- ═══ Irrigation ═══ -->
-    <div id="watering" style="display:none;">
-      <h2>Irrigation Configuration</h2>
-
-      <div class="table-scroll">
-        <table id="plantTable" class="config-table">
-          <tr>
-            <th>Plant Name</th>
-            <th>Water (s)</th>
-            <th>Plant Size</th>
-            <th>Pot Size</th>
-            <th>Schedule</th>
-            <th>vPins</th>
-            <th>Crop Coeff.</th>
-            <th>Under Roof</th>
-            <th>Soil Sensor</th>
-            <th>Weather &times;</th>
-            <th>Active</th>
-            <th>Actions</th>
-          </tr>
-        </table>
+    <!-- Irrigation -->
+    <div id="irrigation" class="section">
+      <div class="card">
+        <h2>Irrigation</h2>
+        <div class="table-wrap">
+          <table id="plantTable">
+            <thead><tr>
+              <th>Plant Name</th><th>Water (s)</th><th>Plant Size</th><th>Pot Size</th>
+              <th>Schedule</th><th>vPins</th><th>Crop Coeff.</th><th>Under Roof</th>
+              <th>Soil Sensor</th><th>Weather &times;</th><th>Active</th><th></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- Add plant form -->
-      <div class="config-form">
+      <div class="card">
         <h3>Add Plant Group</h3>
-        <form id="plantForm">
-          <label for="pn">Plant Name:</label>
-          <input type="text" id="pn" maxlength="20" required>
-
-          <label for="pw">Water Time (seconds):</label>
-          <input type="number" id="pw" min="0" value="10">
-
-          <label for="pls">Plant Size:</label>
-          <input type="number" id="pls" min="0" value="1">
-
-          <label for="pts">Pot Size:</label>
-          <input type="number" id="pts" min="0" value="1">
-
-          <label for="wt">Schedule (hours, comma-separated):</label>
-          <input type="text" id="wt" placeholder="6,18">
-          <div class="form-hint">Which hours to water, e.g. 6,18 = 6 AM and 6 PM</div>
-
-          <label for="pp">vPins (comma-separated):</label>
-          <input type="text" id="pp" placeholder="0,5">
-
-          <label for="kc">Crop Coefficient (0.1 &ndash; 2.0):</label>
-          <input type="number" id="kc" min="0.1" max="2.0" step="0.05" value="1.0">
-          <div class="form-hint">FAO-56 standard. Tomatoes ~1.05, herbs ~0.7, succulents ~0.3</div>
-
-          <label for="ignore_rain">Plant under roof (ignore rain):</label>
-          <label class="switch" style="margin-top:4px;">
-            <input type="checkbox" id="ignore_rain">
-            <span class="slider round"></span>
-          </label>
-          <div class="form-hint">Enable if rain does not reach this plant</div>
-
-          <label for="moisture_sensor">Soil Sensor InfluxDB Field:</label>
-          <input type="text" id="moisture_sensor" placeholder="e.g. moisture">
-          <div class="form-hint">InfluxDB field name from the soil sensor for this group. Leave empty if none.</div>
-
-          <label for="ps">Active:</label>
-          <select id="ps">
-            <option value="1">Yes</option>
-            <option value="0">No</option>
-          </select>
-
-          <div class="button-container">
-            <button type="button" class="btn btn-add" onclick="addItem(plantConfig)">Add Plant</button>
+        <div class="form-grid">
+          <div class="field">
+            <label for="pn">Plant Name</label>
+            <input type="text" id="pn" maxlength="20" required>
           </div>
-        </form>
+          <div class="field">
+            <label for="pw">Water Time (s)</label>
+            <input type="number" id="pw" min="0" value="10">
+          </div>
+          <div class="field">
+            <label for="pls">Plant Size</label>
+            <div class="mini-slider">
+              <input type="range" id="pls" min="0" max="100" value="50">
+              <span class="slider-label" id="pls-label">50%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pts">Pot Size</label>
+            <input type="number" id="pts" min="0" step="0.1" value="1.0">
+          </div>
+          <div class="field">
+            <label>Schedule (hours)</label>
+            <div class="sched-picker">
+              <button type="button" class="sched-btn" id="wt-btn">
+                <span id="wt-label">Select hours</span>
+                <span class="arrow">&#9660;</span>
+              </button>
+              <div class="sched-drop" id="wt-grid"></div>
+            </div>
+            <span class="hint">Click to pick hours</span>
+          </div>
+          <div class="field">
+            <label for="pp">vPins</label>
+            <input type="text" id="pp" placeholder="0,5">
+          </div>
+          <div class="field">
+            <label for="kc">Crop Coefficient</label>
+            <input type="number" id="kc" min="0.1" max="2.0" step="0.05" value="1.0">
+            <span class="hint">Tomatoes ~1.05, herbs ~0.7, succulents ~0.3</span>
+          </div>
+          <div class="field">
+            <label>Under Roof</label>
+            <label class="toggle">
+              <input type="checkbox" id="ignore_rain">
+              <span class="track"></span>
+            </label>
+            <span class="hint">Enable if rain doesn't reach this plant</span>
+          </div>
+          <div class="field">
+            <label for="moisture_sensor">Soil Sensor Field</label>
+            <input type="text" id="moisture_sensor" placeholder="e.g. moisture">
+            <span class="hint">InfluxDB field name. Leave empty if none.</span>
+          </div>
+          <div class="field">
+            <label>Active</label>
+            <label class="toggle">
+              <input type="checkbox" id="ps" checked>
+              <span class="track"></span>
+            </label>
+          </div>
+          <div class="field full">
+            <button class="btn btn-success" onclick="addItem(plantCfg)">Add Plant</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- ═══ Sensors ═══ -->
-    <div id="sensors" style="display:none;">
-      <h2>Sensor Configuration</h2>
-
-      <div class="table-scroll">
-        <table id="sensorTable" class="config-table">
-          <tr>
-            <th>Sensor Name</th>
-            <th>Field</th>
-            <th>vPin</th>
-            <th>High Limit</th>
-            <th>Low Limit</th>
-            <th>Active</th>
-            <th>Actions</th>
-          </tr>
-        </table>
+    <!-- Sensors -->
+    <div id="sensors" class="section">
+      <div class="card">
+        <h2>Sensors</h2>
+        <div class="table-wrap">
+          <table id="sensorTable">
+            <thead><tr>
+              <th>Sensor Name</th><th>Mode</th><th>Field</th><th>vPin</th>
+              <th>High Limit</th><th>Low Limit</th><th>Active</th><th></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- Add sensor form -->
-      <div class="config-form">
+      <div class="card">
         <h3>Add Sensor</h3>
-        <form id="sensorForm">
-          <label for="sn">Sensor Name:</label>
-          <input type="text" id="sn" maxlength="20">
-
-          <label for="sf">Field:</label>
-          <select id="sf">
-            <option value="bmetemp">BME280 Temperature</option>
-            <option value="bmehum">BME280 Humidity</option>
-            <option value="bmepress">BME280 Pressure</option>
-            <option value="soiltemp">Soil Temperature</option>
-            <option value="analog">Analog</option>
-            <option value="vanalog">V Analog</option>
-          </select>
-
-          <label for="sp">vPin:</label>
-          <input type="number" id="sp" min="0">
-
-          <label for="hl">High Limit:</label>
-          <input type="number" id="hl">
-
-          <label for="ll">Low Limit:</label>
-          <input type="number" id="ll">
-
-          <label for="ss">Active:</label>
-          <select id="ss">
-            <option value="1">Yes</option>
-            <option value="0">No</option>
-          </select>
-
-          <div class="button-container">
-            <button type="button" class="btn btn-add" onclick="addItem(sensorConfig)">Add Sensor</button>
+        <div class="form-grid">
+          <div class="field">
+            <label for="sn">Sensor Name</label>
+            <input type="text" id="sn" maxlength="20">
           </div>
-        </form>
+          <div class="field">
+            <label for="sm">Mode</label>
+            <select id="sm">
+              <option value="bmetemp">BME280 Temperature</option>
+              <option value="bmehum">BME280 Humidity</option>
+              <option value="bmepress">BME280 Pressure</option>
+              <option value="soiltemp">Soil Temperature</option>
+              <option value="analog">Analog</option>
+              <option value="vanalog">V Analog</option>
+            </select>
+            <span class="hint">How the sensor is read (hardware interface)</span>
+          </div>
+          <div class="field">
+            <label for="sf">Field</label>
+            <input type="text" id="sf" placeholder="e.g. temperature">
+            <span class="hint">InfluxDB field name for this sensor's data</span>
+          </div>
+          <div class="field">
+            <label for="sp">vPin</label>
+            <input type="number" id="sp" min="0">
+          </div>
+          <div class="field">
+            <label for="hl">High Limit</label>
+            <input type="number" id="hl">
+          </div>
+          <div class="field">
+            <label for="ll">Low Limit</label>
+            <input type="number" id="ll">
+          </div>
+          <div class="field">
+            <label>Active</label>
+            <label class="toggle">
+              <input type="checkbox" id="ss" checked>
+              <span class="track"></span>
+            </label>
+          </div>
+          <div class="field full">
+            <button class="btn btn-success" onclick="addItem(sensorCfg)">Add Sensor</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- ═══ Device Config ═══ -->
-    <div id="additionalConfig" style="display:none;">
-      <h2>Device Configuration</h2>
-      <form id="deviceConfigForm" class="config-form">
-        <div class="form-row">
-          <label for="dn">Device Name:</label>
-          <input type="text" id="dn" name="deviceName">
+    <!-- Device Config -->
+    <div id="device" class="section">
+      <div class="card">
+        <h2>Device Settings</h2>
+        <div class="form-grid">
+          <div class="field full">
+            <label for="dn">Device Name</label>
+            <input type="text" id="dn">
+          </div>
+          <div class="field">
+            <label>Datalogging</label>
+            <label class="toggle">
+              <input type="checkbox" id="mssr">
+              <span class="track"></span>
+            </label>
+          </div>
+          <div class="field">
+            <label>Irrigation System</label>
+            <label class="toggle">
+              <input type="checkbox" id="irig">
+              <span class="track"></span>
+            </label>
+          </div>
+          <div class="field full">
+            <button class="btn btn-success" onclick="saveDeviceConfig()">Save Configuration</button>
+          </div>
         </div>
-
-        <div class="form-row">
-          <label for="mssr">Datalogging Switch:</label>
-          <label class="switch">
-            <input type="checkbox" id="mssr" name="mssr">
-            <span class="slider round"></span>
-          </label>
-        </div>
-
-        <div class="form-row">
-          <label for="irig">Irrigation System Switch:</label>
-          <label class="switch">
-            <input type="checkbox" id="irig" name="irig">
-            <span class="slider round"></span>
-          </label>
-        </div>
-
-        <div class="button-container">
-          <button type="button" class="btn btn-add" onclick="saveDeviceConfig()">Save Configuration</button>
-        </div>
-      </form>
+      </div>
     </div>
-  </div>
+  </main>
+</div>
 
-  <!-- Status toast -->
-  <div id="statusMsg" class="status-msg"></div>
+<div id="toast" class="toast"></div>
 
 <script>
-/* =====================================================================
- *  Bewae V3 Configuration Page
- *  Clean rewrite — br-mat (c) 2025
- * ===================================================================== */
+/* ═══════════════════════════════════════════════════════════════
+ *  Bewae V3 — Config Page (reworkbuild)
+ *  br-mat (c) 2025
+ * ═══════════════════════════════════════════════════════════════ */
 
-// ── API endpoints ────────────────────────────────────────────────────
-const API_GET  = '/bewae/get-backendconfig-full';
-const API_SAVE = '/bewae/save-backendconfig-full';
-
-// ── Pi-computed fields: never included in save payload ───────────────
-const PI_COMPUTED_FIELDS = ['wm'];
-
-// ── Global state ─────────────────────────────────────────────────────
+var API_GET  = '/bewae/get-backendconfig-full';
+var API_SAVE = '/bewae/save-backendconfig-full';
+var PI_FIELDS = ['wm'];
 var configData = null;
 
-// ── Config definitions ───────────────────────────────────────────────
-//
-// "columns" defines the table columns for each config section.
-// Each column has:
-//   key      — the JSON field name
-//   type     — how to format/validate: string, number, array, timetable, boolean, readonly
-//   editable — whether the user can edit this column (false for Pi-computed fields)
-//
-// The order of columns here determines the order in the table.
+/* ── Column definitions ────────────────────────────────────── */
 
-var plantConfig = {
-  tableId: 'plantTable',
-  dataKey: 'plantConfig',
+var plantCfg = {
+  tableId: 'plantTable', dataKey: 'plantConfig',
   columns: [
-    { label: 'Plant Name',   key: 'pn',              type: 'string',    editable: true },
-    { label: 'Water (s)',     key: 'pw',              type: 'number',    editable: true },
-    { label: 'Plant Size',   key: 'pls',             type: 'number',    editable: true },
-    { label: 'Pot Size',     key: 'pts',             type: 'number',    editable: true },
-    { label: 'Schedule',     key: 'wt',              type: 'timetable', editable: true },
-    { label: 'vPins',        key: 'pp',              type: 'array',     editable: true },
-    { label: 'Crop Coeff.',  key: 'kc',              type: 'number',    editable: true },
-    { label: 'Under Roof',   key: 'ignore_rain',     type: 'boolean',   editable: true },
-    { label: 'Soil Sensor',  key: 'moisture_sensor',  type: 'string',    editable: true },
-    { label: 'Weather \u00d7', key: 'wm',            type: 'readonly',  editable: false },
-    { label: 'Active',       key: 'ps',              type: 'number',    editable: true }
+    { key: 'pn',              type: 'string',    editable: true,  widget: 'click-text' },
+    { key: 'pw',              type: 'number',    editable: true,  widget: 'click-number' },
+    { key: 'pls',             type: 'number',    editable: true,  widget: 'slider', attrs: { min: 0, max: 100 } },
+    { key: 'pts',             type: 'number',    editable: true,  widget: 'click-float', attrs: { step: 0.1, min: 0 } },
+    { key: 'wt',              type: 'timetable', editable: true,  widget: 'chips' },
+    { key: 'pp',              type: 'array',     editable: true,  widget: 'click-text' },
+    { key: 'kc',              type: 'number',    editable: true,  widget: 'click-float', attrs: { step: 0.05, min: 0.1, max: 2.0 } },
+    { key: 'ignore_rain',     type: 'boolean',   editable: true,  widget: 'toggle' },
+    { key: 'moisture_sensor', type: 'string',    editable: true,  widget: 'click-text' },
+    { key: 'wm',              type: 'readonly',  editable: false, widget: 'badge' },
+    { key: 'ps',              type: 'number',    editable: true,  widget: 'toggle' }
   ]
 };
 
-var sensorConfig = {
-  tableId: 'sensorTable',
-  dataKey: 'sensorConfig',
+var sensorCfg = {
+  tableId: 'sensorTable', dataKey: 'sensorConfig',
   columns: [
-    { label: 'Sensor Name', key: 'sn', type: 'string', editable: true },
-    { label: 'Field',       key: 'sf', type: 'string', editable: true },
-    { label: 'vPin',        key: 'sp', type: 'number', editable: true },
-    { label: 'High Limit',  key: 'hl', type: 'number', editable: true },
-    { label: 'Low Limit',   key: 'll', type: 'number', editable: true },
-    { label: 'Active',      key: 'ss', type: 'number', editable: true }
+    { key: 'sn', type: 'string', editable: true, widget: 'click-text' },
+    { key: 'sm', type: 'string', editable: true, widget: 'dropdown', options: [
+      { value: 'bmetemp', label: 'BME Temp' },
+      { value: 'bmehum', label: 'BME Hum' },
+      { value: 'bmepress', label: 'BME Press' },
+      { value: 'soiltemp', label: 'Soil Temp' },
+      { value: 'analog', label: 'Analog' },
+      { value: 'vanalog', label: 'V Analog' }
+    ]},
+    { key: 'sf', type: 'string', editable: true, widget: 'click-text' },
+    { key: 'sp', type: 'number', editable: true, widget: 'click-number' },
+    { key: 'hl', type: 'number', editable: true, widget: 'click-number' },
+    { key: 'll', type: 'number', editable: true, widget: 'click-number' },
+    { key: 'ss', type: 'number', editable: true, widget: 'toggle' }
   ]
 };
 
-// ── Helpers: timetable conversion ────────────────────────────────────
-// The ESP32 stores schedules as a 24-bit integer where bit N = hour N.
-// The web page shows them as comma-separated hours (e.g. "6, 18").
+/* ── Helpers ───────────────────────────────────────────────── */
 
-function timetableToHours(num) {
-  var hours = [];
-  for (var i = 0; i < 24; i++) {
-    if (num & (1 << i)) hours.push(i);
-  }
-  return hours;
+function ttToHours(n) {
+  var h = [];
+  for (var i = 0; i < 24; i++) if (n & (1 << i)) h.push(i);
+  return h;
 }
 
-function hoursToTimetable(hours) {
-  var result = 0;
-  for (var i = 0; i < hours.length; i++) {
-    result = result | (1 << hours[i]);
-  }
-  return result;
+function hoursToTt(arr) {
+  var r = 0;
+  for (var i = 0; i < arr.length; i++) r |= (1 << arr[i]);
+  return r;
 }
 
-// ── Helpers: parse comma-separated numbers ───────────────────────────
-function parseNumericArray(str) {
-  if (!str || str.trim() === '') return [];
-  var parts = str.split(',');
-  var result = [];
-  for (var i = 0; i < parts.length; i++) {
-    var n = Number(parts[i].trim());
-    if (!isNaN(n)) result.push(n);
-  }
-  return result;
+function parseNums(s) {
+  if (!s || !s.trim()) return [];
+  return s.split(',').map(function(x) { return Number(x.trim()); })
+                     .filter(function(n) { return !isNaN(n); });
 }
 
-// ── Format/validate a value by type ──────────────────────────────────
-function formatValue(val, type) {
-  switch (type) {
-    case 'number':
-      var n = parseFloat(val);
-      return isNaN(n) ? 0 : n;
-    case 'string':
-      return (typeof val === 'string') ? val.substring(0, 20) : '';
-    case 'array':
-      if (Array.isArray(val)) return val;
-      return parseNumericArray(String(val));
-    case 'timetable':
-      if (typeof val === 'number') return val;
-      return hoursToTimetable(parseNumericArray(String(val)));
-    case 'boolean':
-      return val === true || val === 'Yes' || val === 'true' || val === '1';
-    default:
-      return val;
-  }
+function fmt(val, type) {
+  if (type === 'number')    { var n = parseFloat(val); return isNaN(n) ? 0 : n; }
+  if (type === 'string')    { return typeof val === 'string' ? val.substring(0, 20) : ''; }
+  if (type === 'array')     { return Array.isArray(val) ? val : parseNums(String(val)); }
+  if (type === 'timetable') { return typeof val === 'number' ? val : hoursToTt(parseNums(String(val))); }
+  if (type === 'boolean')   { return val === true || val === 'Yes' || val === 'true' || val === '1'; }
+  return val;
 }
 
-// ── Status toast ─────────────────────────────────────────────────────
-function showStatus(message, isError) {
-  var el = document.getElementById('statusMsg');
-  el.textContent = message;
-  el.className = 'status-msg show ' + (isError ? 'error' : 'success');
-  setTimeout(function() { el.className = 'status-msg'; }, 2500);
+function displayVal(val, type) {
+  if (type === 'timetable') return ttToHours(val || 0).join(', ');
+  if (type === 'array')     return Array.isArray(val) ? val.join(', ') : (val || '');
+  if (type === 'boolean')   return val ? 'Yes' : 'No';
+  if (type === 'readonly')  return (val != null) ? val : '\u2014';
+  return (val != null) ? val : '';
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  API
-// ═══════════════════════════════════════════════════════════════════════
+/* ── Debounce ──────────────────────────────────────────────── */
+
+var _dbTimers = {};
+function debounce(id, fn, ms) {
+  if (_dbTimers[id]) clearTimeout(_dbTimers[id]);
+  _dbTimers[id] = setTimeout(fn, ms || 500);
+}
+
+/* ── Toast ─────────────────────────────────────────────────── */
+
+function toast(msg, isErr) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + (isErr ? 'err' : 'ok');
+  setTimeout(function() { el.className = 'toast'; }, 2500);
+}
+
+/* ── API ───────────────────────────────────────────────────── */
 
 function fetchConfig() {
   return fetch(API_GET)
-    .then(function(r) {
-      if (!r.ok) throw new Error('Failed to load config: ' + r.status);
-      return r.json();
-    })
-    .then(function(data) {
-      configData = data;
-    })
-    .catch(function(err) {
-      console.error('Fetch error:', err);
-      showStatus('Failed to load config', true);
-    });
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(d) { configData = d; })
+    .catch(function(e) { console.error('Fetch:', e); toast('Failed to load config', true); });
 }
 
 function saveConfig() {
-  // Deep clone configData and strip Pi-computed fields before sending.
-  // The server-side merge function will re-add wm from the current file,
-  // but we strip it here too as a safety measure.
   var payload = JSON.parse(JSON.stringify(configData));
-
-  for (var devName in payload) {
-    var dev = payload[devName];
-    if (!dev || typeof dev !== 'object') continue;
-    var pc = dev.plantConfig;
-    if (!pc || typeof pc !== 'object') continue;
-    for (var gKey in pc) {
-      var group = pc[gKey];
-      if (!group || typeof group !== 'object') continue;
-      for (var f = 0; f < PI_COMPUTED_FIELDS.length; f++) {
-        delete group[PI_COMPUTED_FIELDS[f]];
-      }
+  for (var dn in payload) {
+    var pc = payload[dn] && payload[dn].plantConfig;
+    if (!pc) continue;
+    for (var gk in pc) {
+      if (!pc[gk]) continue;
+      for (var i = 0; i < PI_FIELDS.length; i++) delete pc[gk][PI_FIELDS[i]];
     }
   }
-
   return fetch(API_SAVE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
-  .then(function(r) {
-    if (!r.ok) throw new Error('Save failed: ' + r.status);
-    showStatus('Saved');
-  })
-  .catch(function(err) {
-    console.error('Save error:', err);
-    showStatus('Save failed!', true);
-  });
+  .then(function(r) { if (!r.ok) throw new Error(r.status); toast('Saved'); })
+  .catch(function(e) { console.error('Save:', e); toast('Save failed', true); });
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  Device management
-// ═══════════════════════════════════════════════════════════════════════
+/* ── Devices ───────────────────────────────────────────────── */
 
-function getDevices() {
-  if (!configData) return [];
-  return Object.keys(configData);
-}
+function curDev() { return document.getElementById('devices').value; }
 
-function getActiveDevice() {
-  return document.getElementById('devices').value;
-}
-
-function populateDeviceSelector() {
+function populateDevices() {
   var sel = document.getElementById('devices');
-  if (!sel) return;
-  var current = sel.value;
+  var prev = sel.value;
   sel.innerHTML = '';
-  var devices = getDevices();
-  for (var i = 0; i < devices.length; i++) {
-    var opt = document.createElement('option');
-    opt.value = devices[i];
-    opt.textContent = devices[i];
-    sel.appendChild(opt);
-  }
-  // Restore previous selection if still exists
-  if (devices.indexOf(current) !== -1) {
-    sel.value = current;
-  }
+  if (!configData) return;
+  Object.keys(configData).forEach(function(k) {
+    var o = document.createElement('option');
+    o.value = o.textContent = k;
+    sel.appendChild(o);
+  });
+  if (prev && configData[prev]) sel.value = prev;
 }
 
 function addDevice() {
-  var input = document.getElementById('newDeviceName');
-  var name = input.value.trim();
-  if (!name) {
-    alert('Please enter a device name.');
-    return;
-  }
-  if (configData[name]) {
-    alert('Device "' + name + '" already exists.');
-    return;
-  }
-
-  configData[name] = {
-    plantConfig: {},
-    sensorConfig: {},
-    deviceConfig: { dn: name, main: 0, mssr: 0, irig: 0 }
-  };
-  input.value = '';
-  saveConfig().then(function() { initPage(); });
+  var inp = document.getElementById('newDeviceName');
+  var name = inp.value.trim();
+  if (!name) return toast('Enter a name', true);
+  if (configData[name]) return toast('Already exists', true);
+  configData[name] = { plantConfig: {}, sensorConfig: {}, deviceConfig: { dn: name, main: 0, mssr: 0, irig: 0 } };
+  inp.value = '';
+  saveConfig().then(init);
 }
 
 function deleteDevice() {
-  var name = getActiveDevice();
-  if (!name) return;
-  if (!confirm('Delete device "' + name + '" and all its configuration?')) return;
-
-  delete configData[name];
-  saveConfig().then(function() { initPage(); });
+  var d = curDev();
+  if (!d || !confirm('Delete "' + d + '"?')) return;
+  delete configData[d];
+  saveConfig().then(init);
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  Table rendering
-// ═══════════════════════════════════════════════════════════════════════
+/* ── Save single field (no re-render) ──────────────────────── */
 
-function renderTable(config) {
-  var table = document.getElementById(config.tableId);
-  if (!table) return;
-
-  // Clear all rows except header
-  while (table.rows.length > 1) {
-    table.deleteRow(1);
+function saveField(cfg, rowIdx, colKey, value) {
+  var d = curDev();
+  if (!d || !configData[d] || !configData[d][cfg.dataKey]) return;
+  var col = null;
+  for (var i = 0; i < cfg.columns.length; i++) {
+    if (cfg.columns[i].key === colKey) { col = cfg.columns[i]; break; }
   }
+  if (!col) return;
+  configData[d][cfg.dataKey][rowIdx][colKey] = fmt(value, col.type);
+  saveConfig();
+}
 
-  var device = getActiveDevice();
-  var data = configData && configData[device] && configData[device][config.dataKey];
+function reindexData(cfg) {
+  var d = curDev();
+  var old = configData[d][cfg.dataKey];
+  var arr = [];
+  Object.keys(old).forEach(function(k) { if (old[k]) arr.push(old[k]); });
+  var fresh = {};
+  for (var i = 0; i < arr.length; i++) fresh[i] = arr[i];
+  configData[d][cfg.dataKey] = fresh;
+}
+
+/* ── Widget renderers ──────────────────────────────────────── */
+
+function renderClickEdit(td, value, col, cfg, rowIdx) {
+  var span = document.createElement('span');
+  span.className = 'cell-val';
+  span.textContent = displayVal(value, col.type);
+  if (!span.textContent) span.innerHTML = '&mdash;';
+  td.appendChild(span);
+
+  span.onclick = function() {
+    var inp = document.createElement('input');
+    inp.className = 'cell-input';
+    if (col.widget === 'click-number') {
+      inp.type = 'number'; inp.className += ' cell-input-num';
+    } else if (col.widget === 'click-float') {
+      inp.type = 'number'; inp.className += ' cell-input-num';
+      if (col.attrs) {
+        if (col.attrs.step != null) inp.step = col.attrs.step;
+        if (col.attrs.min != null) inp.min = col.attrs.min;
+        if (col.attrs.max != null) inp.max = col.attrs.max;
+      }
+    } else {
+      inp.type = 'text';
+      if (col.key === 'pn' || col.key === 'sn' || col.key === 'moisture_sensor') inp.maxLength = 20;
+    }
+    if (col.type === 'array' && Array.isArray(value)) {
+      inp.value = value.join(', ');
+    } else {
+      inp.value = (value != null) ? value : '';
+    }
+    td.textContent = '';
+    td.appendChild(inp);
+    inp.focus();
+    inp.select();
+
+    var origVal = value;
+    inp.onblur = function() {
+      var newVal = inp.value;
+      td.textContent = '';
+      var formatted = fmt(newVal, col.type);
+      span.textContent = displayVal(formatted, col.type);
+      if (!span.textContent) span.innerHTML = '&mdash;';
+      td.appendChild(span);
+      saveField(cfg, rowIdx, col.key, newVal);
+    };
+    inp.onkeydown = function(e) {
+      if (e.keyCode === 13) inp.blur();
+      if (e.keyCode === 27) {
+        td.textContent = '';
+        span.textContent = displayVal(origVal, col.type);
+        if (!span.textContent) span.innerHTML = '&mdash;';
+        td.appendChild(span);
+      }
+    };
+  };
+}
+
+function renderSlider(td, value, col, cfg, rowIdx) {
+  var wrap = document.createElement('div');
+  wrap.className = 'mini-slider';
+  var range = document.createElement('input');
+  range.type = 'range';
+  range.min = (col.attrs && col.attrs.min != null) ? col.attrs.min : 0;
+  range.max = (col.attrs && col.attrs.max != null) ? col.attrs.max : 100;
+  range.value = value || 0;
+  var lbl = document.createElement('span');
+  lbl.className = 'slider-label';
+  lbl.textContent = range.value + '%';
+  wrap.appendChild(range);
+  wrap.appendChild(lbl);
+  td.appendChild(wrap);
+
+  range.oninput = function() {
+    lbl.textContent = range.value + '%';
+    debounce('slider-' + rowIdx, function() {
+      saveField(cfg, rowIdx, col.key, Number(range.value));
+    });
+  };
+}
+
+function renderToggle(td, value, col, cfg, rowIdx) {
+  var lbl = document.createElement('label');
+  lbl.className = 'toggle';
+  var cb = document.createElement('input');
+  cb.type = 'checkbox';
+  if (col.type === 'boolean') {
+    cb.checked = !!value;
+  } else {
+    cb.checked = (value === 1 || value === '1');
+  }
+  var track = document.createElement('span');
+  track.className = 'track';
+  lbl.appendChild(cb);
+  lbl.appendChild(track);
+  td.appendChild(lbl);
+
+  cb.onchange = function() {
+    var newVal = col.type === 'boolean' ? cb.checked : (cb.checked ? 1 : 0);
+    debounce('toggle-' + col.key + '-' + rowIdx, function() {
+      saveField(cfg, rowIdx, col.key, newVal);
+    });
+  };
+}
+
+function formatHour(h) {
+  if (h === 0) return '12AM';
+  if (h < 12) return h + 'AM';
+  if (h === 12) return '12PM';
+  return (h - 12) + 'PM';
+}
+
+function renderChips(td, value, col, cfg, rowIdx) {
+  var wrap = document.createElement('div');
+  wrap.className = 'chip-display';
+
+  function refreshChips() {
+    wrap.innerHTML = '';
+    var hrs = ttToHours(configData[curDev()][cfg.dataKey][rowIdx][col.key] || 0);
+    if (hrs.length === 0) {
+      wrap.innerHTML = '&mdash;';
+    } else {
+      hrs.forEach(function(h) {
+        var c = document.createElement('span');
+        c.className = 'chip';
+        c.textContent = formatHour(h);
+        wrap.appendChild(c);
+      });
+    }
+  }
+  refreshChips();
+  td.appendChild(wrap);
+
+  wrap.onclick = function(e) {
+    e.stopPropagation();
+    var existing = document.querySelectorAll('.chip-popup');
+    for (var i = 0; i < existing.length; i++) existing[i].parentNode.removeChild(existing[i]);
+
+    var curVal = configData[curDev()][cfg.dataKey][rowIdx][col.key] || 0;
+    var popup = document.createElement('div');
+    popup.className = 'chip-popup';
+
+    // Position fixed relative to viewport
+    var rect = wrap.getBoundingClientRect();
+    popup.style.left = rect.left + 'px';
+    popup.style.top = (rect.bottom + 4) + 'px';
+    // Flip above if not enough space below
+    if (rect.bottom + 200 > window.innerHeight) {
+      popup.style.top = (rect.top - 200) + 'px';
+    }
+
+    for (var h = 0; h < 24; h++) {
+      (function(hour) {
+        var opt = document.createElement('div');
+        opt.className = 'chip-opt' + ((curVal & (1 << hour)) ? ' sel' : '');
+        opt.textContent = hour;
+        opt.onclick = function(ev) {
+          ev.stopPropagation();
+          curVal = curVal ^ (1 << hour);
+          opt.classList.toggle('sel');
+          configData[curDev()][cfg.dataKey][rowIdx][col.key] = curVal;
+          refreshChips();
+          debounce('chips-' + rowIdx, function() {
+            saveField(cfg, rowIdx, col.key, curVal);
+          });
+        };
+        popup.appendChild(opt);
+      })(h);
+    }
+    document.body.appendChild(popup);
+
+    var closeHandler = function() {
+      if (popup.parentNode) popup.parentNode.removeChild(popup);
+      document.removeEventListener('click', closeHandler);
+    };
+    setTimeout(function() { document.addEventListener('click', closeHandler); }, 0);
+  };
+}
+
+function renderBadge(td, value) {
+  var badge = document.createElement('span');
+  badge.className = 'badge-wm';
+  badge.textContent = (value != null) ? value : '\u2014';
+  td.appendChild(badge);
+}
+
+function renderDropdown(td, value, col, cfg, rowIdx) {
+  var sel = document.createElement('select');
+  sel.className = 'cell-dropdown';
+  (col.options || []).forEach(function(opt) {
+    var o = document.createElement('option');
+    o.value = opt.value;
+    o.textContent = opt.label;
+    if (opt.value === value) o.selected = true;
+    sel.appendChild(o);
+  });
+  td.appendChild(sel);
+
+  sel.onchange = function() {
+    saveField(cfg, rowIdx, col.key, sel.value);
+  };
+}
+
+/* ── Table rendering ───────────────────────────────────────── */
+
+function renderTable(cfg) {
+  var tbody = document.querySelector('#' + cfg.tableId + ' tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  var data = configData && configData[curDev()] && configData[curDev()][cfg.dataKey];
   if (!data) return;
 
-  var cols = config.columns;
+  Object.keys(data).forEach(function(key) {
+    var item = data[key];
+    if (!item || typeof item !== 'object') return;
 
-  // Each value in data is a group object (keyed by numeric index)
-  var keys = Object.keys(data);
-  for (var k = 0; k < keys.length; k++) {
-    var item = data[keys[k]];
-    if (!item || typeof item !== 'object') continue;
-
-    var row = table.insertRow();
-
-    for (var c = 0; c < cols.length; c++) {
-      var col = cols[c];
-      var cell = row.insertCell();
+    var tr = document.createElement('tr');
+    cfg.columns.forEach(function(col) {
+      var td = document.createElement('td');
       var val = item[col.key];
 
-      if (col.type === 'timetable') {
-        cell.textContent = timetableToHours(val || 0).join(', ');
-      } else if (col.type === 'array') {
-        cell.textContent = Array.isArray(val) ? val.join(', ') : (val || '');
-      } else if (col.type === 'boolean') {
-        cell.textContent = val ? 'Yes' : 'No';
-      } else if (col.type === 'readonly') {
-        cell.textContent = (val !== undefined && val !== null) ? val : '\u2014';
-        cell.classList.add('readonly-cell');
-      } else {
-        cell.textContent = (val !== undefined && val !== null) ? val : '';
+      switch (col.widget) {
+        case 'click-text':
+        case 'click-number':
+        case 'click-float':
+          renderClickEdit(td, val, col, cfg, key);
+          break;
+        case 'slider':
+          renderSlider(td, val, col, cfg, key);
+          break;
+        case 'toggle':
+          renderToggle(td, val, col, cfg, key);
+          break;
+        case 'chips':
+          renderChips(td, val, col, cfg, key);
+          break;
+        case 'badge':
+          renderBadge(td, val);
+          break;
+        case 'dropdown':
+          renderDropdown(td, val, col, cfg, key);
+          break;
+        default:
+          td.textContent = displayVal(val, col.type);
       }
-    }
+      tr.appendChild(td);
+    });
 
-    // Actions column
-    var actionCell = row.insertCell();
-    actionCell.appendChild(makeButton('Edit', 'btn btn-edit', editRow, row, config));
-    actionCell.appendChild(makeButton('Save', 'btn btn-save', saveRow, row, config));
-    actionCell.appendChild(makeButton('Delete', 'btn btn-delete', deleteRow, row, config));
-  }
-}
-
-function makeButton(text, cls, handler, row, config) {
-  var btn = document.createElement('button');
-  btn.textContent = text;
-  btn.className = cls;
-  btn.onclick = function() { handler(row, config); };
-  return btn;
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  Table editing
-// ═══════════════════════════════════════════════════════════════════════
-
-function editRow(row, config) {
-  var cols = config.columns;
-
-  for (var i = 0; i < cols.length; i++) {
-    var col = cols[i];
-    var cell = row.cells[i];
-    var val = cell.textContent;
-
-    // Skip readonly columns (like wm) — can't edit Pi-computed values
-    if (!col.editable) continue;
-
-    if (col.type === 'boolean') {
-      var cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = (val === 'Yes');
-      cell.textContent = '';
-      cell.appendChild(cb);
-    } else if (col.key === 'kc') {
-      // Special input for crop coefficient with range limits
-      var kcInput = document.createElement('input');
-      kcInput.type = 'number';
-      kcInput.min = '0.1';
-      kcInput.max = '2.0';
-      kcInput.step = '0.05';
-      kcInput.value = val;
-      kcInput.style.width = '80px';
-      cell.textContent = '';
-      cell.appendChild(kcInput);
-    } else {
-      var inp = document.createElement('input');
-      inp.type = 'text';
-      inp.value = val;
-      inp.style.width = '100%';
-      cell.textContent = '';
-      cell.appendChild(inp);
-    }
-  }
-
-  // Toggle button visibility
-  row.querySelector('.btn-edit').style.display = 'none';
-  row.querySelector('.btn-delete').style.display = 'none';
-  row.querySelector('.btn-save').style.display = 'inline';
-}
-
-function saveRow(row, config) {
-  var cols = config.columns;
-
-  for (var i = 0; i < cols.length; i++) {
-    var col = cols[i];
-    var cell = row.cells[i];
-
-    if (!col.editable) continue;
-
-    if (col.type === 'boolean') {
-      var cb = cell.querySelector('input[type="checkbox"]');
-      cell.textContent = (cb && cb.checked) ? 'Yes' : 'No';
-    } else {
-      var inp = cell.querySelector('input');
-      cell.textContent = inp ? inp.value : cell.textContent;
-    }
-  }
-
-  // Toggle button visibility
-  row.querySelector('.btn-edit').style.display = 'inline';
-  row.querySelector('.btn-save').style.display = 'none';
-  row.querySelector('.btn-delete').style.display = 'inline';
-
-  // Save entire table back to configData and POST
-  collectAndSave(config);
-}
-
-function deleteRow(row, config) {
-  var table = document.getElementById(config.tableId);
-  if (row.rowIndex > 0) {
-    table.deleteRow(row.rowIndex);
-    collectAndSave(config);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  Collect table data → save
-// ═══════════════════════════════════════════════════════════════════════
-
-// Reads all rows from the table, converts to config objects, saves.
-function collectAndSave(config) {
-  var table = document.getElementById(config.tableId);
-  var cols = config.columns;
-  var dataObj = {};
-
-  for (var i = 1; i < table.rows.length; i++) {
-    var row = table.rows[i];
-    var item = {};
-
-    for (var j = 0; j < cols.length; j++) {
-      var col = cols[j];
-      // Skip readonly fields — they are display-only, never saved by the web page
-      if (col.type === 'readonly') continue;
-
-      var cellText = row.cells[j].textContent.trim();
-      item[col.key] = formatValue(cellText, col.type);
-    }
-
-    dataObj[i - 1] = item;
-  }
-
-  var device = getActiveDevice();
-  configData[device][config.dataKey] = dataObj;
-
-  saveConfig().then(function() {
-    // Re-fetch and re-render to show server-merged data (e.g. wm restored)
-    fetchConfig().then(function() { renderTable(config); });
+    var actTd = document.createElement('td');
+    var delBtn = document.createElement('button');
+    delBtn.className = 'btn-del-icon';
+    delBtn.innerHTML = '&#x2715;';
+    delBtn.title = 'Delete';
+    (function(k) {
+      delBtn.onclick = function() {
+        if (!confirm('Delete this row?')) return;
+        delete configData[curDev()][cfg.dataKey][k];
+        reindexData(cfg);
+        saveConfig().then(function() {
+          fetchConfig().then(function() { renderTable(cfg); });
+        });
+      };
+    })(key);
+    actTd.appendChild(delBtn);
+    tr.appendChild(actTd);
+    tbody.appendChild(tr);
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  Add item from form
-// ═══════════════════════════════════════════════════════════════════════
+/* ── Add item from form ────────────────────────────────────── */
 
-function addItem(config) {
-  var cols = config.columns;
+function addItem(cfg) {
   var item = {};
-
-  for (var i = 0; i < cols.length; i++) {
-    var col = cols[i];
-    // Skip readonly fields — user doesn't set these
-    if (col.type === 'readonly') continue;
-
+  cfg.columns.forEach(function(col) {
+    if (col.type === 'readonly') return;
+    // Schedule chip grid
+    if (col.key === 'wt') {
+      var grid = document.getElementById('wt-grid');
+      if (!grid) return;
+      var bits = 0;
+      var selChips = grid.querySelectorAll('.chip-opt.sel');
+      for (var s = 0; s < selChips.length; s++) {
+        bits |= (1 << parseInt(selChips[s].getAttribute('data-hour')));
+      }
+      item[col.key] = bits;
+      return;
+    }
     var el = document.getElementById(col.key);
-    if (!el) continue;
-
-    var val;
-    if (col.type === 'boolean') {
-      val = el.checked;
+    if (!el) return;
+    var rawVal;
+    if (el.type === 'checkbox') {
+      rawVal = col.type === 'boolean' ? el.checked : (el.checked ? 1 : 0);
     } else {
-      val = el.value;
+      rawVal = el.value;
     }
+    item[col.key] = fmt(rawVal, col.type);
+  });
 
-    item[col.key] = formatValue(val, col.type);
-  }
+  if (cfg.dataKey === 'plantConfig' && (!item.pn || !item.pn.trim()))
+    return toast('Plant name required', true);
+  if (cfg.dataKey === 'sensorConfig' && (!item.sn || !item.sn.trim()))
+    return toast('Sensor name required', true);
 
-  // Validate: plant name required for plantConfig
-  if (config.dataKey === 'plantConfig') {
-    if (!item.pn || !item.pn.trim()) {
-      alert('Plant name is required.');
-      return;
-    }
-  }
-  // Validate: sensor name required for sensorConfig
-  if (config.dataKey === 'sensorConfig') {
-    if (!item.sn || !item.sn.trim()) {
-      alert('Sensor name is required.');
-      return;
-    }
-  }
-
-  var device = getActiveDevice();
-  if (!device) {
-    alert('Please select a device first.');
-    return;
-  }
-
-  if (!configData[device][config.dataKey]) {
-    configData[device][config.dataKey] = {};
-  }
-
-  var data = configData[device][config.dataKey];
-  var nextIndex = Object.keys(data).length;
-  data[nextIndex] = item;
+  var d = curDev();
+  if (!d) return toast('Select a device', true);
+  if (!configData[d][cfg.dataKey]) configData[d][cfg.dataKey] = {};
+  var data = configData[d][cfg.dataKey];
+  data[Object.keys(data).length] = item;
 
   saveConfig().then(function() {
-    fetchConfig().then(function() { renderTable(config); });
+    fetchConfig().then(function() {
+      renderTable(cfg);
+      // Reset chip grid selections after add
+      var wtGrid = document.getElementById('wt-grid');
+      if (wtGrid) {
+        var sel = wtGrid.querySelectorAll('.chip-opt.sel');
+        for (var i = 0; i < sel.length; i++) sel[i].classList.remove('sel');
+      }
+    });
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  Device config (form-based, not table-based)
-// ═══════════════════════════════════════════════════════════════════════
+/* ── Device config ─────────────────────────────────────────── */
 
 function renderDeviceConfig() {
-  var device = getActiveDevice();
-  var data = configData && configData[device] && configData[device].deviceConfig;
-  if (!data) return;
-
-  var dnInput = document.getElementById('dn');
-  if (dnInput) dnInput.value = data.dn || '';
-
-  var mssrCb = document.getElementById('mssr');
-  if (mssrCb) mssrCb.checked = (data.mssr === 1);
-
-  var irigCb = document.getElementById('irig');
-  if (irigCb) irigCb.checked = (data.irig === 1);
+  var d = configData && configData[curDev()] && configData[curDev()].deviceConfig;
+  if (!d) return;
+  var dn = document.getElementById('dn'); if (dn) dn.value = d.dn || '';
+  var ms = document.getElementById('mssr'); if (ms) ms.checked = (d.mssr === 1);
+  var ir = document.getElementById('irig'); if (ir) ir.checked = (d.irig === 1);
 }
 
 function saveDeviceConfig() {
-  var device = getActiveDevice();
-  if (!device) {
-    alert('Please select a device first.');
-    return;
-  }
-
-  if (!configData[device].deviceConfig) {
-    configData[device].deviceConfig = {};
-  }
-
-  // Merge into existing deviceConfig to preserve fields not shown in the form
-  // (e.g. "main", "dummy", or any future fields added by firmware)
-  var existing = configData[device].deviceConfig;
-  existing.dn = document.getElementById('dn').value || device;
-  existing.mssr = document.getElementById('mssr').checked ? 1 : 0;
-  existing.irig = document.getElementById('irig').checked ? 1 : 0;
-
-  saveConfig().then(function() {
-    showStatus('Device config saved');
-    refreshContent();
-  });
+  var d = curDev();
+  if (!d) return toast('Select a device', true);
+  if (!configData[d].deviceConfig) configData[d].deviceConfig = {};
+  var dc = configData[d].deviceConfig;
+  dc.dn = document.getElementById('dn').value || d;
+  dc.mssr = document.getElementById('mssr').checked ? 1 : 0;
+  dc.irig = document.getElementById('irig').checked ? 1 : 0;
+  saveConfig().then(function() { toast('Device config saved'); refresh(); });
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  Page init & navigation
-// ═══════════════════════════════════════════════════════════════════════
+/* ── Navigation ────────────────────────────────────────────── */
 
-function initPage() {
-  fetchConfig().then(function() {
-    if (!configData) return;
-    populateDeviceSelector();
-    refreshContent();
-  });
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  var sec = document.getElementById(id);
+  if (sec) sec.classList.add('active');
+  var nav = document.querySelector('[data-section="' + id + '"]');
+  if (nav) nav.classList.add('active');
 }
 
-function refreshContent() {
-  renderTable(plantConfig);
-  renderTable(sensorConfig);
+/* ── Init ──────────────────────────────────────────────────── */
+
+function refresh() {
+  renderTable(plantCfg);
+  renderTable(sensorCfg);
   renderDeviceConfig();
 }
 
-function showSection(id) {
-  var sections = document.querySelectorAll('.main-content > div');
-  for (var i = 0; i < sections.length; i++) {
-    sections[i].style.display = 'none';
-  }
-  var target = document.getElementById(id);
-  if (target) target.style.display = 'block';
+function init() {
+  fetchConfig().then(function() {
+    if (!configData) return;
+    populateDevices();
+    refresh();
+  });
 }
 
-// ── Boot ─────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-  // Re-render content when device selection changes
-  document.getElementById('devices').addEventListener('change', function() {
-    refreshContent();
+  document.querySelectorAll('.nav-item').forEach(function(a) {
+    a.addEventListener('click', function() { showSection(this.dataset.section); });
   });
-  initPage();
-  showSection('welcome');
+  document.getElementById('devices').addEventListener('change', refresh);
+
+  // Plant Size slider label
+  var plsSlider = document.getElementById('pls');
+  if (plsSlider) {
+    plsSlider.oninput = function() {
+      document.getElementById('pls-label').textContent = plsSlider.value + '%';
+    };
+  }
+
+  // Schedule dropdown for add form
+  var wtBtn = document.getElementById('wt-btn');
+  var wtGrid = document.getElementById('wt-grid');
+  var wtLabel = document.getElementById('wt-label');
+  if (wtBtn && wtGrid) {
+    for (var h = 0; h < 24; h++) {
+      (function(hour) {
+        var opt = document.createElement('div');
+        opt.className = 'chip-opt';
+        opt.textContent = hour;
+        opt.setAttribute('data-hour', hour);
+        opt.onclick = function(e) {
+          e.stopPropagation();
+          opt.classList.toggle('sel');
+          updateWtLabel();
+        };
+        wtGrid.appendChild(opt);
+      })(h);
+    }
+    wtBtn.onclick = function(e) {
+      e.stopPropagation();
+      wtGrid.classList.toggle('open');
+    };
+    document.addEventListener('click', function() {
+      wtGrid.classList.remove('open');
+    });
+  }
+
+  function updateWtLabel() {
+    var sel = wtGrid.querySelectorAll('.chip-opt.sel');
+    if (sel.length === 0) {
+      wtLabel.textContent = 'Select hours';
+    } else {
+      var hrs = [];
+      for (var i = 0; i < sel.length; i++) hrs.push(formatHour(parseInt(sel[i].getAttribute('data-hour'))));
+      wtLabel.textContent = hrs.join(', ');
+    }
+  }
+
+  init();
 });
 </script>
 </body>
