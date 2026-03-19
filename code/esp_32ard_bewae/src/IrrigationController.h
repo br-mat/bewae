@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // br-mat (c) 2023
-// email: matthiasbraun@gmx.at
+// see gitHub for author info
 //
 // This file contains the declaration for the IrrigationController class, which is responsible for managing and
 // controlling an irrigation system. It includes functions for creating and configuring irrigation controllers,

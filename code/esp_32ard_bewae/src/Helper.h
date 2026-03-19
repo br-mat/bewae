@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // br-mat (c) 2023
-// email: matthiasbraun@gmx.at
+// see gitHub for author info
 //
 // The Helper Classes should form representation of the Hardware.
 // This file contains a collection of helper functions for the irrigation system, enerating timestamps, 

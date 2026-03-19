@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // br-mat (c) 2023
-// email: matthiasbraun@gmx.at
+// see gitHub for author info
 //
 // This is the main source file for the irrigation system. It is responsible for monitoring all sensor values,
 // handling the watering procedure, and communicating with the Raspberry Pi to get and send data.

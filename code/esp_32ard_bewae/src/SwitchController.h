@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // br-mat (c) 2023
-// email: matthiasbraun@gmx.at
+// see gitHub for author info
 //
 // This file contains definition of switches class.
 // Adding functionality to turn on/off parts of the system.
