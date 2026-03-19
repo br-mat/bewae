@@ -1,0 +1,5 @@
+# Test/WIP flow builds (not ready for deployment)
+node-red-flows/bewaeConfigPageFlow_test.json
+node-red-flows/bewaeConfigPageFlow_reworkbuild.json
+node-red-flows/bewae-config_reworkbuild.html
+node-red-flows/build_reworkflow.py

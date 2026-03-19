@@ -15,8 +15,8 @@ from weather_utils import (
     setup_logger,
     load_config,
     fetch_forecast,
-    load_irrigation_config,
-    save_irrigation_config,
+    load_irrigation_config_http,
+    save_wm_http,
     publish_to_influxdb,
 )
 
@@ -207,23 +207,30 @@ def calculate_base_weather_factor(forecast_blocks, config):
         f"rain={total_rain_mm:.1f}mm, rain_factor={rain_factor:.2f}, base_factor={base_factor:.2f}"
     )
 
-    return base_factor, total_rain_mm
+    return base_factor, et_ratio, rain_factor, total_rain_mm
 
 
-def apply_multipliers_to_config(irrig_config, base_factor, multiplier_max):
+def apply_multipliers_to_config(irrig_config, base_factor, et_ratio, multiplier_max):
     """
-    Apply weather multiplier to each plant group in the irrigation config.
-    For each group: wm = clamp(base_factor * kc, 0.0, multiplier_max)
+    Calculate weather multiplier for each plant group.
+    For each group: wm = clamp(factor * kc, 0.0, multiplier_max)
+
+    If a group has ignore_rain=True, the rain factor is skipped and only
+    ET ratio is used (plant is under a roof, rain doesn't reach it).
 
     Args:
         irrig_config: the full config dict (device -> {plantConfig, ...})
-        base_factor: the base weather factor
+        base_factor: the base weather factor (et_ratio * rain_factor)
+        et_ratio: ET ratio without rain reduction
         multiplier_max: maximum allowed multiplier
 
     Returns:
-        dict of {group_key: wm_value} for logging/InfluxDB
+        tuple of (wm_results, wm_updates)
+        - wm_results: {group_name: wm_value} for logging/InfluxDB
+        - wm_updates: {device_name: {group_key: wm_value}} for API POST
     """
     wm_results = {}
+    wm_updates = {}
 
     for device_name, device_config in irrig_config.items():
         if not isinstance(device_config, dict):
@@ -240,20 +247,34 @@ def apply_multipliers_to_config(irrig_config, base_factor, multiplier_max):
                 continue
 
             kc = group_data.get("kc", 1.0)
-            wm = base_factor * kc
+            ignore_rain = group_data.get("ignore_rain", False)
+
+            if ignore_rain:
+                # Plant under roof: only ET matters, rain doesn't reach it
+                wm = et_ratio * kc
+            else:
+                # Normal plant: full factor including rain reduction
+                wm = base_factor * kc
+
             wm = max(0.0, min(wm, multiplier_max))
             wm = round(wm, 2)
 
-            group_data["wm"] = wm
             group_name = group_data.get("pn", group_key)
             wm_results[group_name] = wm
-            logger.info(f"  Group '{group_name}': kc={kc}, wm={wm}")
 
-    return wm_results
+            if device_name not in wm_updates:
+                wm_updates[device_name] = {}
+            wm_updates[device_name][group_key] = wm
+
+            rain_note = " (ignore_rain)" if ignore_rain else ""
+            logger.info(f"  Group '{group_name}': kc={kc}, wm={wm}{rain_note}")
+
+    return wm_results, wm_updates
 
 
-def set_safe_fallback(irrig_config):
-    """Set wm=1.0 for all groups (safe fallback on error)."""
+def build_fallback_updates(irrig_config):
+    """Build wm=1.0 updates for all groups (safe fallback on error)."""
+    wm_updates = {}
     for device_name, device_config in irrig_config.items():
         if not isinstance(device_config, dict):
             continue
@@ -262,17 +283,20 @@ def set_safe_fallback(irrig_config):
             continue
         for group_key, group_data in plant_config.items():
             if isinstance(group_data, dict) and "pn" in group_data:
-                group_data["wm"] = 1.0
+                if device_name not in wm_updates:
+                    wm_updates[device_name] = {}
+                wm_updates[device_name][group_key] = 1.0
+    return wm_updates
 
 
 def main():
-    config = None
+    nodered_url = None
     irrig_config = None
 
     try:
         # Load configs
         config = load_config()
-        config_path = config.get("config_path", "/home/homepi/bewae/full-config.json")
+        nodered_url = config.get("nodered_url", "http://localhost:1880")
         multiplier_max = config.get("multiplier_max", 2.0)
 
         logger.info("Fetching weather forecast...")
@@ -286,19 +310,19 @@ def main():
         logger.info(f"Got {len(forecast_blocks)} forecast blocks")
 
         # Calculate base weather factor
-        base_factor, total_rain_mm = calculate_base_weather_factor(forecast_blocks, config)
+        base_factor, et_ratio, rain_factor, total_rain_mm = calculate_base_weather_factor(forecast_blocks, config)
 
-        # Load irrigation config and apply multipliers
-        irrig_config = load_irrigation_config(config_path)
-        wm_results = apply_multipliers_to_config(irrig_config, base_factor, multiplier_max)
+        # Load irrigation config via HTTP and calculate multipliers
+        irrig_config = load_irrigation_config_http(nodered_url)
+        wm_results, wm_updates = apply_multipliers_to_config(irrig_config, base_factor, et_ratio, multiplier_max)
 
-        # Save updated config
-        save_irrigation_config(config_path, irrig_config)
-        logger.info("Config saved successfully")
+        # POST wm updates to Node-RED
+        save_wm_http(nodered_url, wm_updates)
+        logger.info("WM updates posted to Node-RED successfully")
 
         # Publish to InfluxDB (optional, best-effort)
         try:
-            fields = {"base_factor": base_factor, "rain_mm": total_rain_mm}
+            fields = {"base_factor": base_factor, "et_ratio": et_ratio, "rain_factor": rain_factor, "rain_mm": total_rain_mm}
             fields.update({f"wm_{name}": wm for name, wm in wm_results.items()})
             publish_to_influxdb(
                 measurement="weather_multiplier",
@@ -313,13 +337,13 @@ def main():
     except Exception as e:
         logger.error(f"Error calculating weather multiplier: {e}", exc_info=True)
 
-        # Safe fallback: set wm=1.0 for all groups
-        if config and irrig_config:
+        # Safe fallback: try to POST wm=1.0 for all groups
+        if nodered_url and irrig_config:
             try:
-                config_path = config.get("config_path", "/home/homepi/bewae/full-config.json")
-                set_safe_fallback(irrig_config)
-                save_irrigation_config(config_path, irrig_config)
-                logger.info("Fallback applied: wm=1.0 for all groups")
+                fallback_updates = build_fallback_updates(irrig_config)
+                if fallback_updates:
+                    save_wm_http(nodered_url, fallback_updates)
+                    logger.info("Fallback applied: wm=1.0 for all groups via HTTP")
             except Exception as fallback_err:
                 logger.error(f"Failed to apply fallback: {fallback_err}")
 

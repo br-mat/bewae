@@ -93,6 +93,28 @@ def load_irrigation_config(config_path):
         return json.load(f)
 
 
+def load_irrigation_config_http(base_url):
+    """Read the full bewae config via Node-RED HTTP API."""
+    url = base_url.rstrip("/") + "/bewae/get-backendconfig-full"
+    response = requests.get(url, timeout=REQUEST_TIMEOUT)
+    response.raise_for_status()
+    return response.json()
+
+
+def save_wm_http(base_url, wm_updates):
+    """
+    POST wm updates to Node-RED.
+
+    Args:
+        base_url: e.g. "http://localhost:1880"
+        wm_updates: dict of {device_name: {group_key: wm_value, ...}, ...}
+    """
+    url = base_url.rstrip("/") + "/bewae/update-wm"
+    response = requests.post(url, json=wm_updates, timeout=REQUEST_TIMEOUT)
+    response.raise_for_status()
+    return response.json()
+
+
 def save_irrigation_config(config_path, data):
     """
     Atomically write the irrigation config JSON with file locking.

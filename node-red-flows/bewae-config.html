@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bewae V3</title>
+  <style>
+  /* ── Reset & Base ──────────────────────────────────────────── */
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+  }
+
+  /* ── Top Bar ───────────────────────────────────────────────── */
+  .violet-bar {
+    background-color: rgba(80, 30, 120, 0.9);
+    color: white;
+    padding: 20px;
+    text-align: left;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 2;
+    box-sizing: border-box;
+  }
+
+  /* ── Sidebar ───────────────────────────────────────────────── */
+  .sidebar {
+    height: 100%;
+    width: 250px;
+    position: fixed;
+    z-index: 1;
+    top: 58px;
+    left: 0;
+    background-color: rgba(80, 30, 120, 0.6);
+    overflow-x: hidden;
+    padding-top: 20px;
+  }
+
+  .sidebar a {
+    padding: 6px 8px 6px 16px;
+    text-decoration: none;
+    font-size: 25px;
+    color: #fff;
+    display: block;
+    cursor: pointer;
+  }
+
+  .sidebar a:hover {
+    color: #f1f1f1;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* ── Main Content ──────────────────────────────────────────── */
+  .main-content {
+    margin-left: 250px;
+    padding: 20px;
+    margin-top: 60px;
+  }
+
+  /* ── Tables ────────────────────────────────────────────────── */
+  .table-scroll {
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .config-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 900px;
+  }
+
+  .config-table th,
+  .config-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .config-table th {
+    background-color: #f2f2f2;
+  }
+
+  .config-table tr:nth-child(even) {
+    background-color: #d2abff;
+  }
+
+  .readonly-cell {
+    color: #666;
+    font-style: italic;
+  }
+
+  /* ── Forms ─────────────────────────────────────────────────── */
+  .config-form {
+    margin-top: 20px;
+    max-width: 500px;
+  }
+
+  .config-form label {
+    display: block;
+    margin-bottom: 5px;
+    margin-top: 10px;
+    font-weight: bold;
+  }
+
+  .config-form input[type="text"],
+  .config-form input[type="number"],
+  .config-form select {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 4px;
+    box-sizing: border-box;
+  }
+
+  .form-row {
+    margin-bottom: 15px;
+  }
+
+  .form-hint {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 2px;
+  }
+
+  /* ── Buttons ───────────────────────────────────────────────── */
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: white;
+  }
+
+  .btn:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  }
+
+  .btn-add {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    margin-top: 12px;
+  }
+
+  .btn-add:hover {
+    background-color: #45a049;
+  }
+
+  .btn-edit {
+    background-color: #f39c12;
+    color: black;
+  }
+
+  .btn-edit:hover {
+    background-color: #f3ca12;
+  }
+
+  .btn-save {
+    background-color: #f39c12;
+    color: black;
+    display: none;
+  }
+
+  .btn-save:hover {
+    background-color: #f3ca12;
+  }
+
+  .btn-delete {
+    background-color: #8e44ad;
+  }
+
+  .btn-delete:hover {
+    background-color: #da4ced;
+  }
+
+  .btn-device-add {
+    background-color: #4CAF50;
+    color: white;
+    border: 1px solid black;
+    border-radius: 5px;
+    padding: 8px 12px;
+  }
+
+  .btn-device-add:hover {
+    background-color: #45a049;
+  }
+
+  .btn-device-delete {
+    background-color: #f44336;
+    color: white;
+    border: 1px solid black;
+    border-radius: 5px;
+    padding: 8px 12px;
+  }
+
+  .btn-device-delete:hover {
+    background-color: #d32f2f;
+  }
+
+  .button-container {
+    margin-top: 1.5em;
+  }
+
+  /* ── Toggle Switch ─────────────────────────────────────────── */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 25px;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 21px;
+    width: 21px;
+    left: 2px;
+    bottom: 2px;
+    background-color: #808080;
+    transition: 0.4s;
+  }
+
+  input:checked + .slider {
+    background-color: #d2abff;
+  }
+
+  input:checked + .slider:before {
+    background-color: #8e44ad;
+    transform: translateX(25px);
+  }
+
+  .slider.round {
+    border-radius: 34px;
+  }
+
+  .slider.round:before {
+    border-radius: 50%;
+  }
+
+  /* ── Dropdown Selectors ────────────────────────────────────── */
+  #devices {
+    padding: 8px 12px;
+    border: 1px solid black;
+    border-radius: 5px;
+    background-color: #d2abff;
+    cursor: pointer;
+    outline: none;
+    color: #333;
+  }
+
+  #devices:hover {
+    background-color: #e4c7ff;
+  }
+
+  #devices:focus {
+    border-color: #8e44ad;
+  }
+
+  /* ── Status message ────────────────────────────────────────── */
+  .status-msg {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .status-msg.show {
+    opacity: 1;
+  }
+
+  .status-msg.success {
+    background-color: #4CAF50;
+  }
+
+  .status-msg.error {
+    background-color: #f44336;
+  }
+  </style>
+</head>
+<body>
+  <!-- Top bar -->
+  <div class="violet-bar">Bewae V3</div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <a onclick="showSection('welcome')">Welcome</a>
+    <a onclick="showSection('additionalConfig')">Device</a>
+    <a onclick="showSection('watering')">Irrigation</a>
+    <a onclick="showSection('sensors')">Sensors</a>
+  </div>
+
+  <!-- Main content -->
+  <div class="main-content">
+
+    <!-- ═══ Welcome ═══ -->
+    <div id="welcome">
+      <h2>Welcome to Bewae V3!</h2>
+      <p>Select an option from the sidebar to get started.</p>
+
+      <div id="deviceSelector">
+        <label for="devices"><strong>Choose a device:</strong></label><br>
+        <select id="devices"></select>
+        <input type="text" id="newDeviceName" placeholder="Enter new device name"
+               style="padding:8px; border:1px solid #ccc; border-radius:5px; margin-left:8px;">
+        <button class="btn-device-add" onclick="addDevice()">Add Device</button>
+        <button class="btn-device-delete" onclick="deleteDevice()">Delete Device</button>
+      </div>
+    </div>
+
+    <!-- ═══ Irrigation ═══ -->
+    <div id="watering" style="display:none;">
+      <h2>Irrigation Configuration</h2>
+
+      <div class="table-scroll">
+        <table id="plantTable" class="config-table">
+          <tr>
+            <th>Plant Name</th>
+            <th>Water (s)</th>
+            <th>Plant Size</th>
+            <th>Pot Size</th>
+            <th>Schedule</th>
+            <th>vPins</th>
+            <th>Crop Coeff.</th>
+            <th>Under Roof</th>
+            <th>Soil Sensor</th>
+            <th>Weather &times;</th>
+            <th>Active</th>
+            <th>Actions</th>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Add plant form -->
+      <div class="config-form">
+        <h3>Add Plant Group</h3>
+        <form id="plantForm">
+          <label for="pn">Plant Name:</label>
+          <input type="text" id="pn" maxlength="20" required>
+
+          <label for="pw">Water Time (seconds):</label>
+          <input type="number" id="pw" min="0" value="10">
+
+          <label for="pls">Plant Size:</label>
+          <input type="number" id="pls" min="0" value="1">
+
+          <label for="pts">Pot Size:</label>
+          <input type="number" id="pts" min="0" value="1">
+
+          <label for="wt">Schedule (hours, comma-separated):</label>
+          <input type="text" id="wt" placeholder="6,18">
+          <div class="form-hint">Which hours to water, e.g. 6,18 = 6 AM and 6 PM</div>
+
+          <label for="pp">vPins (comma-separated):</label>
+          <input type="text" id="pp" placeholder="0,5">
+
+          <label for="kc">Crop Coefficient (0.1 &ndash; 2.0):</label>
+          <input type="number" id="kc" min="0.1" max="2.0" step="0.05" value="1.0">
+          <div class="form-hint">FAO-56 standard. Tomatoes ~1.05, herbs ~0.7, succulents ~0.3</div>
+
+          <label for="ignore_rain">Plant under roof (ignore rain):</label>
+          <label class="switch" style="margin-top:4px;">
+            <input type="checkbox" id="ignore_rain">
+            <span class="slider round"></span>
+          </label>
+          <div class="form-hint">Enable if rain does not reach this plant</div>
+
+          <label for="moisture_sensor">Soil Sensor InfluxDB Field:</label>
+          <input type="text" id="moisture_sensor" placeholder="e.g. moisture">
+          <div class="form-hint">InfluxDB field name from the soil sensor for this group. Leave empty if none.</div>
+
+          <label for="ps">Active:</label>
+          <select id="ps">
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+
+          <div class="button-container">
+            <button type="button" class="btn btn-add" onclick="addItem(plantConfig)">Add Plant</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ═══ Sensors ═══ -->
+    <div id="sensors" style="display:none;">
+      <h2>Sensor Configuration</h2>
+
+      <div class="table-scroll">
+        <table id="sensorTable" class="config-table">
+          <tr>
+            <th>Sensor Name</th>
+            <th>Field</th>
+            <th>vPin</th>
+            <th>High Limit</th>
+            <th>Low Limit</th>
+            <th>Active</th>
+            <th>Actions</th>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Add sensor form -->
+      <div class="config-form">
+        <h3>Add Sensor</h3>
+        <form id="sensorForm">
+          <label for="sn">Sensor Name:</label>
+          <input type="text" id="sn" maxlength="20">
+
+          <label for="sf">Field:</label>
+          <select id="sf">
+            <option value="bmetemp">BME280 Temperature</option>
+            <option value="bmehum">BME280 Humidity</option>
+            <option value="bmepress">BME280 Pressure</option>
+            <option value="soiltemp">Soil Temperature</option>
+            <option value="analog">Analog</option>
+            <option value="vanalog">V Analog</option>
+          </select>
+
+          <label for="sp">vPin:</label>
+          <input type="number" id="sp" min="0">
+
+          <label for="hl">High Limit:</label>
+          <input type="number" id="hl">
+
+          <label for="ll">Low Limit:</label>
+          <input type="number" id="ll">
+
+          <label for="ss">Active:</label>
+          <select id="ss">
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+
+          <div class="button-container">
+            <button type="button" class="btn btn-add" onclick="addItem(sensorConfig)">Add Sensor</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ═══ Device Config ═══ -->
+    <div id="additionalConfig" style="display:none;">
+      <h2>Device Configuration</h2>
+      <form id="deviceConfigForm" class="config-form">
+        <div class="form-row">
+          <label for="dn">Device Name:</label>
+          <input type="text" id="dn" name="deviceName">
+        </div>
+
+        <div class="form-row">
+          <label for="mssr">Datalogging Switch:</label>
+          <label class="switch">
+            <input type="checkbox" id="mssr" name="mssr">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div class="form-row">
+          <label for="irig">Irrigation System Switch:</label>
+          <label class="switch">
+            <input type="checkbox" id="irig" name="irig">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div class="button-container">
+          <button type="button" class="btn btn-add" onclick="saveDeviceConfig()">Save Configuration</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Status toast -->
+  <div id="statusMsg" class="status-msg"></div>
+
+<script>
+/* =====================================================================
+ *  Bewae V3 Configuration Page
+ *  Clean rewrite — br-mat (c) 2025
+ * ===================================================================== */
+
+// ── API endpoints ────────────────────────────────────────────────────
+const API_GET  = '/bewae/get-backendconfig-full';
+const API_SAVE = '/bewae/save-backendconfig-full';
+
+// ── Pi-computed fields: never included in save payload ───────────────
+const PI_COMPUTED_FIELDS = ['wm'];
+
+// ── Global state ─────────────────────────────────────────────────────
+var configData = null;
+
+// ── Config definitions ───────────────────────────────────────────────
+//
+// "columns" defines the table columns for each config section.
+// Each column has:
+//   key      — the JSON field name
+//   type     — how to format/validate: string, number, array, timetable, boolean, readonly
+//   editable — whether the user can edit this column (false for Pi-computed fields)
+//
+// The order of columns here determines the order in the table.
+
+var plantConfig = {
+  tableId: 'plantTable',
+  dataKey: 'plantConfig',
+  columns: [
+    { label: 'Plant Name',   key: 'pn',              type: 'string',    editable: true },
+    { label: 'Water (s)',     key: 'pw',              type: 'number',    editable: true },
+    { label: 'Plant Size',   key: 'pls',             type: 'number',    editable: true },
+    { label: 'Pot Size',     key: 'pts',             type: 'number',    editable: true },
+    { label: 'Schedule',     key: 'wt',              type: 'timetable', editable: true },
+    { label: 'vPins',        key: 'pp',              type: 'array',     editable: true },
+    { label: 'Crop Coeff.',  key: 'kc',              type: 'number',    editable: true },
+    { label: 'Under Roof',   key: 'ignore_rain',     type: 'boolean',   editable: true },
+    { label: 'Soil Sensor',  key: 'moisture_sensor',  type: 'string',    editable: true },
+    { label: 'Weather \u00d7', key: 'wm',            type: 'readonly',  editable: false },
+    { label: 'Active',       key: 'ps',              type: 'number',    editable: true }
+  ]
+};
+
+var sensorConfig = {
+  tableId: 'sensorTable',
+  dataKey: 'sensorConfig',
+  columns: [
+    { label: 'Sensor Name', key: 'sn', type: 'string', editable: true },
+    { label: 'Field',       key: 'sf', type: 'string', editable: true },
+    { label: 'vPin',        key: 'sp', type: 'number', editable: true },
+    { label: 'High Limit',  key: 'hl', type: 'number', editable: true },
+    { label: 'Low Limit',   key: 'll', type: 'number', editable: true },
+    { label: 'Active',      key: 'ss', type: 'number', editable: true }
+  ]
+};
+
+// ── Helpers: timetable conversion ────────────────────────────────────
+// The ESP32 stores schedules as a 24-bit integer where bit N = hour N.
+// The web page shows them as comma-separated hours (e.g. "6, 18").
+
+function timetableToHours(num) {
+  var hours = [];
+  for (var i = 0; i < 24; i++) {
+    if (num & (1 << i)) hours.push(i);
+  }
+  return hours;
+}
+
+function hoursToTimetable(hours) {
+  var result = 0;
+  for (var i = 0; i < hours.length; i++) {
+    result = result | (1 << hours[i]);
+  }
+  return result;
+}
+
+// ── Helpers: parse comma-separated numbers ───────────────────────────
+function parseNumericArray(str) {
+  if (!str || str.trim() === '') return [];
+  var parts = str.split(',');
+  var result = [];
+  for (var i = 0; i < parts.length; i++) {
+    var n = Number(parts[i].trim());
+    if (!isNaN(n)) result.push(n);
+  }
+  return result;
+}
+
+// ── Format/validate a value by type ──────────────────────────────────
+function formatValue(val, type) {
+  switch (type) {
+    case 'number':
+      var n = parseFloat(val);
+      return isNaN(n) ? 0 : n;
+    case 'string':
+      return (typeof val === 'string') ? val.substring(0, 20) : '';
+    case 'array':
+      if (Array.isArray(val)) return val;
+      return parseNumericArray(String(val));
+    case 'timetable':
+      if (typeof val === 'number') return val;
+      return hoursToTimetable(parseNumericArray(String(val)));
+    case 'boolean':
+      return val === true || val === 'Yes' || val === 'true' || val === '1';
+    default:
+      return val;
+  }
+}
+
+// ── Status toast ─────────────────────────────────────────────────────
+function showStatus(message, isError) {
+  var el = document.getElementById('statusMsg');
+  el.textContent = message;
+  el.className = 'status-msg show ' + (isError ? 'error' : 'success');
+  setTimeout(function() { el.className = 'status-msg'; }, 2500);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  API
+// ═══════════════════════════════════════════════════════════════════════
+
+function fetchConfig() {
+  return fetch(API_GET)
+    .then(function(r) {
+      if (!r.ok) throw new Error('Failed to load config: ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      configData = data;
+    })
+    .catch(function(err) {
+      console.error('Fetch error:', err);
+      showStatus('Failed to load config', true);
+    });
+}
+
+function saveConfig() {
+  // Deep clone configData and strip Pi-computed fields before sending.
+  // The server-side merge function will re-add wm from the current file,
+  // but we strip it here too as a safety measure.
+  var payload = JSON.parse(JSON.stringify(configData));
+
+  for (var devName in payload) {
+    var dev = payload[devName];
+    if (!dev || typeof dev !== 'object') continue;
+    var pc = dev.plantConfig;
+    if (!pc || typeof pc !== 'object') continue;
+    for (var gKey in pc) {
+      var group = pc[gKey];
+      if (!group || typeof group !== 'object') continue;
+      for (var f = 0; f < PI_COMPUTED_FIELDS.length; f++) {
+        delete group[PI_COMPUTED_FIELDS[f]];
+      }
+    }
+  }
+
+  return fetch(API_SAVE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('Save failed: ' + r.status);
+    showStatus('Saved');
+  })
+  .catch(function(err) {
+    console.error('Save error:', err);
+    showStatus('Save failed!', true);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Device management
+// ═══════════════════════════════════════════════════════════════════════
+
+function getDevices() {
+  if (!configData) return [];
+  return Object.keys(configData);
+}
+
+function getActiveDevice() {
+  return document.getElementById('devices').value;
+}
+
+function populateDeviceSelector() {
+  var sel = document.getElementById('devices');
+  if (!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '';
+  var devices = getDevices();
+  for (var i = 0; i < devices.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = devices[i];
+    opt.textContent = devices[i];
+    sel.appendChild(opt);
+  }
+  // Restore previous selection if still exists
+  if (devices.indexOf(current) !== -1) {
+    sel.value = current;
+  }
+}
+
+function addDevice() {
+  var input = document.getElementById('newDeviceName');
+  var name = input.value.trim();
+  if (!name) {
+    alert('Please enter a device name.');
+    return;
+  }
+  if (configData[name]) {
+    alert('Device "' + name + '" already exists.');
+    return;
+  }
+
+  configData[name] = {
+    plantConfig: {},
+    sensorConfig: {},
+    deviceConfig: { dn: name, main: 0, mssr: 0, irig: 0 }
+  };
+  input.value = '';
+  saveConfig().then(function() { initPage(); });
+}
+
+function deleteDevice() {
+  var name = getActiveDevice();
+  if (!name) return;
+  if (!confirm('Delete device "' + name + '" and all its configuration?')) return;
+
+  delete configData[name];
+  saveConfig().then(function() { initPage(); });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Table rendering
+// ═══════════════════════════════════════════════════════════════════════
+
+function renderTable(config) {
+  var table = document.getElementById(config.tableId);
+  if (!table) return;
+
+  // Clear all rows except header
+  while (table.rows.length > 1) {
+    table.deleteRow(1);
+  }
+
+  var device = getActiveDevice();
+  var data = configData && configData[device] && configData[device][config.dataKey];
+  if (!data) return;
+
+  var cols = config.columns;
+
+  // Each value in data is a group object (keyed by numeric index)
+  var keys = Object.keys(data);
+  for (var k = 0; k < keys.length; k++) {
+    var item = data[keys[k]];
+    if (!item || typeof item !== 'object') continue;
+
+    var row = table.insertRow();
+
+    for (var c = 0; c < cols.length; c++) {
+      var col = cols[c];
+      var cell = row.insertCell();
+      var val = item[col.key];
+
+      if (col.type === 'timetable') {
+        cell.textContent = timetableToHours(val || 0).join(', ');
+      } else if (col.type === 'array') {
+        cell.textContent = Array.isArray(val) ? val.join(', ') : (val || '');
+      } else if (col.type === 'boolean') {
+        cell.textContent = val ? 'Yes' : 'No';
+      } else if (col.type === 'readonly') {
+        cell.textContent = (val !== undefined && val !== null) ? val : '\u2014';
+        cell.classList.add('readonly-cell');
+      } else {
+        cell.textContent = (val !== undefined && val !== null) ? val : '';
+      }
+    }
+
+    // Actions column
+    var actionCell = row.insertCell();
+    actionCell.appendChild(makeButton('Edit', 'btn btn-edit', editRow, row, config));
+    actionCell.appendChild(makeButton('Save', 'btn btn-save', saveRow, row, config));
+    actionCell.appendChild(makeButton('Delete', 'btn btn-delete', deleteRow, row, config));
+  }
+}
+
+function makeButton(text, cls, handler, row, config) {
+  var btn = document.createElement('button');
+  btn.textContent = text;
+  btn.className = cls;
+  btn.onclick = function() { handler(row, config); };
+  return btn;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Table editing
+// ═══════════════════════════════════════════════════════════════════════
+
+function editRow(row, config) {
+  var cols = config.columns;
+
+  for (var i = 0; i < cols.length; i++) {
+    var col = cols[i];
+    var cell = row.cells[i];
+    var val = cell.textContent;
+
+    // Skip readonly columns (like wm) — can't edit Pi-computed values
+    if (!col.editable) continue;
+
+    if (col.type === 'boolean') {
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = (val === 'Yes');
+      cell.textContent = '';
+      cell.appendChild(cb);
+    } else if (col.key === 'kc') {
+      // Special input for crop coefficient with range limits
+      var kcInput = document.createElement('input');
+      kcInput.type = 'number';
+      kcInput.min = '0.1';
+      kcInput.max = '2.0';
+      kcInput.step = '0.05';
+      kcInput.value = val;
+      kcInput.style.width = '80px';
+      cell.textContent = '';
+      cell.appendChild(kcInput);
+    } else {
+      var inp = document.createElement('input');
+      inp.type = 'text';
+      inp.value = val;
+      inp.style.width = '100%';
+      cell.textContent = '';
+      cell.appendChild(inp);
+    }
+  }
+
+  // Toggle button visibility
+  row.querySelector('.btn-edit').style.display = 'none';
+  row.querySelector('.btn-delete').style.display = 'none';
+  row.querySelector('.btn-save').style.display = 'inline';
+}
+
+function saveRow(row, config) {
+  var cols = config.columns;
+
+  for (var i = 0; i < cols.length; i++) {
+    var col = cols[i];
+    var cell = row.cells[i];
+
+    if (!col.editable) continue;
+
+    if (col.type === 'boolean') {
+      var cb = cell.querySelector('input[type="checkbox"]');
+      cell.textContent = (cb && cb.checked) ? 'Yes' : 'No';
+    } else {
+      var inp = cell.querySelector('input');
+      cell.textContent = inp ? inp.value : cell.textContent;
+    }
+  }
+
+  // Toggle button visibility
+  row.querySelector('.btn-edit').style.display = 'inline';
+  row.querySelector('.btn-save').style.display = 'none';
+  row.querySelector('.btn-delete').style.display = 'inline';
+
+  // Save entire table back to configData and POST
+  collectAndSave(config);
+}
+
+function deleteRow(row, config) {
+  var table = document.getElementById(config.tableId);
+  if (row.rowIndex > 0) {
+    table.deleteRow(row.rowIndex);
+    collectAndSave(config);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Collect table data → save
+// ═══════════════════════════════════════════════════════════════════════
+
+// Reads all rows from the table, converts to config objects, saves.
+function collectAndSave(config) {
+  var table = document.getElementById(config.tableId);
+  var cols = config.columns;
+  var dataObj = {};
+
+  for (var i = 1; i < table.rows.length; i++) {
+    var row = table.rows[i];
+    var item = {};
+
+    for (var j = 0; j < cols.length; j++) {
+      var col = cols[j];
+      // Skip readonly fields — they are display-only, never saved by the web page
+      if (col.type === 'readonly') continue;
+
+      var cellText = row.cells[j].textContent.trim();
+      item[col.key] = formatValue(cellText, col.type);
+    }
+
+    dataObj[i - 1] = item;
+  }
+
+  var device = getActiveDevice();
+  configData[device][config.dataKey] = dataObj;
+
+  saveConfig().then(function() {
+    // Re-fetch and re-render to show server-merged data (e.g. wm restored)
+    fetchConfig().then(function() { renderTable(config); });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Add item from form
+// ═══════════════════════════════════════════════════════════════════════
+
+function addItem(config) {
+  var cols = config.columns;
+  var item = {};
+
+  for (var i = 0; i < cols.length; i++) {
+    var col = cols[i];
+    // Skip readonly fields — user doesn't set these
+    if (col.type === 'readonly') continue;
+
+    var el = document.getElementById(col.key);
+    if (!el) continue;
+
+    var val;
+    if (col.type === 'boolean') {
+      val = el.checked;
+    } else {
+      val = el.value;
+    }
+
+    item[col.key] = formatValue(val, col.type);
+  }
+
+  // Validate: plant name required for plantConfig
+  if (config.dataKey === 'plantConfig') {
+    if (!item.pn || !item.pn.trim()) {
+      alert('Plant name is required.');
+      return;
+    }
+  }
+  // Validate: sensor name required for sensorConfig
+  if (config.dataKey === 'sensorConfig') {
+    if (!item.sn || !item.sn.trim()) {
+      alert('Sensor name is required.');
+      return;
+    }
+  }
+
+  var device = getActiveDevice();
+  if (!device) {
+    alert('Please select a device first.');
+    return;
+  }
+
+  if (!configData[device][config.dataKey]) {
+    configData[device][config.dataKey] = {};
+  }
+
+  var data = configData[device][config.dataKey];
+  var nextIndex = Object.keys(data).length;
+  data[nextIndex] = item;
+
+  saveConfig().then(function() {
+    fetchConfig().then(function() { renderTable(config); });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Device config (form-based, not table-based)
+// ═══════════════════════════════════════════════════════════════════════
+
+function renderDeviceConfig() {
+  var device = getActiveDevice();
+  var data = configData && configData[device] && configData[device].deviceConfig;
+  if (!data) return;
+
+  var dnInput = document.getElementById('dn');
+  if (dnInput) dnInput.value = data.dn || '';
+
+  var mssrCb = document.getElementById('mssr');
+  if (mssrCb) mssrCb.checked = (data.mssr === 1);
+
+  var irigCb = document.getElementById('irig');
+  if (irigCb) irigCb.checked = (data.irig === 1);
+}
+
+function saveDeviceConfig() {
+  var device = getActiveDevice();
+  if (!device) {
+    alert('Please select a device first.');
+    return;
+  }
+
+  if (!configData[device].deviceConfig) {
+    configData[device].deviceConfig = {};
+  }
+
+  // Merge into existing deviceConfig to preserve fields not shown in the form
+  // (e.g. "main", "dummy", or any future fields added by firmware)
+  var existing = configData[device].deviceConfig;
+  existing.dn = document.getElementById('dn').value || device;
+  existing.mssr = document.getElementById('mssr').checked ? 1 : 0;
+  existing.irig = document.getElementById('irig').checked ? 1 : 0;
+
+  saveConfig().then(function() {
+    showStatus('Device config saved');
+    refreshContent();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Page init & navigation
+// ═══════════════════════════════════════════════════════════════════════
+
+function initPage() {
+  fetchConfig().then(function() {
+    if (!configData) return;
+    populateDeviceSelector();
+    refreshContent();
+  });
+}
+
+function refreshContent() {
+  renderTable(plantConfig);
+  renderTable(sensorConfig);
+  renderDeviceConfig();
+}
+
+function showSection(id) {
+  var sections = document.querySelectorAll('.main-content > div');
+  for (var i = 0; i < sections.length; i++) {
+    sections[i].style.display = 'none';
+  }
+  var target = document.getElementById(id);
+  if (target) target.style.display = 'block';
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  // Re-render content when device selection changes
+  document.getElementById('devices').addEventListener('change', function() {
+    refreshContent();
+  });
+  initPage();
+  showSection('welcome');
+});
+</script>
+</body>
+</html>
