@@ -98,6 +98,8 @@ The current supported PCB is **Board 5** (`bewae3_3_board5v5_final.fzz`) — com
 3. In the flow, update the **read-file** and **write-file** nodes to point to your `config.JSON` path on the Pi.
 4. Deploy the flow.
 
+> See [`node-red-flows/Readme.md`](node-red-flows/Readme.md) for API endpoint details and security assumptions.
+
 ---
 
 ## Web Configuration

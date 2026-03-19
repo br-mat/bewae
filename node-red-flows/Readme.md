@@ -38,3 +38,16 @@ python node-red-flows/build_reworkflow.py
 ```
 
 Output files (`bewaeConfigPageFlow_reworkbuild.json`, `bewae-config_reworkbuild.html`) are gitignored — they are local build artifacts.
+
+---
+
+## Security & network assumptions
+
+This system is designed for use on a **trusted local network (LAN) only**.
+
+- API endpoints have **no authentication** — any client on the network can read/write config
+- Communication uses **HTTP** (no TLS/HTTPS)
+- No CSRF protection on POST endpoints
+- Server-side input validation is minimal (client-side validation enforced in the web UI)
+
+These are intentional design choices for a home automation system. **Do not expose Node-RED or these endpoints to the public internet** without adding an authentication layer (e.g., Node-RED `httpNodeAuth`, reverse proxy with auth, or VPN-only access).
