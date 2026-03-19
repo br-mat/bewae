@@ -2,3 +2,9 @@
 node-red-flows/bewaeConfigPageFlow_test.json
 node-red-flows/bewaeConfigPageFlow_reworkbuild.json
 node-red-flows/bewae-config_reworkbuild.html
+
+# Credentials — never commit real values
+code/esp_32ard_bewae/src/connection.h
+
+# Local project tracking
+TODO.md
