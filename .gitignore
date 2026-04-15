@@ -8,3 +8,6 @@ code/esp_32ard_bewae/src/connection.h
 
 # Local project tracking
 TODO.md
+
+# Claude Code local state
+.claude/
