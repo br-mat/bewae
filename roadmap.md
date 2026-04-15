@@ -1,32 +1,29 @@
-This is a small roadmap to help me remember what I am working on.
+# Roadmap
 
-To-do:
-- Implement config web page (RaspberryPi)
-- Integrate new configuration into the system (ESP32)
-- Add OpenWeather forecast script to the Pi
-- Reimplement dynamic watering controlled by Raspberry Pi
-- Updated documentation
+## Near-term
 
-Open problems:
-- Sensor rail needs 5V, not 3V! (Currently hooked onto logic switch 3.3V)
+- **Cron setup on Pi** — write crontab entries for `calculate_weather_multiplier.py` (2x daily) and `check_soil_moisture.py` (5 min after weather)
+- **`_ts` timestamp** — Node-RED save endpoint stamps config with ISO timestamp + counter suffix; ESP32 checks a lightweight endpoint and skips the full config download when unchanged (reduces WiFi uptime per cycle)
+- **Logfire online verification** — flash updated firmware to Pi, confirm HTTP log delivery in Logfire UI
 
-Future ideas:
-- Add display and interface menu
-- Using machine learning to controll watering process based on collected data
-- Implement an app (configuration of sensors and groups)
-- Add option to upload config file via bluetooth
+## Future features
 
-Changes:
-- Added OpenWeather scripts (saving current conditions and air condition to InfluxDB)
-- Added corresponding .sh launcher files
-- Added ESP32 build
-- Added a second circuit to handle pumps and solenoids
-- Updated (and tested) main circuit, corrected bugs and problems on ESP32 build
-- Updated English translation of new version
-- Added a new IrrigationController class
-- Implemented a config file system using SPIFFS
-- Implemented HTTP GET functionality to update config file
-- Added Node-RED flow to provide config file
-- Reworked circuit boards included new ones
-- fixed reverse voltage protection
-- Removed SD slot
+- **Manual override** — water a group for a set duration via button on the web page (requires web UI + firmware changes)
+- **Main loop unblocking** — calculate safe watering window to avoid sensor interval conflicts, allowing sensor reads between watering pulses
+- **Docker Compose deployment docs** — document the full Pi deployment (Node-RED in Docker, InfluxDB, Grafana, cron jobs)
+- **Schema docs for full-config.json** — document the server-side config structure
+
+## Refactoring / code quality
+
+- Pass `DynamicJsonDocument` by reference in `writeConfigFile` — currently copies 8 KB on every call
+- Consolidate the three BME280 sensor handlers into one parameterised function
+- Replace magic delay values with named constants
+- WiFi reconnect — consider exponential backoff or configurable timeout
+
+## Ideas (no timeline)
+
+- Display + interface menu on device
+- App for configuration (sensors and groups)
+- Bluetooth config upload
+- Machine learning for watering decisions based on collected data
+- NVS instead of SPIFFS for `running.Json` runtime state (better wear levelling)

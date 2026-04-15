@@ -1,22 +1,99 @@
-This document provides a brief overview of how to use the following scripts. They are designed to run on a Raspberry Pi or a similar device using crontab.
+# Pi Scripts
 
-1. store_weather_data.py:
-   - This script collects data from OpenWeatherMap and stores it in a local InfluxDB instance (version 2.x).
-   - Note: It is currently not required for functionality.
+Python scripts that run on the Raspberry Pi host to compute and push weather-based watering multipliers. They communicate with Node-RED via HTTP — no direct file access needed (Docker compatible).
 
-2. estimate_water_loss.py:
-   - The purpose of this script is to retrieve forecast data from OpenWeatherMap.
-   - It calculates an estimated total evaporation loss in milliliters per hour.
-   - This function is intended to be executed daily.
-   - The results can be used to automate plant irrigation if configured correctly, considering plant size and soil area.
+---
 
-3. hourlisttoBIN.py (to be removed soon):
-   - This script converts a list of hours into a single number, which is used in the timetable.
+## Scripts
 
-4. old-config-to-JSON.py (to be removed soon):
-   - Use this script to convert an old configuration format to the new one.
+### `calculate_weather_multiplier.py`
 
-Additional files:
-5. irrigation_example.JSON: This file provides an example configuration for the irrigation system.
+Fetches a 5-day forecast from OpenWeatherMap and computes a weather multiplier (`wm`) per irrigation group using Penman-Monteith evapotranspiration. The result is POSTed to Node-RED at `/bewae/update-wm`.
 
-6. monitoring_config.JSON: In this file, you can fill in details about the connection to InfluxDB, API keys, and other relevant settings.
+Run twice daily via cron (e.g. 06:00 and 18:00).
+
+### `check_soil_moisture.py`
+
+Queries InfluxDB for recent soil moisture readings. For any group whose moisture sensor reports above the `wet_threshold`, sets `wm = 0` (skip watering) via POST to `/bewae/update-wm`.
+
+Run 5 minutes after `calculate_weather_multiplier.py` so it can override the weather-based value when the soil is already wet.
+
+### `weather_utils.py`
+
+Shared library used by both scripts above. Not run directly. Provides:
+- OpenWeatherMap API fetch + Penman-Monteith ET calculation
+- HTTP config read/write (`/bewae/get-backendconfig-full`, `/bewae/update-wm`)
+- InfluxDB publish helpers
+- `LogfireHandler` for remote logging
+
+---
+
+## Configuration — `monitoring_config.JSON`
+
+Fill in before first run. All fields required unless marked optional.
+
+```json
+{
+  "db_org":              "your-influxdb-org",
+  "db_token":            "your-influxdb-token==",
+  "server":              "192.168.1.x",
+  "port":                ":8086",
+  "bucket":              "your-bucket",
+  "weatherAPI":          "your-openweathermap-api-key",
+  "lat":                 "48.20",
+  "lon":                 "16.37",
+  "location":            "Vienna",
+  "nodered_url":         "http://localhost:1880",
+  "logfire_url":         "http://localhost:1880",
+  "config_path":         "/home/homepi/bewae/full-config.json",
+  "baseline_temp":       25,
+  "baseline_humidity":   50,
+  "baseline_wind":       5,
+  "rain_threshold_mm":   5,
+  "rain_hard_cutoff_mm": 15,
+  "multiplier_max":      2.0,
+  "wet_threshold":       75,
+  "sensor_measurement":  "sensor_data"
+}
+```
+
+| Field | Description |
+|---|---|
+| `db_org` / `db_token` / `bucket` | InfluxDB 2.0 credentials |
+| `server` / `port` | InfluxDB host and port |
+| `weatherAPI` | OpenWeatherMap API key (free tier works) |
+| `lat` / `lon` / `location` | Location for weather forecast |
+| `nodered_url` | Base URL for Node-RED (used for config read/write) |
+| `logfire_url` | LogFire hub URL for remote logging |
+| `config_path` | Path to `full-config.json` on the Pi (legacy fallback, normally unused) |
+| `baseline_temp` / `baseline_humidity` / `baseline_wind` | Reference climate values for ET calculation |
+| `rain_threshold_mm` | Forecasted rain above this reduces `wm` |
+| `rain_hard_cutoff_mm` | Forecasted rain above this sets `wm = 0` |
+| `multiplier_max` | Maximum `wm` value (caps ET-based scaling) |
+| `wet_threshold` | Soil moisture % above which `wm` is forced to 0 |
+| `sensor_measurement` | InfluxDB measurement name for sensor data |
+
+---
+
+## Cron setup
+
+```cron
+0  6  * * *  python3 /home/homepi/bewae/calculate_weather_multiplier.py
+0 18  * * *  python3 /home/homepi/bewae/calculate_weather_multiplier.py
+5  6  * * *  python3 /home/homepi/bewae/check_soil_moisture.py
+5 18  * * *  python3 /home/homepi/bewae/check_soil_moisture.py
+```
+
+---
+
+## Legacy / unused scripts
+
+The following scripts remain in the folder but are no longer part of the active system:
+
+| Script | Status |
+|---|---|
+| `store_weather_data.py` | Old — stored raw OWM data to InfluxDB, superseded |
+| `estimate_water_loss.py` | Old — early ET prototype, superseded by `calculate_weather_multiplier.py` |
+| `hourlisttoBIN.py` | Utility — converts hour list to 24-bit timetable integer |
+| `old-config-to-JSON.py` | Migration tool — converts legacy config format, one-off use |
+| `test_weather.py` | Dev/test script for OWM API integration |

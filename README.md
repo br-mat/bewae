@@ -32,7 +32,13 @@ bewae automates the watering of balcony plants based on configurable schedules. 
 bewae/
 ├── code/esp_32ard_bewae/         # ESP32 firmware (PlatformIO)
 │   ├── src/                      # Main source files
+│   ├── lib/LogFire/              # LogFire logging library (local copy)
 │   └── data/                     # Filesystem configs (SPIFFS)
+├── code/pi_scripts/              # Raspberry Pi Python scripts
+│   ├── calculate_weather_multiplier.py
+│   ├── check_soil_moisture.py
+│   ├── weather_utils.py          # Shared library
+│   └── monitoring_config.JSON    # Credentials and thresholds
 ├── node-red-flows/               # Node-RED flows for Raspberry Pi
 │   └── bewaeConfigPageFlow.json  # Web config page (active)
 ├── fzz-layout/                   # PCB designs (Fritzing + Gerber)
@@ -93,12 +99,25 @@ The current supported PCB is **Board 5** (`bewae3_3_board5v5_final.fzz`) — com
 
 ### 3. Raspberry Pi — Node-RED
 
+Node-RED runs in Docker. The config file is stored at `/data/bewae/full-config.json` inside the container.
+
 1. Access Node-RED at `http://<Pi-IP>:1880`.
 2. Import [`node-red-flows/bewaeConfigPageFlow.json`](node-red-flows/bewaeConfigPageFlow.json) via the Node-RED menu → **Import**.
-3. In the flow, update the **read-file** and **write-file** nodes to point to your `config.JSON` path on the Pi.
-4. Deploy the flow.
+3. Deploy the flow.
 
 > See [`node-red-flows/Readme.md`](node-red-flows/Readme.md) for API endpoint details and security assumptions.
+
+---
+
+### 4. Raspberry Pi — Pi scripts
+
+The Python scripts in `code/pi_scripts/` compute weather-based watering multipliers and check soil moisture. They POST results to Node-RED, which updates the config.
+
+1. Copy the scripts to the Pi.
+2. Edit `monitoring_config.JSON` — set InfluxDB credentials, OpenWeatherMap API key, location, and Node-RED URL.
+3. Set up cron jobs to run `calculate_weather_multiplier.py` twice daily and `check_soil_moisture.py` 5 minutes after each.
+
+> See [`code/pi_scripts/Readme.md`](code/pi_scripts/Readme.md) for full config field reference and example crontab entries.
 
 ---
 
@@ -111,7 +130,7 @@ The web config page is the primary way to configure the system without touching 
 http://<Pi-IP>:1880/bewae-working
 ```
 
-The page is served by Node-RED and communicates with the ESP32 via HTTP. Changes made on the web page are saved to `config.JSON` on the Pi; the ESP32 fetches updates automatically on the next wake cycle.
+The page is served by Node-RED and communicates with the ESP32 via HTTP. Changes made on the web page are saved to `full-config.json` on the Pi; the ESP32 fetches updates automatically on the next wake cycle.
 
 ### What you can configure
 
@@ -134,10 +153,11 @@ The page is served by Node-RED and communicates with the ESP32 via HTTP. Changes
 ### How the config sync works
 
 ```
-Web page  →  Node-RED saves config.JSON on Pi
-ESP32     →  polls Pi via HTTP GET on each wake cycle
-          →  updates local SPIFFS copy
-          →  runs irrigation and sensing based on current config
+Web page  →  Node-RED saves full-config.json on Pi (Docker volume)
+Pi scripts →  POST wm updates to Node-RED (/bewae/update-wm)
+ESP32      →  polls Pi via HTTP GET on each wake cycle
+           →  updates local SPIFFS copy
+           →  runs irrigation and sensing based on current config
 ```
 
 ---

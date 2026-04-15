@@ -45,33 +45,39 @@ Controls the device identity and system switches.
 
 ## plantConfig.Json
 
-Defines irrigation groups. Each key is a group name.
+Defines irrigation groups. Each key is a numeric group index.
 
 ```json
 {
-  "group": {
-    "Tomatoes": {
-      "ps": 1,
-      "vpins": [0, 5],
-      "wt": 10,
-      "tt": 1049600
-    },
-    "Herbs": {
-      "ps": 1,
-      "vpins": [2],
-      "wt": 5,
-      "tt": 4096
-    }
+  "0": {
+    "pn": "Tomatoes",
+    "ps": 1,
+    "pp": [0, 5],
+    "pw": 20,
+    "wt": 262208,
+    "pls": 2,
+    "pts": 1.5,
+    "kc": 1.05,
+    "ignore_rain": false,
+    "moisture_sensor": "moisture",
+    "wm": 1.0
   }
 }
 ```
 
 | Field | Type | Description |
 |---|---|---|
+| `pn` | string | Group name |
 | `ps` | bool | Active state — 1 to include in watering cycles |
-| `vpins` | array | Virtual pin numbers mapped to valve/pump outputs |
-| `wt` | int | Watering duration in seconds per cycle |
-| `tt` | int | Timetable — 24-bit integer, each bit is one hour (bit 0 = midnight) |
+| `pp` | array | Virtual pin numbers mapped to valve/pump outputs |
+| `pw` | int | Watering duration in seconds per cycle |
+| `wt` | int | Timetable — 24-bit integer, each bit is one hour (bit 0 = midnight) |
+| `pls` | int | Plant size (informational, used for ET scaling) |
+| `pts` | float | Pot size (informational, used for ET scaling) |
+| `kc` | float | Crop coefficient (FAO-56) — scales ET per plant type (tomatoes ~1.05, herbs ~0.7) |
+| `ignore_rain` | bool | If true, rain forecast does not reduce `wm` for this group |
+| `moisture_sensor` | string | InfluxDB field name of the moisture sensor for this group (`"none"` to disable) |
+| `wm` | float | Weather multiplier — Pi-computed, range 0.0–2.0. Actual watering time = `pw × wm` |
 
 ### Timetable examples
 
@@ -83,54 +89,46 @@ Water at 6:00 and 18:00  →  0b000000001000000001000000  =  262208
 Water at 8:00 only       →  0b000000000000000100000000  =  256
 ```
 
-The helper script `code/pi_scripts/hourlisttoBIN.py` can convert a list of hours to the correct integer value.
+The script `code/pi_scripts/hourlisttoBIN.py` can convert a list of hours to the correct integer value.
 
 ---
 
 ## sensorConfig.Json
 
-Defines sensor measurement points. Each key is a unique sensor ID.
+Defines sensor measurement points. Each key is a numeric sensor index.
 
 ```json
 {
-  "sensor": {
-    "id00": { "name": "bme280", "field": "temp",     "mode": "bmetemp" },
-    "id01": { "name": "bme280", "field": "humidity", "mode": "bmehum"  },
-    "id02": { "name": "bme280", "field": "pressure", "mode": "bmepress"},
-    "id03": { "name": "SoilTemp", "field": "soiltemp", "mode": "soiltemp" },
-    "id08": {
-      "name": "Soil",
-      "field": "moisture",
-      "mode": "vanalog",
-      "vpin": 15,
-      "hlim": 600,
-      "llim": 250
-    }
-  }
+  "0": { "sn": "bme280",    "sf": "temperature", "sm": "bmetemp",  "sp": 0,  "hl": 0, "ll": 0, "ss": 1 },
+  "1": { "sn": "bme280",    "sf": "humidity",    "sm": "bmehum",   "sp": 0,  "hl": 0, "ll": 0, "ss": 1 },
+  "2": { "sn": "bme280",    "sf": "pressure",    "sm": "bmepress", "sp": 0,  "hl": 0, "ll": 0, "ss": 1 },
+  "3": { "sn": "SoilTemp",  "sf": "soiltemp",    "sm": "soiltemp", "sp": 0,  "hl": 0, "ll": 0, "ss": 1 },
+  "4": { "sn": "Soil",      "sf": "moisture",    "sm": "vanalog",  "sp": 15, "hl": 600, "ll": 250, "ss": 1 }
 }
 ```
 
-### Sensor modes
-
-| Mode | Description | Required fields |
-|---|---|---|
-| `bmetemp` | BME280 temperature | — |
-| `bmehum` | BME280 humidity | — |
-| `bmepress` | BME280 pressure | — |
-| `soiltemp` | DS18B20 soil temperature (1-Wire) | — |
-| `analog` | Direct analog pin read | `pin` |
-| `vanalog` | Virtual analog pin via shift register | `vpin` |
-
-### Optional calibration fields
-
 | Field | Type | Description |
 |---|---|---|
-| `add` | float | Offset added to raw value |
-| `fac` | float | Scaling factor applied to raw value |
-| `hlim` | int | Raw value mapped to 100% (for percentage output) |
-| `llim` | int | Raw value mapped to 0% (for percentage output) |
+| `sn` | string | Sensor name |
+| `sf` | string | InfluxDB field name — what gets stored |
+| `sm` | string | Sensor mode — how the firmware reads the hardware (see table below) |
+| `sp` | int | Pin number (GPIO pin for `analog`, MUX channel for `vanalog`) |
+| `hl` | int | Raw value mapped to 100% (for percentage output) |
+| `ll` | int | Raw value mapped to 0% (for percentage output) |
+| `ss` | bool | Sensor active — 0 disables this measurement point |
 
-When both `hlim` and `llim` are set, the output is a percentage between 0–100.
+When both `hl` and `ll` are non-zero, the output is a percentage between 0–100.
+
+### Sensor modes
+
+| Mode | Description |
+|---|---|
+| `bmetemp` | BME280 temperature |
+| `bmehum` | BME280 humidity |
+| `bmepress` | BME280 pressure |
+| `soiltemp` | DS18B20 soil temperature (1-Wire) |
+| `analog` | Direct GPIO analog pin read (`sp` = GPIO number) |
+| `vanalog` | MUX channel via shift register (`sp` = channel number) |
 
 ---
 
@@ -187,18 +185,4 @@ Key constants in `src/config.h` that affect system behaviour:
 
 ## Pi Scripts — monitoring_config.JSON
 
-Required by both Python scripts in `code/pi_scripts/`:
-
-```json
-{
-  "db_org": "your-org",
-  "db_token": "your-influxdb-token==",
-  "server": "192.168.1.x",
-  "port": ":8086",
-  "bucket": "your-bucket",
-  "weatherAPI": "your-openweathermap-key",
-  "lat": "48.20",
-  "lon": "16.37",
-  "location": "Vienna"
-}
-```
+See [`code/pi_scripts/Readme.md`](code/pi_scripts/Readme.md) for the full field reference and cron setup.
