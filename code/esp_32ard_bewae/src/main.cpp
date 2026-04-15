@@ -28,6 +28,7 @@
 #include <SensorController.h>
 #include <SwitchController.h>
 #include <config.h>
+#include <LogFire.h>
 
 using namespace std;
 
@@ -113,27 +114,19 @@ void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   Serial.begin(9600);
   delay(1);
-  #ifdef DEBUG
-  Serial.println("Hello!");
-  #endif
+  // Init LogFire early with Serial-only — HTTP enabled after WiFi connects
+  LogFire.begin(DEVICE_NAME, "0.0.0.0");
+  LogFire.localOnly(true);
+  LogFire.log("setup start", 1);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize SPIFFS
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (!SPIFFS.begin(true)) {
-    #ifdef DEBUG
-    Serial.println(F("An Error has occurred while mounting SPIFFS"));
-    #endif
+    LogFire.log("SPIFFS mount failed", 3);
     return;
   }
-  #ifdef DEBUG
-  unsigned int totalBytes = SPIFFS.totalBytes();
-  unsigned int usedBytes = SPIFFS.usedBytes();
-  Serial.print("Total space: ");
-  Serial.println(totalBytes);
-  Serial.print("Used space: ");
-  Serial.println(usedBytes);
-  #endif
+  LogFire.log("SPIFFS ok free=" + String(SPIFFS.totalBytes() - SPIFFS.usedBytes()) + "B", 1);
 
   /*
   fs::File file = SPIFFS.open(CONFIG_FILE_PATH);
@@ -154,28 +147,25 @@ void setup() {
   // test bme280
   delay(300); // giving some time to handle powerup of devices
 
-  #ifdef DEBUG
-  Serial.println(F("BME280 Sensor event test"));
   if (!bme.begin(BME280_I2C_ADDRESS)) {
-    Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
-  }
-  else{
+    LogFire.log("BME280 not found", 3);
+  } else {
     float temp_test = bme.readTemperature();
-    Serial.print(F("Temperature reading: ")); Serial.println(temp_test);
+    LogFire.log("BME280 ok t=" + String(temp_test, 1) + "C", 1);
   }
   delay(10);
 
   // test ds18b20
   soilsensorGlobal.begin();
   delay(100);
-
-  // Request temperature
   soilsensorGlobal.requestTemperatures();
   delay(5);
-  // Read temperature from DS18B20 sensor
   float temperatureC = soilsensorGlobal.getTempCByIndex(0);
-  Serial.print("Test DS18B20: "); Serial.println(temperatureC);
-  #endif
+  if (temperatureC == -127.0) {
+    LogFire.log("DS18B20 not found", 3);
+  } else {
+    LogFire.log("DS18B20 ok t=" + String(temperatureC, 1) + "C", 1);
+  }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // init time and date
@@ -183,9 +173,7 @@ void setup() {
 #ifdef OFFLINE_TEST
   // OFFLINE_TEST: skip NTP/WiFi time sync — leave oldtimeMark at zero so
   // checkSleepTask() detects an hour change on the first loop iteration.
-  #ifdef DEBUG
-  Serial.println(F("OFFLINE_TEST: skipping time sync, oldtimeMark stays at hour 0"));
-  #endif
+  LogFire.log("bewae boot (offline)", 1);
   delay(30);
 #else
   HWHelper.wakeModemSleep();
@@ -197,23 +185,24 @@ void setup() {
 
   // automatically set time (requires WIFI access!!)
   struct tm local = HWHelper.readTimeNTP();
-  Serial.print("TEST TIME YEAR: "); Serial.println(local.tm_year);
+  // Switch LogFire to HTTP now that WiFi is up
+  LogFire.localOnly(false);
+  LogFire.begin(DEVICE_NAME, SERVER);
+
   if(HWHelper.verifyTM(local)){
-    #ifdef DEBUG
-    Serial.println(F("Info: Synched time!"));
-    #endif
+    LogFire.log("NTP synced", 1);
     //HWHelper.setTime(local); // TODO REWORK SOMETHING FAILS HERE
     HWHelper.set_time(local.tm_sec,local.tm_min,local.tm_hour,local.tm_wday,local.tm_mday,local.tm_mon,local.tm_year);
   }
-  #ifdef DEBUG
   else{
-    Serial.println(F("Setup Warning: Could not verify time!"));
+    LogFire.log("NTP sync failed", 2);
   }
-  #endif
   delay(100);
   //initialize global time
   bool condition = HWHelper.readTime(&oldtimeMark);
   delay(30);
+
+  LogFire.log("bewae boot", 1);
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -224,33 +213,24 @@ void setup() {
   delay(1);
   // update the config file stored in spiffs
   // in order to work a RasPi with node-red and configured flow is needed
-  HWHelper.syncConfig();
+  if(HWHelper.syncConfig()){
+    LogFire.log("Config sync error in setup", 2);
+  }
 #else
-  #ifdef DEBUG
-  Serial.println(F("OFFLINE_TEST: skipping syncConfig in setup"));
-  #endif
+  LogFire.log("OFFLINE_TEST: skipping syncConfig", 1);
 #endif
   // TEST DEVICE CONFIGURATION
   SwitchController status_switches(&HWHelper); // initialize switch class
 
-  #ifdef DEBUG
-  Serial.print("Free heap memory: ");
-  Serial.println(ESP.getFreeHeap());
-  Serial.print("Test DEVICE CONFIG!");
-  DynamicJsonDocument doc(512);
-  Serial.print("Free heap memory: ");
-  Serial.println(ESP.getFreeHeap());
-  String p = IRRIG_CONFIG_PATH; // Make sure IRRIG_CONFIG_PATH is defined somewhere
-  String p2 = JSON_SUFFIX;
-  String filePath = p + p2; // Concatenate to form the file path
-  DynamicJsonDocument jsonDoc = HWHelper.readConfigFile(filePath.c_str());
-  Serial.println("TESTING FILE RETURNS!");
-  Serial.println(jsonDoc.isNull());
-  String f_jsonDoc;
-  serializeJson(jsonDoc, f_jsonDoc);
-  Serial.println("Irrig file: ");
-  Serial.println(f_jsonDoc);
-  #endif
+  {
+    String filePath = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
+    DynamicJsonDocument jsonDoc = HWHelper.readConfigFile(filePath.c_str());
+    if (jsonDoc.isNull()) {
+      LogFire.log("irrig config missing on boot", 3);
+    } else {
+      LogFire.log("setup done heap=" + String(ESP.getFreeHeap()) + "B", 1);
+    }
+  }
   HWHelper.system_sleep(); //power down prepare sleep
   delay(100);
 
@@ -269,57 +249,36 @@ void loop(){
 // manage sleep and updating of configuration
 while(checkSleepTask()){ // uncomment for Test (TESTRUN FLAG)
 }
-Serial.print(F("INIT SWITCHES:"));
 SwitchController status_switches(&HWHelper); // initialize switch class
 //status_switches.updateSwitches(); // get called when initialized
 
-// print system status
-#ifdef DEBUG
-Serial.println(F("Config: ")); Serial.print(F("Main switch: ")); Serial.println(status_switches.getMainSwitch());
-Serial.print(F("Irrigation switch: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
-Serial.print(F("Measurement switch: ")); Serial.println(status_switches.getDataloggingSwitch());
-Serial.print(F("Timetable: ")); Serial.println(timetable, BIN);
-#endif
+LogFire.log("loop", 1);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // collect & send data
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef DEBUG
-Serial.print(F("Datalogphase: ")); Serial.println(millis() > nextActionTime);
-Serial.print(F("Next action time: ")); Serial.println(nextActionTime);
-#endif
-//if(true)
-if((status_switches.getDataloggingSwitch()) && (millis() > nextActionTime))
-{
-  // Sensoring implementation
-// TODO CHECK nextActionTime calculation might not go as intended since last change return of sensoringTask timestamp
-// set 2 times longer why?
-  nextActionTime = sensoringTask() + measure_intervall; // sensoring task returns finishing timestamp
+if(status_switches.getDataloggingSwitch() && millis() > nextActionTime){
+  LogFire.log("sensors: running", 1);
+  nextActionTime = sensoringTask() + measure_intervall;
+  LogFire.log("sensors: done", 1);
 }
 else{
-  nextActionTime = millis() + measure_intervall *2; // set a min delay (2 times longer)
+  String reason = !status_switches.getDataloggingSwitch() ? "switch off" : "too soon";
+  LogFire.log("sensors: skip (" + reason + ")", 1);
+  nextActionTime = millis() + measure_intervall * 2;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // watering - return true if finished
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-if(status_switches.getIrrigationSystemSwitch()){ // always enter checking, timing is handled by irrigation class
-  Serial.print(F("Irrigation set, satus: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
+if(status_switches.getIrrigationSystemSwitch()){
+  LogFire.log("irrig: check thirsty=" + String(thirsty ? "yes" : "no"), 1);
   irrigationTask();
+  LogFire.log("irrig: check done", 1);
 }
-#ifdef DEBUG
 else{
-Serial.print(F("Irrigation NOT set, satus: ")); Serial.println(status_switches.getIrrigationSystemSwitch());
+  LogFire.log("irrig: skip (switch off)", 1);
 }
-#endif
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// end loop
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#ifdef DEBUG
-Serial.println(F("--- End loop! ---"));
-#endif
 }
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -333,26 +292,16 @@ Serial.println(F("--- End loop! ---"));
 // sensoring - returns timestamp of next event
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 long sensoringTask(){
-  #ifdef DEBUG
-  Serial.println();
-  Serial.println(F("enter datalog phase"));
-  #endif
+  LogFire.log("sensors: start", 1);
 
   if(!PUBDATA){
-    #ifdef DEBUG
-    Serial.println();
-    Serial.println(F("Not mearuring Data! Flag set to false."));
-    #endif
+    LogFire.log("sensoringTask skipped: PUBDATA=false", 2);
     return millis();
   }
 
   // turn on additional systems
   HWHelper.enablePeripherals();
   HWHelper.enableSensor();
-  // shutdown wifi to free up adc2 pins!
-  HWHelper.disableWiFi();
-  delay(500); // give time to balance load
-
   // Create data vector to collect and publish later
   std::vector<SensorData> dataVec;
   std::vector<SensorData> dataVecTest;
@@ -369,31 +318,27 @@ long sensoringTask(){
   obj = configf.as<JsonObject>();
 
   if(obj){
+    LogFire.log("sensors: " + String(obj.size()) + " to read", 1);
     for (JsonObject::iterator it = obj.begin(); it != obj.end(); ++it){
       String id = it->key().c_str();
       JsonObject sensorConfig = it->value().as<JsonObject>();
       // create & fill data
       SensorData data = Sensors.measurePoint(&HWHelper, id, sensorConfig);
+      LogFire.log("sensor \"" + data.name + "\": " + String(data.data) + " (" + data.field + ")", 0);
       // Add the new SensorData object to the vector
       dataVecTest.push_back(data);
     }
   }
 
-  // reconnect to wifi
-  HWHelper.connectWifi();
   // Publish data vector
   bool success = Sensors.pubVector(&influx_client, dataVecTest);
-  //bool success = false; //DEBUG
-  #ifdef DEBUG
   if(success){
-    Serial.println(F("All data published!"));
+    LogFire.log("Sensor data published", 1);
   }
   else{
-    Serial.println(F("Warning: Problem occured while publishing data vector!"));
+    LogFire.log("InfluxDB publish failed", 2);
   }
-  #endif
-
-  // shut down addidional systems
+  // shut down additional systems
   HWHelper.disablePeripherals();
   HWHelper.disableSensor();
 
@@ -408,10 +353,7 @@ long sensoringTask(){
 bool irrigationTask(){
 //thirsty = true; //uncoment for testing only (TESTRUN FLAG)
   HWHelper.enablePeripherals();
-
-  #ifdef DEBUG
-  Serial.println(F("Check watering phase"));
-  #endif
+  if(thirsty) LogFire.log("irrigationTask start", 1);
   delay(30);
 
   // load config file
@@ -420,25 +362,19 @@ bool irrigationTask(){
   JsonObject groups;
   // Check if the document is not null and contains a JsonObject
   if (doc.isNull() || !doc.is<JsonObject>()) {
-    #ifdef DEBUG
-    Serial.println(F("Warning: Configuration not valid!"));
-    #endif
+    LogFire.log("irrigationTask: config invalid", 3);
     return false;
   }
   groups = doc.as<JsonObject>();
   int numgroups = groups.size();
   // sanity check
   if (numgroups > max_groups) {
-    #ifdef DEBUG
-    Serial.println(F("Warning: too many groups! Exiting procedure"));
-    #endif
+    LogFire.log("irrigationTask: too many groups=" + String(numgroups), 3);
     return false;
   }
   // check for valid object
   if (groups.isNull()) {
-    #ifdef DEBUG
-    Serial.println(F("Error: No 'Group' found in file!"));
-    #endif
+    LogFire.log("irrigationTask: no groups in config", 3);
     return false; // break loop and continue programm
   }
 
@@ -458,13 +394,7 @@ bool irrigationTask(){
     }
     bool success = Group[j].loadScheduleConfig(*groupIterator);
     if (!success) { // if it fails reset class instance
-      #ifdef DEBUG
-      Serial.print(F("Error: Failed to load schedule, for: '["));
-      Serial.print(groupIterator->key().c_str());
-      JsonObject groupData = groupIterator->value();
-      Serial.print(F("] data: "));
-      serializeJson(groupData, Serial); Serial.println(F("'"));
-      #endif
+      LogFire.log("irrigationTask: schedule load failed group=" + String(groupIterator->key().c_str()), 3);
       // Reset the class to an empty state
       Group[j].reset();
       break;
@@ -472,6 +402,12 @@ bool irrigationTask(){
 
     // Increment j for the next group
     j++;
+  }
+  if(thirsty){
+    LogFire.log("watering: " + String(j) + "/" + String(numgroups) + " groups loaded", 1);
+    // WiFi up for the whole watering session — needed for activate: logs
+    // WiFi stack runs on separate core, no interference with shift register timing
+    HWHelper.wakeModemSleep();
   }
 
   // --- Watering ---
@@ -503,6 +439,7 @@ bool irrigationTask(){
     // check if all groups are finished and reset status
     if(!finStatus){
       thirsty = false;
+      LogFire.log("irrigation complete", 1);
     }
     esp_light_sleep_start(); // sleep one period
   }
@@ -520,10 +457,6 @@ bool irrigationTask(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // this function should be usable in a while loop returning true most of the time and false if there is something
 bool checkSleepTask(){
-  #ifdef DEBUG
-  Serial.println(F("--- Start loop! ---"));
-  #endif
-
   // activate 3.3v supply
   HWHelper.enablePeripherals();
   delay(10);
@@ -537,95 +470,59 @@ bool checkSleepTask(){
   #ifdef DEBUG_SPAM
   Serial.print(F("Info: Rtc Status: ")); Serial.println(!rtc_status);
   #endif
-  #ifdef DEBUG
-  String timentp = HWHelper.timestampNTP(); Serial.print("NTP TIME: "); Serial.println(timentp);
-  #endif
 
-  // look for config updates once an hour should be good
-#ifndef OFFLINE_TEST
-  HWHelper.wakeModemSleep();
-  delay(1);
-  // update config
-  // in order to work a RasPi with node-red and configured flow is needed
-  HWHelper.syncConfig();
-#else
-  // OFFLINE_TEST: skip WiFi and server sync — using local SPIFFS files only
-  #ifdef DEBUG
-  Serial.println(F("OFFLINE_TEST: skipping WiFi and syncConfig"));
-  #endif
-#endif
-
-  // load update configuration
+  // load switches from SPIFFS — no WiFi needed
   SwitchController controller_switches(&HWHelper);
   controller_switches.updateSwitches();
-  
-  #ifdef DEBUG
-  Serial.print(F("current Time: "));
-  Serial.print(newtimeMark.tm_hour); // Print hours
-  Serial.print(F(":"));
-  Serial.print(newtimeMark.tm_min);  // Print minutes
-  Serial.print(F(" Date: "));
-  Serial.print(newtimeMark.tm_mday); // Print day of the month
-  Serial.print(F("/"));
-  Serial.print(newtimeMark.tm_mon + 1); // Print month (tm_mon is 0-11, so add 1)
-  Serial.print(F("/"));
-  Serial.println(newtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
-  Serial.print(F("OLD hour Timemark: "));
-  Serial.print(oldtimeMark.tm_hour); // Print hours
-  Serial.print(F(":"));
-  Serial.print(oldtimeMark.tm_min);  // Print minutes
-  Serial.print(F(" Date: "));
-  Serial.print(oldtimeMark.tm_mday); // Print day of the month
-  Serial.print(F("/"));
-  Serial.print(oldtimeMark.tm_mon + 1); // Print month (tm_mon is 0-11, so add 1)
-  Serial.print(F("/"));
-  Serial.println(oldtimeMark.tm_year + 1900); // Print year (tm_year is years since 1900)
-  #endif
-  
+
+  // heartbeat — Serial only (WiFi off); goes remote once per hour during hour-change block below
+  LogFire.log(
+    String("cycle ") +
+    String(newtimeMark.tm_hour) + ":" +
+    (newtimeMark.tm_min < 10 ? "0" : "") + String(newtimeMark.tm_min) +
+    " main=" + controller_switches.getMainSwitch() +
+    " irrig=" + controller_switches.getIrrigationSystemSwitch() +
+    " datalog=" + controller_switches.getDataloggingSwitch() +
+    " heap=" + String(ESP.getFreeHeap()) + "B", 0);
+
   //oldtimeMark.tm_hour = 0; // DEBUG DEBUGING ONLY
-  
-  // check for hour change and update config
+
+  // check for hour change — only here do we need WiFi
   //if(true){ //DEBUGING ONLY (TESTRUN FLAG)
   if((newtimeMark.tm_hour != oldtimeMark.tm_hour) && (rtc_status) && (controller_switches.getMainSwitch())){
-    // check for hour change
     HWHelper.readTime(&oldtimeMark); // update long time timestamp
-
-    // setup empty class instance & check timetables
     delay(5);
-    // combine timetables
+
+#ifndef OFFLINE_TEST
+    // WiFi up for config sync and remote logs for the rest of this block
+    HWHelper.wakeModemSleep();
+    delay(1);
+    if(HWHelper.syncConfig()){
+      LogFire.log("Config sync error", 2);
+    }
+#else
+    LogFire.log("OFFLINE_TEST: skipping syncConfig", 0);
+#endif
+
     timetable = IrrigationController::combineTimetables();
+    LogFire.log("timetable updated", 1);
 
-    #ifdef DEBUG
-    Serial.print(F("Combined timetable:"));
-    Serial.println(timetable, BIN);
-    #endif
-
-    // check if current hour is in timetable
-    //if(true){
     if(bitRead(timetable, newtimeMark.tm_hour)){
       if(controller_switches.getIrrigationSystemSwitch())
       {
         thirsty = true; //initialize watering phase
-        #ifdef DEBUG
-        Serial.println(F("Watering ON: Set watering flag"));
-        #endif
+        LogFire.log(String("Irrigation triggered h=") + String(newtimeMark.tm_hour), 1);
       }
       else{
         thirsty = false;
-        #ifdef DEBUG
-        Serial.println(F("Watering OFF: do nothing"));
-        #endif
+        LogFire.log("Irrigation hour but switch off", 1);
       }
     }
+
   }
 
   // deactivate 3.3v supply
   HWHelper.disablePeripherals();
-
-  #ifdef DEBUG
-  Serial.println(F("Info: Sleeping!"));
-  delay(10);
-  #endif
 
   // prepare sleep
   unsigned long breakTime = 0;
@@ -635,25 +532,27 @@ bool checkSleepTask(){
   else{
     breakTime = nextActionTime + 1;
   }
-  #ifdef DEBUG
-  Serial.print(F("Waking in: ")); Serial.print((breakTime-millis())/1000);
-  Serial.println(F(" seconds!"));
-  #endif
+
+  // log sleep duration and wakeup time
+  {
+    int sleepMin = (int)((breakTime - millis()) / 60000);
+    int wakeMin = (newtimeMark.tm_min + sleepMin) % 60;
+    int wakeHour = (newtimeMark.tm_hour + (newtimeMark.tm_min + sleepMin) / 60) % 24;
+    LogFire.log(
+      String("sleeping ") + String(sleepMin) + "min until " +
+      String(wakeHour) + ":" + (wakeMin < 10 ? "0" : "") + String(wakeMin), 1);
+  }
+#ifndef OFFLINE_TEST
+  HWHelper.disableWiFi();
+#endif
 
 #ifdef OFFLINE_TEST
   // OFFLINE_TEST: skip the entire sleep loop (normally waits up to 10 min).
-  // The while(true) + esp_light_sleep_start() block below is replaced entirely —
-  // we fall straight through to the return statement.
-  #ifdef DEBUG
-  Serial.println(F("OFFLINE_TEST: skipping sleep loop"));
-  #endif
+  // Fall straight through to the return statement.
 #else
   delay(3);
   while(true){ // sleep until break
     if(breakTime < millis()){
-      #ifdef DEBUG
-      Serial.println(F("Break time reached, exiting sleep!"));
-      #endif
       break; //break loop to start doing stuff
     }
     HWHelper.system_sleep(); //turn off all external transistors
@@ -666,6 +565,10 @@ bool checkSleepTask(){
 #endif
   // exit whole loop only if system is switched ON
   if(controller_switches.getMainSwitch()){ // condition get checked with little delay!
+#ifndef OFFLINE_TEST
+    HWHelper.wakeModemSleep();
+#endif
+    LogFire.log("awake", 1);
     return false;
   }
 

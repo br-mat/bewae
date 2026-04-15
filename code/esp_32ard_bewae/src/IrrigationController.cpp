@@ -10,6 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <IrrigationController.h>
+#include <LogFire.h>
 
 //#define DEBUG
 
@@ -465,6 +466,7 @@ Serial.print("TODO: timetable = "); Serial.println(this->timetable);
     // apply weather multiplier to base watering duration
     this->watering = (int)(this->water_time * this->weather_multiplier);
     if (this->watering < 0) this->watering = 0;
+    LogFire.log("group \"" + String(this->name) + "\": wm=" + String(this->weather_multiplier, 2) + " base=" + String(this->water_time) + "s -> " + String(this->watering) + "s", 1);
     #ifdef DEBUG
     Serial.print(F("Weather multiplier: ")); Serial.println(this->weather_multiplier);
     Serial.print(F("Adjusted watering: ")); Serial.println(this->watering);
@@ -527,6 +529,16 @@ Serial.print("TODO: timetable = "); Serial.println(this->timetable);
     this->watering = this->watering - active_time; // update the water time
     if (this->watering < 0) this->watering = 0;
 
+    // Log just before solenoids open — WiFi managed by irrigationTask() caller
+    {
+      String pins = "";
+      for (int pin : this->driver_pins) {
+        if (pins.length()) pins += ",";
+        pins += String(pin);
+      }
+      LogFire.log("activate: \"" + String(this->name) + "\" pins=[" + pins + "] for " + String(active_time) + "s", 1);
+    }
+
     // Activate watering process
     activate(active_time);
 
@@ -544,6 +556,7 @@ Serial.print("TODO: timetable = "); Serial.println(this->timetable);
 
   // check if group is done
   if(watering == 0){
+    LogFire.log("group \"" + String(this->name) + "\": done", 1);
     #ifdef DEBUG
     Serial.print(F("Group '"));
     Serial.print(name); Serial.println(F("' finished!"));
