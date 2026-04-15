@@ -16,8 +16,30 @@ DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "
 REQUEST_TIMEOUT = 10  # seconds
 
 
-def setup_logger(name, log_file=None, level=logging.INFO):
-    """Set up a logger with file and console output."""
+class LogfireHandler(logging.Handler):
+    """POST log records to Logfire /log endpoint. Fire-and-forget."""
+    LEVEL_MAP = {logging.INFO: 1, logging.WARNING: 2, logging.ERROR: 3, logging.CRITICAL: 4}
+
+    def __init__(self, url, device_name, timeout=2):
+        super().__init__()
+        self._url = url.rstrip("/") + "/log"
+        self._device = device_name
+        self._timeout = timeout
+
+    def emit(self, record):
+        try:
+            level = self.LEVEL_MAP.get(record.levelno, 0)
+            tag = f"(-{level})" if level > 0 else ""
+            body = f"{self._device}{tag}: {record.getMessage()}"
+            requests.post(self._url, data=body,
+                          headers={"Content-Type": "text/plain"}, timeout=self._timeout)
+        except Exception:
+            pass
+
+
+def setup_logger(name, log_file=None, level=logging.INFO,
+                 logfire_url=None, device_name=None):
+    """Set up a logger with file, console, and optional Logfire remote output."""
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
@@ -33,6 +55,12 @@ def setup_logger(name, log_file=None, level=logging.INFO):
         fh = logging.FileHandler(log_file, mode="a")
         fh.setFormatter(formatter)
         logger.addHandler(fh)
+
+    # Logfire remote handler (optional)
+    if logfire_url and device_name:
+        lf = LogfireHandler(logfire_url, device_name)
+        lf.setLevel(logging.INFO)
+        logger.addHandler(lf)
 
     return logger
 

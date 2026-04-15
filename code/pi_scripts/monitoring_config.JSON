@@ -15,6 +15,7 @@
   "rain_hard_cutoff_mm": 15,
   "multiplier_max": 2.0,
   "nodered_url": "http://localhost:1880",
+  "logfire_url": "http://localhost:1880",
   "config_path": "/home/homepi/bewae/full-config.json",
   "wet_threshold": 75,
   "sensor_measurement": "sensor_data"

@@ -88,6 +88,13 @@ def main():
     try:
         # Load configs
         config = load_config()
+
+        # Attach Logfire remote logging if configured
+        logfire_url = config.get("logfire_url")
+        if logfire_url:
+            from weather_utils import LogfireHandler
+            logger.addHandler(LogfireHandler(logfire_url, "bewae-moisture"))
+
         nodered_url = config.get("nodered_url", "http://localhost:1880")
         wet_threshold = config.get("wet_threshold", DEFAULT_WET_THRESHOLD)
         measurement = config.get("sensor_measurement", DEFAULT_MEASUREMENT)

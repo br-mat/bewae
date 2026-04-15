@@ -296,6 +296,13 @@ def main():
     try:
         # Load configs
         config = load_config()
+
+        # Attach Logfire remote logging if configured
+        logfire_url = config.get("logfire_url")
+        if logfire_url:
+            from weather_utils import LogfireHandler
+            logger.addHandler(LogfireHandler(logfire_url, "bewae-weather"))
+
         nodered_url = config.get("nodered_url", "http://localhost:1880")
         multiplier_max = config.get("multiplier_max", 2.0)
 
