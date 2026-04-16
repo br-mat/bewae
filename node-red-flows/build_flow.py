@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Build the reworkbuild test flow JSON with HTML embedded in a template node."""
+"""Build the production flow JSON with HTML embedded as a template node."""
 import json
 
-with open('node-red-flows/bewae-config_reworkbuild.html', 'r', encoding='utf-8') as f:
+with open('node-red-flows/bewae-config.html', 'r', encoding='utf-8') as f:
     html = f.read()
 
 merge_wm_func = """const configPath = '/data/bewae/full-config.json';
@@ -127,12 +127,12 @@ test_data = json.dumps({
 TAB = "rw_tab"
 
 flow = [
-    {"id": TAB, "type": "tab", "label": "bewae-reworkbuild", "disabled": False, "info": "", "env": []},
+    {"id": TAB, "type": "tab", "label": "bewae-config", "disabled": False, "info": "", "env": []},
 
     # --- Config Page ---
-    {"id": "rw_c1", "type": "comment", "z": TAB, "name": "Config Page (template-embedded for testing)", "info": "", "x": 300, "y": 60, "wires": []},
+    {"id": "rw_c1", "type": "comment", "z": TAB, "name": "Config Page (template-embedded)", "info": "", "x": 300, "y": 60, "wires": []},
     {"id": "rw_http_page", "type": "http in", "z": TAB, "name": "config page", "url": "/bewae-working", "method": "get", "upload": False, "swaggerDoc": "", "x": 200, "y": 100, "wires": [["rw_tpl"]]},
-    {"id": "rw_tpl", "type": "template", "z": TAB, "name": "bewae-config_reworkbuild.html", "field": "payload", "fieldType": "msg", "format": "html", "syntax": "plain", "template": html, "output": "str", "x": 460, "y": 100, "wires": [["rw_resp_page"]]},
+    {"id": "rw_tpl", "type": "template", "z": TAB, "name": "bewae-config.html", "field": "payload", "fieldType": "msg", "format": "html", "syntax": "plain", "template": html, "output": "str", "x": 460, "y": 100, "wires": [["rw_resp_page"]]},
     {"id": "rw_resp_page", "type": "http response", "z": TAB, "name": "serve page", "statusCode": "200", "headers": {"content-type": "text/html"}, "x": 700, "y": 100, "wires": []},
 
     # --- Backend Config API ---
@@ -177,7 +177,7 @@ flow = [
     {"id": "rw_resp_err", "type": "http response", "z": TAB, "name": "error 500", "statusCode": "500", "headers": {}, "x": 670, "y": 640, "wires": []},
 ]
 
-with open('node-red-flows/bewaeConfigPageFlow_reworkbuild.json', 'w', encoding='utf-8') as f:
+with open('node-red-flows/bewaeConfigPageFlow.json', 'w', encoding='utf-8') as f:
     json.dump(flow, f, indent=4, ensure_ascii=False)
 
 print(f"Done. Flow file: {len(json.dumps(flow)):,} bytes, {len(flow)} nodes")

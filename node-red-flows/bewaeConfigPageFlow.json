@@ -1,26 +1,26 @@
 [
     {
-        "id": "450f83c2a1abd42e",
+        "id": "rw_tab",
         "type": "tab",
-        "label": "bewae-newBeta",
+        "label": "bewae-config",
         "disabled": false,
         "info": "",
         "env": []
     },
     {
-        "id": "b7f2f26bc56804ea",
+        "id": "rw_c1",
         "type": "comment",
-        "z": "450f83c2a1abd42e",
-        "name": "Config Page (serves HTML from file)",
+        "z": "rw_tab",
+        "name": "Config Page (template-embedded)",
         "info": "",
-        "x": 260,
+        "x": 300,
         "y": 60,
         "wires": []
     },
     {
-        "id": "861fe85e251ead40",
+        "id": "rw_http_page",
         "type": "http in",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "config page",
         "url": "/bewae-working",
         "method": "get",
@@ -30,72 +30,46 @@
         "y": 100,
         "wires": [
             [
-                "f1a2b3c4d5e60001"
+                "rw_tpl"
             ]
         ]
     },
     {
-        "id": "f1a2b3c4d5e60001",
-        "type": "file in",
-        "z": "450f83c2a1abd42e",
-        "name": "read page",
-        "filename": "/home/homepi/bewae/www/bewae-config.html",
-        "filenameType": "str",
-        "format": "utf8",
-        "chunk": false,
-        "sendError": true,
-        "encoding": "none",
-        "allProps": false,
-        "x": 420,
+        "id": "rw_tpl",
+        "type": "template",
+        "z": "rw_tab",
+        "name": "bewae-config.html",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "html",
+        "syntax": "plain",
+        "template": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Bewae V3</title>\n  <style>\n  :root {\n    --primary: #6b21a8;\n    --primary-light: #a855f7;\n    --primary-bg: rgba(107, 33, 168, 0.06);\n    --accent: #f59e0b;\n    --success: #22c55e;\n    --danger: #ef4444;\n    --text: #1e293b;\n    --text-muted: #64748b;\n    --bg: #f8fafc;\n    --card: #ffffff;\n    --border: #e2e8f0;\n    --radius: 8px;\n    --shadow: 0 1px 3px rgba(0,0,0,0.08);\n    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);\n  }\n\n  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }\n\n  body {\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n    background: var(--bg);\n    color: var(--text);\n    line-height: 1.5;\n  }\n\n  /* ── Layout ─────────────────────────────────────────────── */\n  .app {\n    display: grid;\n    grid-template-columns: 200px 1fr;\n    grid-template-rows: 52px 1fr;\n    min-height: 100vh;\n  }\n\n  .header {\n    grid-column: 1 / -1;\n    background: var(--primary);\n    color: white;\n    display: flex;\n    align-items: center;\n    padding: 0 24px;\n    font-size: 1.15rem;\n    font-weight: 600;\n    position: sticky;\n    top: 0;\n    z-index: 10;\n  }\n\n  .sidebar {\n    background: var(--card);\n    border-right: 1px solid var(--border);\n    padding: 12px 0;\n    position: sticky;\n    top: 52px;\n    height: calc(100vh - 52px);\n  }\n\n  .nav-item {\n    display: block;\n    padding: 10px 20px;\n    color: var(--text);\n    text-decoration: none;\n    font-size: 0.9rem;\n    cursor: pointer;\n    border-left: 3px solid transparent;\n    transition: background 150ms;\n  }\n\n  .nav-item:hover { background: var(--primary-bg); }\n\n  .nav-item.active {\n    background: var(--primary-bg);\n    color: var(--primary);\n    font-weight: 600;\n    border-left-color: var(--primary);\n  }\n\n  .main {\n    padding: 24px 28px;\n    overflow-y: auto;\n  }\n\n  /* ── Cards ──────────────────────────────────────────────── */\n  .card {\n    background: var(--card);\n    border: 1px solid var(--border);\n    border-radius: var(--radius);\n    padding: 20px 24px;\n    margin-bottom: 20px;\n    box-shadow: var(--shadow);\n  }\n\n  .card h2 {\n    font-size: 1.15rem;\n    margin-bottom: 14px;\n    color: var(--primary);\n  }\n\n  .card h3 {\n    font-size: 0.95rem;\n    margin-bottom: 12px;\n  }\n\n  /* ── Tables ─────────────────────────────────────────────── */\n  .table-wrap {\n    overflow-x: auto;\n    border: 1px solid var(--border);\n    border-radius: var(--radius);\n  }\n\n  table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; min-width: 920px; }\n\n  thead th {\n    background: var(--primary);\n    color: white;\n    padding: 9px 10px;\n    text-align: left;\n    font-weight: 500;\n    white-space: nowrap;\n    position: sticky;\n    top: 0;\n  }\n\n  tbody td {\n    padding: 7px 10px;\n    border-bottom: 1px solid var(--border);\n    white-space: nowrap;\n  }\n\n  tbody tr:hover td { background: var(--primary-bg); }\n\n  .readonly-cell { color: var(--text-muted); font-style: italic; }\n\n  /* ── Click-to-edit cells ───────────────────────────────── */\n  .cell-val { cursor: pointer; padding: 2px 4px; border-radius: 4px; min-width: 20px; display: block; }\n  .cell-val:hover { background: rgba(107,33,168,0.08); }\n  .cell-input {\n    width: 100%; padding: 4px 6px; border: 1px solid var(--primary-light);\n    border-radius: 4px; font-size: 0.8125rem; outline: none;\n    box-shadow: 0 0 0 2px rgba(168,85,247,0.15);\n  }\n  .cell-input-num { width: 70px; }\n\n  /* ── Mini slider ───────────────────────────────────────── */\n  .mini-slider { display: flex; align-items: center; gap: 6px; }\n  .mini-slider input[type=\"range\"] {\n    width: 70px; height: 4px; -webkit-appearance: none; appearance: none;\n    background: var(--border); border-radius: 2px; outline: none;\n  }\n  .mini-slider input[type=\"range\"]::-webkit-slider-thumb {\n    -webkit-appearance: none; width: 14px; height: 14px;\n    border-radius: 50%; background: var(--primary); cursor: pointer;\n  }\n  .mini-slider .slider-label {\n    font-size: 0.75rem; color: var(--text-muted); min-width: 32px;\n  }\n\n  /* ── Hour chips ────────────────────────────────────────── */\n  .chip-display { display: flex; flex-wrap: wrap; gap: 3px; cursor: pointer; min-height: 22px; }\n  .chip {\n    display: inline-block; padding: 1px 6px; border-radius: 10px;\n    background: var(--primary-bg); color: var(--primary);\n    font-size: 0.72rem; font-weight: 500;\n  }\n  .chip-popup {\n    position: fixed; z-index: 50; background: var(--card);\n    border: 1px solid var(--border); border-radius: var(--radius);\n    box-shadow: var(--shadow-md); padding: 10px;\n    display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;\n    width: 240px;\n  }\n  .chip-opt {\n    padding: 4px 0; text-align: center; border-radius: 4px;\n    font-size: 0.75rem; cursor: pointer; border: 1px solid var(--border);\n    background: var(--card); transition: all 100ms; user-select: none;\n  }\n  .chip-opt:hover { border-color: var(--primary-light); }\n  .chip-opt.sel {\n    background: var(--primary); color: white; border-color: var(--primary);\n  }\n\n  /* ── Weather badge ─────────────────────────────────────── */\n  .badge-wm {\n    display: inline-block; padding: 2px 10px; border-radius: 12px;\n    background: rgba(245,158,11,0.15); color: #92400e;\n    font-size: 0.75rem; font-weight: 600;\n  }\n\n  /* ── Delete icon ───────────────────────────────────────── */\n  .btn-del-icon {\n    width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%;\n    background: transparent; color: var(--danger); font-size: 1rem;\n    cursor: pointer; display: inline-flex; align-items: center;\n    justify-content: center; transition: background 150ms;\n  }\n  .btn-del-icon:hover { background: rgba(239,68,68,0.1); }\n\n  /* ── Form schedule picker ────────────────────────────────── */\n  .sched-picker { position: relative; display: inline-block; }\n  .sched-btn {\n    padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius);\n    background: var(--card); font-size: 0.85rem; cursor: pointer;\n    display: flex; align-items: center; gap: 6px; min-width: 140px;\n  }\n  .sched-btn:hover { border-color: var(--primary-light); }\n  .sched-btn .arrow { font-size: 0.6rem; color: var(--text-muted); margin-left: auto; }\n  .sched-drop {\n    position: absolute; z-index: 50; top: 100%; left: 0; margin-top: 4px;\n    background: var(--card); border: 1px solid var(--border);\n    border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 10px;\n    display: none;\n  }\n  .sched-drop.open { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; width: 240px; }\n\n  /* ── Inline toggle in table ────────────────────────────── */\n  td .toggle { vertical-align: middle; }\n\n  /* ── Inline dropdown in table ──────────────────────────── */\n  td select.cell-dropdown {\n    padding: 3px 6px; border: 1px solid var(--border); border-radius: 4px;\n    font-size: 0.8rem; background: var(--card); cursor: pointer;\n  }\n  td select.cell-dropdown:focus {\n    border-color: var(--primary-light);\n    box-shadow: 0 0 0 2px rgba(168,85,247,0.15);\n    outline: none;\n  }\n\n  /* ── Buttons ────────────────────────────────────────────── */\n  .btn {\n    display: inline-flex;\n    align-items: center;\n    padding: 5px 12px;\n    border: none;\n    border-radius: var(--radius);\n    font-size: 0.8rem;\n    font-weight: 500;\n    cursor: pointer;\n    transition: all 150ms;\n  }\n\n  .btn:hover { box-shadow: var(--shadow-md); }\n\n  .btn-primary { background: var(--primary); color: white; }\n  .btn-primary:hover { background: var(--primary-light); }\n  .btn-success { background: var(--success); color: white; }\n  .btn-warn    { background: var(--accent); color: #1e293b; }\n  .btn-danger  { background: var(--danger); color: white; }\n\n  .btn-sm { padding: 3px 8px; font-size: 0.75rem; }\n  .btn-hide { display: none; }\n  .btn-group { display: inline-flex; gap: 4px; }\n\n  /* ── Forms ──────────────────────────────────────────────── */\n  .form-grid {\n    display: grid;\n    grid-template-columns: 1fr 1fr;\n    gap: 14px;\n    max-width: 560px;\n  }\n\n  .field { display: flex; flex-direction: column; gap: 3px; }\n  .field.full { grid-column: 1 / -1; }\n\n  .field label {\n    font-size: 0.8rem;\n    font-weight: 600;\n    color: var(--text);\n  }\n\n  .field input, .field select {\n    padding: 7px 10px;\n    border: 1px solid var(--border);\n    border-radius: var(--radius);\n    font-size: 0.85rem;\n  }\n\n  .field input:focus, .field select:focus {\n    outline: none;\n    border-color: var(--primary-light);\n    box-shadow: 0 0 0 3px rgba(168,85,247,0.1);\n  }\n\n  .hint { font-size: 0.72rem; color: var(--text-muted); }\n\n  /* ── Toggle ─────────────────────────────────────────────── */\n  .toggle { position: relative; width: 40px; height: 22px; display: inline-block; }\n  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }\n\n  .track {\n    position: absolute;\n    inset: 0;\n    background: #cbd5e1;\n    border-radius: 11px;\n    cursor: pointer;\n    transition: background 150ms;\n  }\n\n  .track::before {\n    content: '';\n    position: absolute;\n    width: 16px; height: 16px;\n    left: 3px; top: 3px;\n    background: white;\n    border-radius: 50%;\n    transition: transform 150ms;\n    box-shadow: var(--shadow);\n  }\n\n  .toggle input:checked + .track { background: var(--primary); }\n  .toggle input:checked + .track::before { transform: translateX(18px); }\n\n  /* ── Device bar ─────────────────────────────────────────── */\n  .device-bar {\n    display: flex;\n    align-items: center;\n    gap: 10px;\n    flex-wrap: wrap;\n  }\n\n  .device-bar select, .device-bar input {\n    padding: 7px 10px;\n    border: 1px solid var(--border);\n    border-radius: var(--radius);\n    font-size: 0.85rem;\n  }\n\n  /* ── Toast ──────────────────────────────────────────────── */\n  .toast {\n    position: fixed;\n    bottom: 20px;\n    right: 20px;\n    padding: 10px 20px;\n    border-radius: var(--radius);\n    color: white;\n    font-weight: 500;\n    font-size: 0.85rem;\n    z-index: 100;\n    opacity: 0;\n    transform: translateY(6px);\n    transition: all 250ms;\n    pointer-events: none;\n  }\n\n  .toast.show { opacity: 1; transform: translateY(0); }\n  .toast.ok { background: var(--success); }\n  .toast.err { background: var(--danger); }\n\n  /* ── Sections ───────────────────────────────────────────── */\n  .section { display: none; }\n  .section.active { display: block; }\n\n  @media (max-width: 768px) {\n    .app { grid-template-columns: 1fr; }\n    .sidebar { display: none; }\n    .main { padding: 14px; }\n    .form-grid { grid-template-columns: 1fr; }\n  }\n  </style>\n</head>\n<body>\n<div class=\"app\">\n  <header class=\"header\">Bewae V3</header>\n\n  <nav class=\"sidebar\">\n    <a class=\"nav-item active\" data-section=\"welcome\">Welcome</a>\n    <a class=\"nav-item\" data-section=\"device\">Device</a>\n    <a class=\"nav-item\" data-section=\"irrigation\">Irrigation</a>\n    <a class=\"nav-item\" data-section=\"sensors\">Sensors</a>\n  </nav>\n\n  <main class=\"main\">\n    <!-- Welcome -->\n    <div id=\"welcome\" class=\"section active\">\n      <div class=\"card\">\n        <h2>Welcome</h2>\n        <p style=\"margin-bottom:14px;\">Select a device to configure your irrigation system.</p>\n        <div class=\"device-bar\">\n          <select id=\"devices\"></select>\n          <input type=\"text\" id=\"newDeviceName\" placeholder=\"New device name\">\n          <button class=\"btn btn-success btn-sm\" onclick=\"addDevice()\">Add</button>\n          <button class=\"btn btn-danger btn-sm\" onclick=\"deleteDevice()\">Delete</button>\n        </div>\n      </div>\n    </div>\n\n    <!-- Irrigation -->\n    <div id=\"irrigation\" class=\"section\">\n      <div class=\"card\">\n        <h2>Irrigation</h2>\n        <div class=\"table-wrap\">\n          <table id=\"plantTable\">\n            <thead><tr>\n              <th>Plant Name</th><th>Water (s)</th><th>Plant Size</th><th>Pot Size</th>\n              <th>Schedule</th><th>vPins</th><th>Crop Coeff.</th><th>Under Roof</th>\n              <th>Soil Sensor</th><th>Weather &times;</th><th>Active</th><th></th>\n            </tr></thead>\n            <tbody></tbody>\n          </table>\n        </div>\n      </div>\n\n      <div class=\"card\">\n        <h3>Add Plant Group</h3>\n        <div class=\"form-grid\">\n          <div class=\"field\">\n            <label for=\"pn\">Plant Name</label>\n            <input type=\"text\" id=\"pn\" maxlength=\"20\" required>\n          </div>\n          <div class=\"field\">\n            <label for=\"pw\">Water Time (s)</label>\n            <input type=\"number\" id=\"pw\" min=\"0\" value=\"10\">\n          </div>\n          <div class=\"field\">\n            <label for=\"pls\">Plant Size</label>\n            <div class=\"mini-slider\">\n              <input type=\"range\" id=\"pls\" min=\"0\" max=\"100\" value=\"50\">\n              <span class=\"slider-label\" id=\"pls-label\">50%</span>\n            </div>\n          </div>\n          <div class=\"field\">\n            <label for=\"pts\">Pot Size</label>\n            <input type=\"number\" id=\"pts\" min=\"0\" step=\"0.1\" value=\"1.0\">\n          </div>\n          <div class=\"field\">\n            <label>Schedule (hours)</label>\n            <div class=\"sched-picker\">\n              <button type=\"button\" class=\"sched-btn\" id=\"wt-btn\">\n                <span id=\"wt-label\">Select hours</span>\n                <span class=\"arrow\">&#9660;</span>\n              </button>\n              <div class=\"sched-drop\" id=\"wt-grid\"></div>\n            </div>\n            <span class=\"hint\">Click to pick hours</span>\n          </div>\n          <div class=\"field\">\n            <label for=\"pp\">vPins</label>\n            <input type=\"text\" id=\"pp\" placeholder=\"0,5\">\n          </div>\n          <div class=\"field\">\n            <label for=\"kc\">Crop Coefficient</label>\n            <input type=\"number\" id=\"kc\" min=\"0.1\" max=\"2.0\" step=\"0.05\" value=\"1.0\">\n            <span class=\"hint\">Tomatoes ~1.05, herbs ~0.7, succulents ~0.3</span>\n          </div>\n          <div class=\"field\">\n            <label>Under Roof</label>\n            <label class=\"toggle\">\n              <input type=\"checkbox\" id=\"ignore_rain\">\n              <span class=\"track\"></span>\n            </label>\n            <span class=\"hint\">Enable if rain doesn't reach this plant</span>\n          </div>\n          <div class=\"field\">\n            <label for=\"moisture_sensor\">Soil Sensor Field</label>\n            <input type=\"text\" id=\"moisture_sensor\" placeholder=\"e.g. moisture\">\n            <span class=\"hint\">InfluxDB field name. Leave empty if none.</span>\n          </div>\n          <div class=\"field\">\n            <label>Active</label>\n            <label class=\"toggle\">\n              <input type=\"checkbox\" id=\"ps\" checked>\n              <span class=\"track\"></span>\n            </label>\n          </div>\n          <div class=\"field full\">\n            <button class=\"btn btn-success\" onclick=\"addItem(plantCfg)\">Add Plant</button>\n          </div>\n        </div>\n      </div>\n    </div>\n\n    <!-- Sensors -->\n    <div id=\"sensors\" class=\"section\">\n      <div class=\"card\">\n        <h2>Sensors</h2>\n        <div class=\"table-wrap\">\n          <table id=\"sensorTable\">\n            <thead><tr>\n              <th>Sensor Name</th><th>Mode</th><th>Field</th><th>vPin</th>\n              <th>High Limit</th><th>Low Limit</th><th>Active</th><th></th>\n            </tr></thead>\n            <tbody></tbody>\n          </table>\n        </div>\n      </div>\n\n      <div class=\"card\">\n        <h3>Add Sensor</h3>\n        <div class=\"form-grid\">\n          <div class=\"field\">\n            <label for=\"sn\">Sensor Name</label>\n            <input type=\"text\" id=\"sn\" maxlength=\"20\">\n          </div>\n          <div class=\"field\">\n            <label for=\"sm\">Mode</label>\n            <select id=\"sm\">\n              <option value=\"bmetemp\">BME280 Temperature</option>\n              <option value=\"bmehum\">BME280 Humidity</option>\n              <option value=\"bmepress\">BME280 Pressure</option>\n              <option value=\"soiltemp\">Soil Temperature</option>\n              <option value=\"analog\">Analog</option>\n              <option value=\"vanalog\">V Analog</option>\n            </select>\n            <span class=\"hint\">How the sensor is read (hardware interface)</span>\n          </div>\n          <div class=\"field\">\n            <label for=\"sf\">Field</label>\n            <input type=\"text\" id=\"sf\" placeholder=\"e.g. temperature\">\n            <span class=\"hint\">InfluxDB field name for this sensor's data</span>\n          </div>\n          <div class=\"field\">\n            <label for=\"sp\">vPin</label>\n            <input type=\"number\" id=\"sp\" min=\"0\">\n          </div>\n          <div class=\"field\">\n            <label for=\"hl\">High Limit</label>\n            <input type=\"number\" id=\"hl\">\n          </div>\n          <div class=\"field\">\n            <label for=\"ll\">Low Limit</label>\n            <input type=\"number\" id=\"ll\">\n          </div>\n          <div class=\"field\">\n            <label>Active</label>\n            <label class=\"toggle\">\n              <input type=\"checkbox\" id=\"ss\" checked>\n              <span class=\"track\"></span>\n            </label>\n          </div>\n          <div class=\"field full\">\n            <button class=\"btn btn-success\" onclick=\"addItem(sensorCfg)\">Add Sensor</button>\n          </div>\n        </div>\n      </div>\n    </div>\n\n    <!-- Device Config -->\n    <div id=\"device\" class=\"section\">\n      <div class=\"card\">\n        <h2>Device Settings</h2>\n        <div class=\"form-grid\">\n          <div class=\"field full\">\n            <label for=\"dn\">Device Name</label>\n            <input type=\"text\" id=\"dn\">\n          </div>\n          <div class=\"field\">\n            <label>Datalogging</label>\n            <label class=\"toggle\">\n              <input type=\"checkbox\" id=\"mssr\">\n              <span class=\"track\"></span>\n            </label>\n          </div>\n          <div class=\"field\">\n            <label>Irrigation System</label>\n            <label class=\"toggle\">\n              <input type=\"checkbox\" id=\"irig\">\n              <span class=\"track\"></span>\n            </label>\n          </div>\n          <div class=\"field full\">\n            <button class=\"btn btn-success\" onclick=\"saveDeviceConfig()\">Save Configuration</button>\n          </div>\n        </div>\n      </div>\n    </div>\n  </main>\n</div>\n\n<div id=\"toast\" class=\"toast\"></div>\n\n<script>\n/* ═══════════════════════════════════════════════════════════════\n *  Bewae V3 — Config Page (reworkbuild)\n *  br-mat (c) 2025\n * ═══════════════════════════════════════════════════════════════ */\n\nvar API_GET  = '/bewae/get-backendconfig-full';\nvar API_SAVE = '/bewae/save-backendconfig-full';\nvar PI_FIELDS = ['wm'];\nvar configData = null;\n\n/* ── Column definitions ────────────────────────────────────── */\n\nvar plantCfg = {\n  tableId: 'plantTable', dataKey: 'plantConfig',\n  columns: [\n    { key: 'pn',              type: 'string',    editable: true,  widget: 'click-text' },\n    { key: 'pw',              type: 'number',    editable: true,  widget: 'click-number' },\n    { key: 'pls',             type: 'number',    editable: true,  widget: 'slider', attrs: { min: 0, max: 100 } },\n    { key: 'pts',             type: 'number',    editable: true,  widget: 'click-float', attrs: { step: 0.1, min: 0 } },\n    { key: 'wt',              type: 'timetable', editable: true,  widget: 'chips' },\n    { key: 'pp',              type: 'array',     editable: true,  widget: 'click-text' },\n    { key: 'kc',              type: 'number',    editable: true,  widget: 'click-float', attrs: { step: 0.05, min: 0.1, max: 2.0 } },\n    { key: 'ignore_rain',     type: 'boolean',   editable: true,  widget: 'toggle' },\n    { key: 'moisture_sensor', type: 'string',    editable: true,  widget: 'click-text' },\n    { key: 'wm',              type: 'readonly',  editable: false, widget: 'badge' },\n    { key: 'ps',              type: 'number',    editable: true,  widget: 'toggle' }\n  ]\n};\n\nvar sensorCfg = {\n  tableId: 'sensorTable', dataKey: 'sensorConfig',\n  columns: [\n    { key: 'sn', type: 'string', editable: true, widget: 'click-text' },\n    { key: 'sm', type: 'string', editable: true, widget: 'dropdown', options: [\n      { value: 'bmetemp', label: 'BME Temp' },\n      { value: 'bmehum', label: 'BME Hum' },\n      { value: 'bmepress', label: 'BME Press' },\n      { value: 'soiltemp', label: 'Soil Temp' },\n      { value: 'analog', label: 'Analog' },\n      { value: 'vanalog', label: 'V Analog' }\n    ]},\n    { key: 'sf', type: 'string', editable: true, widget: 'click-text' },\n    { key: 'sp', type: 'number', editable: true, widget: 'click-number' },\n    { key: 'hl', type: 'number', editable: true, widget: 'click-number' },\n    { key: 'll', type: 'number', editable: true, widget: 'click-number' },\n    { key: 'ss', type: 'number', editable: true, widget: 'toggle' }\n  ]\n};\n\n/* ── Helpers ───────────────────────────────────────────────── */\n\nfunction ttToHours(n) {\n  var h = [];\n  for (var i = 0; i < 24; i++) if (n & (1 << i)) h.push(i);\n  return h;\n}\n\nfunction hoursToTt(arr) {\n  var r = 0;\n  for (var i = 0; i < arr.length; i++) r |= (1 << arr[i]);\n  return r;\n}\n\nfunction parseNums(s) {\n  if (!s || !s.trim()) return [];\n  return s.split(',').map(function(x) { return Number(x.trim()); })\n                     .filter(function(n) { return !isNaN(n); });\n}\n\nfunction fmt(val, type) {\n  if (type === 'number')    { var n = parseFloat(val); return isNaN(n) ? 0 : n; }\n  if (type === 'string')    { return typeof val === 'string' ? val.substring(0, 20) : ''; }\n  if (type === 'array')     { return Array.isArray(val) ? val : parseNums(String(val)); }\n  if (type === 'timetable') { return typeof val === 'number' ? val : hoursToTt(parseNums(String(val))); }\n  if (type === 'boolean')   { return val === true || val === 'Yes' || val === 'true' || val === '1'; }\n  return val;\n}\n\nfunction displayVal(val, type) {\n  if (type === 'timetable') return ttToHours(val || 0).join(', ');\n  if (type === 'array')     return Array.isArray(val) ? val.join(', ') : (val || '');\n  if (type === 'boolean')   return val ? 'Yes' : 'No';\n  if (type === 'readonly')  return (val != null) ? val : '\\u2014';\n  return (val != null) ? val : '';\n}\n\n/* ── Debounce ──────────────────────────────────────────────── */\n\nvar _dbTimers = {};\nfunction debounce(id, fn, ms) {\n  if (_dbTimers[id]) clearTimeout(_dbTimers[id]);\n  _dbTimers[id] = setTimeout(fn, ms || 500);\n}\n\n/* ── Toast ─────────────────────────────────────────────────── */\n\nfunction toast(msg, isErr) {\n  var el = document.getElementById('toast');\n  el.textContent = msg;\n  el.className = 'toast show ' + (isErr ? 'err' : 'ok');\n  setTimeout(function() { el.className = 'toast'; }, 2500);\n}\n\n/* ── API ───────────────────────────────────────────────────── */\n\nfunction fetchConfig() {\n  return fetch(API_GET)\n    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })\n    .then(function(d) { configData = d; })\n    .catch(function(e) { console.error('Fetch:', e); toast('Failed to load config', true); });\n}\n\nfunction saveConfig() {\n  var payload = JSON.parse(JSON.stringify(configData));\n  for (var dn in payload) {\n    var pc = payload[dn] && payload[dn].plantConfig;\n    if (!pc) continue;\n    for (var gk in pc) {\n      if (!pc[gk]) continue;\n      for (var i = 0; i < PI_FIELDS.length; i++) delete pc[gk][PI_FIELDS[i]];\n    }\n  }\n  return fetch(API_SAVE, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify(payload)\n  })\n  .then(function(r) { if (!r.ok) throw new Error(r.status); toast('Saved'); })\n  .catch(function(e) { console.error('Save:', e); toast('Save failed', true); });\n}\n\n/* ── Devices ───────────────────────────────────────────────── */\n\nfunction curDev() { return document.getElementById('devices').value; }\n\nfunction populateDevices() {\n  var sel = document.getElementById('devices');\n  var prev = sel.value;\n  sel.innerHTML = '';\n  if (!configData) return;\n  Object.keys(configData).forEach(function(k) {\n    var o = document.createElement('option');\n    o.value = o.textContent = k;\n    sel.appendChild(o);\n  });\n  if (prev && configData[prev]) sel.value = prev;\n}\n\nfunction addDevice() {\n  var inp = document.getElementById('newDeviceName');\n  var name = inp.value.trim();\n  if (!name) return toast('Enter a name', true);\n  if (configData[name]) return toast('Already exists', true);\n  configData[name] = { plantConfig: {}, sensorConfig: {}, deviceConfig: { dn: name, main: 0, mssr: 0, irig: 0 } };\n  inp.value = '';\n  saveConfig().then(init);\n}\n\nfunction deleteDevice() {\n  var d = curDev();\n  if (!d || !confirm('Delete \"' + d + '\"?')) return;\n  delete configData[d];\n  saveConfig().then(init);\n}\n\n/* ── Save single field (no re-render) ──────────────────────── */\n\nfunction saveField(cfg, rowIdx, colKey, value) {\n  var d = curDev();\n  if (!d || !configData[d] || !configData[d][cfg.dataKey]) return;\n  var col = null;\n  for (var i = 0; i < cfg.columns.length; i++) {\n    if (cfg.columns[i].key === colKey) { col = cfg.columns[i]; break; }\n  }\n  if (!col) return;\n  configData[d][cfg.dataKey][rowIdx][colKey] = fmt(value, col.type);\n  saveConfig();\n}\n\nfunction reindexData(cfg) {\n  var d = curDev();\n  var old = configData[d][cfg.dataKey];\n  var arr = [];\n  Object.keys(old).forEach(function(k) { if (old[k]) arr.push(old[k]); });\n  var fresh = {};\n  for (var i = 0; i < arr.length; i++) fresh[i] = arr[i];\n  configData[d][cfg.dataKey] = fresh;\n}\n\n/* ── Widget renderers ──────────────────────────────────────── */\n\nfunction renderClickEdit(td, value, col, cfg, rowIdx) {\n  var span = document.createElement('span');\n  span.className = 'cell-val';\n  span.textContent = displayVal(value, col.type);\n  if (!span.textContent) span.innerHTML = '&mdash;';\n  td.appendChild(span);\n\n  span.onclick = function() {\n    var inp = document.createElement('input');\n    inp.className = 'cell-input';\n    if (col.widget === 'click-number') {\n      inp.type = 'number'; inp.className += ' cell-input-num';\n    } else if (col.widget === 'click-float') {\n      inp.type = 'number'; inp.className += ' cell-input-num';\n      if (col.attrs) {\n        if (col.attrs.step != null) inp.step = col.attrs.step;\n        if (col.attrs.min != null) inp.min = col.attrs.min;\n        if (col.attrs.max != null) inp.max = col.attrs.max;\n      }\n    } else {\n      inp.type = 'text';\n      if (col.key === 'pn' || col.key === 'sn' || col.key === 'moisture_sensor') inp.maxLength = 20;\n    }\n    if (col.type === 'array' && Array.isArray(value)) {\n      inp.value = value.join(', ');\n    } else {\n      inp.value = (value != null) ? value : '';\n    }\n    td.textContent = '';\n    td.appendChild(inp);\n    inp.focus();\n    inp.select();\n\n    var origVal = value;\n    inp.onblur = function() {\n      var newVal = inp.value;\n      td.textContent = '';\n      var formatted = fmt(newVal, col.type);\n      span.textContent = displayVal(formatted, col.type);\n      if (!span.textContent) span.innerHTML = '&mdash;';\n      td.appendChild(span);\n      saveField(cfg, rowIdx, col.key, newVal);\n    };\n    inp.onkeydown = function(e) {\n      if (e.keyCode === 13) inp.blur();\n      if (e.keyCode === 27) {\n        td.textContent = '';\n        span.textContent = displayVal(origVal, col.type);\n        if (!span.textContent) span.innerHTML = '&mdash;';\n        td.appendChild(span);\n      }\n    };\n  };\n}\n\nfunction renderSlider(td, value, col, cfg, rowIdx) {\n  var wrap = document.createElement('div');\n  wrap.className = 'mini-slider';\n  var range = document.createElement('input');\n  range.type = 'range';\n  range.min = (col.attrs && col.attrs.min != null) ? col.attrs.min : 0;\n  range.max = (col.attrs && col.attrs.max != null) ? col.attrs.max : 100;\n  range.value = value || 0;\n  var lbl = document.createElement('span');\n  lbl.className = 'slider-label';\n  lbl.textContent = range.value + '%';\n  wrap.appendChild(range);\n  wrap.appendChild(lbl);\n  td.appendChild(wrap);\n\n  range.oninput = function() {\n    lbl.textContent = range.value + '%';\n    debounce('slider-' + rowIdx, function() {\n      saveField(cfg, rowIdx, col.key, Number(range.value));\n    });\n  };\n}\n\nfunction renderToggle(td, value, col, cfg, rowIdx) {\n  var lbl = document.createElement('label');\n  lbl.className = 'toggle';\n  var cb = document.createElement('input');\n  cb.type = 'checkbox';\n  if (col.type === 'boolean') {\n    cb.checked = !!value;\n  } else {\n    cb.checked = (value === 1 || value === '1');\n  }\n  var track = document.createElement('span');\n  track.className = 'track';\n  lbl.appendChild(cb);\n  lbl.appendChild(track);\n  td.appendChild(lbl);\n\n  cb.onchange = function() {\n    var newVal = col.type === 'boolean' ? cb.checked : (cb.checked ? 1 : 0);\n    debounce('toggle-' + col.key + '-' + rowIdx, function() {\n      saveField(cfg, rowIdx, col.key, newVal);\n    });\n  };\n}\n\nfunction formatHour(h) {\n  if (h === 0) return '12AM';\n  if (h < 12) return h + 'AM';\n  if (h === 12) return '12PM';\n  return (h - 12) + 'PM';\n}\n\nfunction renderChips(td, value, col, cfg, rowIdx) {\n  var wrap = document.createElement('div');\n  wrap.className = 'chip-display';\n\n  function refreshChips() {\n    wrap.innerHTML = '';\n    var hrs = ttToHours(configData[curDev()][cfg.dataKey][rowIdx][col.key] || 0);\n    if (hrs.length === 0) {\n      wrap.innerHTML = '&mdash;';\n    } else {\n      hrs.forEach(function(h) {\n        var c = document.createElement('span');\n        c.className = 'chip';\n        c.textContent = formatHour(h);\n        wrap.appendChild(c);\n      });\n    }\n  }\n  refreshChips();\n  td.appendChild(wrap);\n\n  wrap.onclick = function(e) {\n    e.stopPropagation();\n    var existing = document.querySelectorAll('.chip-popup');\n    for (var i = 0; i < existing.length; i++) existing[i].parentNode.removeChild(existing[i]);\n\n    var curVal = configData[curDev()][cfg.dataKey][rowIdx][col.key] || 0;\n    var popup = document.createElement('div');\n    popup.className = 'chip-popup';\n\n    // Position fixed relative to viewport\n    var rect = wrap.getBoundingClientRect();\n    popup.style.left = rect.left + 'px';\n    popup.style.top = (rect.bottom + 4) + 'px';\n    // Flip above if not enough space below\n    if (rect.bottom + 200 > window.innerHeight) {\n      popup.style.top = (rect.top - 200) + 'px';\n    }\n\n    for (var h = 0; h < 24; h++) {\n      (function(hour) {\n        var opt = document.createElement('div');\n        opt.className = 'chip-opt' + ((curVal & (1 << hour)) ? ' sel' : '');\n        opt.textContent = hour;\n        opt.onclick = function(ev) {\n          ev.stopPropagation();\n          curVal = curVal ^ (1 << hour);\n          opt.classList.toggle('sel');\n          configData[curDev()][cfg.dataKey][rowIdx][col.key] = curVal;\n          refreshChips();\n          debounce('chips-' + rowIdx, function() {\n            saveField(cfg, rowIdx, col.key, curVal);\n          });\n        };\n        popup.appendChild(opt);\n      })(h);\n    }\n    document.body.appendChild(popup);\n\n    var closeHandler = function() {\n      if (popup.parentNode) popup.parentNode.removeChild(popup);\n      document.removeEventListener('click', closeHandler);\n    };\n    setTimeout(function() { document.addEventListener('click', closeHandler); }, 0);\n  };\n}\n\nfunction renderBadge(td, value) {\n  var badge = document.createElement('span');\n  badge.className = 'badge-wm';\n  badge.textContent = (value != null) ? value : '\\u2014';\n  td.appendChild(badge);\n}\n\nfunction renderDropdown(td, value, col, cfg, rowIdx) {\n  var sel = document.createElement('select');\n  sel.className = 'cell-dropdown';\n  (col.options || []).forEach(function(opt) {\n    var o = document.createElement('option');\n    o.value = opt.value;\n    o.textContent = opt.label;\n    if (opt.value === value) o.selected = true;\n    sel.appendChild(o);\n  });\n  td.appendChild(sel);\n\n  sel.onchange = function() {\n    saveField(cfg, rowIdx, col.key, sel.value);\n  };\n}\n\n/* ── Table rendering ───────────────────────────────────────── */\n\nfunction renderTable(cfg) {\n  var tbody = document.querySelector('#' + cfg.tableId + ' tbody');\n  if (!tbody) return;\n  tbody.innerHTML = '';\n\n  var data = configData && configData[curDev()] && configData[curDev()][cfg.dataKey];\n  if (!data) return;\n\n  Object.keys(data).forEach(function(key) {\n    var item = data[key];\n    if (!item || typeof item !== 'object') return;\n\n    var tr = document.createElement('tr');\n    cfg.columns.forEach(function(col) {\n      var td = document.createElement('td');\n      var val = item[col.key];\n\n      switch (col.widget) {\n        case 'click-text':\n        case 'click-number':\n        case 'click-float':\n          renderClickEdit(td, val, col, cfg, key);\n          break;\n        case 'slider':\n          renderSlider(td, val, col, cfg, key);\n          break;\n        case 'toggle':\n          renderToggle(td, val, col, cfg, key);\n          break;\n        case 'chips':\n          renderChips(td, val, col, cfg, key);\n          break;\n        case 'badge':\n          renderBadge(td, val);\n          break;\n        case 'dropdown':\n          renderDropdown(td, val, col, cfg, key);\n          break;\n        default:\n          td.textContent = displayVal(val, col.type);\n      }\n      tr.appendChild(td);\n    });\n\n    var actTd = document.createElement('td');\n    var delBtn = document.createElement('button');\n    delBtn.className = 'btn-del-icon';\n    delBtn.innerHTML = '&#x2715;';\n    delBtn.title = 'Delete';\n    (function(k) {\n      delBtn.onclick = function() {\n        if (!confirm('Delete this row?')) return;\n        delete configData[curDev()][cfg.dataKey][k];\n        reindexData(cfg);\n        saveConfig().then(function() {\n          fetchConfig().then(function() { renderTable(cfg); });\n        });\n      };\n    })(key);\n    actTd.appendChild(delBtn);\n    tr.appendChild(actTd);\n    tbody.appendChild(tr);\n  });\n}\n\n/* ── Add item from form ────────────────────────────────────── */\n\nfunction addItem(cfg) {\n  var item = {};\n  cfg.columns.forEach(function(col) {\n    if (col.type === 'readonly') return;\n    // Schedule chip grid\n    if (col.key === 'wt') {\n      var grid = document.getElementById('wt-grid');\n      if (!grid) return;\n      var bits = 0;\n      var selChips = grid.querySelectorAll('.chip-opt.sel');\n      for (var s = 0; s < selChips.length; s++) {\n        bits |= (1 << parseInt(selChips[s].getAttribute('data-hour')));\n      }\n      item[col.key] = bits;\n      return;\n    }\n    var el = document.getElementById(col.key);\n    if (!el) return;\n    var rawVal;\n    if (el.type === 'checkbox') {\n      rawVal = col.type === 'boolean' ? el.checked : (el.checked ? 1 : 0);\n    } else {\n      rawVal = el.value;\n    }\n    item[col.key] = fmt(rawVal, col.type);\n  });\n\n  if (cfg.dataKey === 'plantConfig' && (!item.pn || !item.pn.trim()))\n    return toast('Plant name required', true);\n  if (cfg.dataKey === 'sensorConfig' && (!item.sn || !item.sn.trim()))\n    return toast('Sensor name required', true);\n\n  var d = curDev();\n  if (!d) return toast('Select a device', true);\n  if (!configData[d][cfg.dataKey]) configData[d][cfg.dataKey] = {};\n  var data = configData[d][cfg.dataKey];\n  data[Object.keys(data).length] = item;\n\n  saveConfig().then(function() {\n    fetchConfig().then(function() {\n      renderTable(cfg);\n      // Reset chip grid selections after add\n      var wtGrid = document.getElementById('wt-grid');\n      if (wtGrid) {\n        var sel = wtGrid.querySelectorAll('.chip-opt.sel');\n        for (var i = 0; i < sel.length; i++) sel[i].classList.remove('sel');\n      }\n    });\n  });\n}\n\n/* ── Device config ─────────────────────────────────────────── */\n\nfunction renderDeviceConfig() {\n  var d = configData && configData[curDev()] && configData[curDev()].deviceConfig;\n  if (!d) return;\n  var dn = document.getElementById('dn'); if (dn) dn.value = d.dn || '';\n  var ms = document.getElementById('mssr'); if (ms) ms.checked = (d.mssr === 1);\n  var ir = document.getElementById('irig'); if (ir) ir.checked = (d.irig === 1);\n}\n\nfunction saveDeviceConfig() {\n  var d = curDev();\n  if (!d) return toast('Select a device', true);\n  if (!configData[d].deviceConfig) configData[d].deviceConfig = {};\n  var dc = configData[d].deviceConfig;\n  dc.dn = document.getElementById('dn').value || d;\n  dc.mssr = document.getElementById('mssr').checked ? 1 : 0;\n  dc.irig = document.getElementById('irig').checked ? 1 : 0;\n  saveConfig().then(function() { toast('Device config saved'); refresh(); });\n}\n\n/* ── Navigation ────────────────────────────────────────────── */\n\nfunction showSection(id) {\n  document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });\n  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });\n  var sec = document.getElementById(id);\n  if (sec) sec.classList.add('active');\n  var nav = document.querySelector('[data-section=\"' + id + '\"]');\n  if (nav) nav.classList.add('active');\n}\n\n/* ── Init ──────────────────────────────────────────────────── */\n\nfunction refresh() {\n  renderTable(plantCfg);\n  renderTable(sensorCfg);\n  renderDeviceConfig();\n}\n\nfunction init() {\n  fetchConfig().then(function() {\n    if (!configData) return;\n    populateDevices();\n    refresh();\n  });\n}\n\ndocument.addEventListener('DOMContentLoaded', function() {\n  document.querySelectorAll('.nav-item').forEach(function(a) {\n    a.addEventListener('click', function() { showSection(this.dataset.section); });\n  });\n  document.getElementById('devices').addEventListener('change', refresh);\n\n  // Plant Size slider label\n  var plsSlider = document.getElementById('pls');\n  if (plsSlider) {\n    plsSlider.oninput = function() {\n      document.getElementById('pls-label').textContent = plsSlider.value + '%';\n    };\n  }\n\n  // Schedule dropdown for add form\n  var wtBtn = document.getElementById('wt-btn');\n  var wtGrid = document.getElementById('wt-grid');\n  var wtLabel = document.getElementById('wt-label');\n  if (wtBtn && wtGrid) {\n    for (var h = 0; h < 24; h++) {\n      (function(hour) {\n        var opt = document.createElement('div');\n        opt.className = 'chip-opt';\n        opt.textContent = hour;\n        opt.setAttribute('data-hour', hour);\n        opt.onclick = function(e) {\n          e.stopPropagation();\n          opt.classList.toggle('sel');\n          updateWtLabel();\n        };\n        wtGrid.appendChild(opt);\n      })(h);\n    }\n    wtBtn.onclick = function(e) {\n      e.stopPropagation();\n      wtGrid.classList.toggle('open');\n    };\n    document.addEventListener('click', function() {\n      wtGrid.classList.remove('open');\n    });\n  }\n\n  function updateWtLabel() {\n    var sel = wtGrid.querySelectorAll('.chip-opt.sel');\n    if (sel.length === 0) {\n      wtLabel.textContent = 'Select hours';\n    } else {\n      var hrs = [];\n      for (var i = 0; i < sel.length; i++) hrs.push(formatHour(parseInt(sel[i].getAttribute('data-hour'))));\n      wtLabel.textContent = hrs.join(', ');\n    }\n  }\n\n  init();\n});\n</script>\n</body>\n</html>\n",
+        "output": "str",
+        "x": 460,
         "y": 100,
         "wires": [
             [
-                "f1a2b3c4d5e60002"
+                "rw_resp_page"
             ]
         ]
     },
     {
-        "id": "f1a2b3c4d5e60002",
-        "type": "change",
-        "z": "450f83c2a1abd42e",
-        "name": "set text/html",
-        "rules": [
-            {
-                "t": "set",
-                "p": "headers",
-                "pt": "msg",
-                "to": "{\"content-type\":\"text/html\"}",
-                "tot": "json"
-            }
-        ],
-        "action": "",
-        "property": "",
-        "from": "",
-        "to": "",
-        "reg": false,
-        "x": 630,
-        "y": 100,
-        "wires": [
-            [
-                "80ab72c90ad5181b"
-            ]
-        ]
-    },
-    {
-        "id": "80ab72c90ad5181b",
+        "id": "rw_resp_page",
         "type": "http response",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "serve page",
         "statusCode": "200",
-        "headers": {},
-        "x": 830,
+        "headers": {
+            "content-type": "text/html"
+        },
+        "x": 700,
         "y": 100,
         "wires": []
     },
     {
-        "id": "10955840b7dc329f",
+        "id": "rw_c2",
         "type": "comment",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "Backend Config API (full-config.json)",
         "info": "",
         "x": 280,
@@ -103,9 +77,9 @@
         "wires": []
     },
     {
-        "id": "99d91d906d85dd81",
+        "id": "rw_get",
         "type": "http in",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "[get] full config",
         "url": "/bewae/get-backendconfig-full",
         "method": "get",
@@ -115,16 +89,16 @@
         "y": 200,
         "wires": [
             [
-                "d8d9957100971ae5"
+                "rw_read1"
             ]
         ]
     },
     {
-        "id": "d8d9957100971ae5",
+        "id": "rw_read1",
         "type": "file in",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "read config",
-        "filename": "/home/homepi/bewae/full-config.json",
+        "filename": "/data/bewae/full-config.json",
         "filenameType": "str",
         "format": "utf8",
         "chunk": false,
@@ -135,14 +109,14 @@
         "y": 200,
         "wires": [
             [
-                "2039804f6623f1ce"
+                "rw_json1"
             ]
         ]
     },
     {
-        "id": "2039804f6623f1ce",
+        "id": "rw_json1",
         "type": "json",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "",
         "property": "payload",
         "action": "",
@@ -151,15 +125,15 @@
         "y": 200,
         "wires": [
             [
-                "e1c2fc8c388408ed",
-                "e794e4abd17eefaf"
+                "rw_resp_get",
+                "rw_dbg_get"
             ]
         ]
     },
     {
-        "id": "e1c2fc8c388408ed",
+        "id": "rw_resp_get",
         "type": "http response",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "return config",
         "statusCode": "",
         "headers": {},
@@ -168,9 +142,9 @@
         "wires": []
     },
     {
-        "id": "e794e4abd17eefaf",
+        "id": "rw_dbg_get",
         "type": "debug",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "debug GET",
         "active": false,
         "tosidebar": true,
@@ -185,9 +159,9 @@
         "wires": []
     },
     {
-        "id": "5633dea088a16dc3",
+        "id": "rw_post",
         "type": "http in",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "[post] save config",
         "url": "/bewae/save-backendconfig-full",
         "method": "post",
@@ -197,16 +171,16 @@
         "y": 280,
         "wires": [
             [
-                "f1a2b3c4d5e60006"
+                "rw_merge"
             ]
         ]
     },
     {
-        "id": "f1a2b3c4d5e60006",
+        "id": "rw_merge",
         "type": "function",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "merge wm",
-        "func": "// Read current config from disk to preserve Pi-computed fields (wm)\nconst configPath = '/home/homepi/bewae/full-config.json';\nlet currentConfig = {};\ntry {\n    currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));\n} catch(e) {\n    // First save or file missing — no wm values to preserve\n    node.warn('Could not read existing config: ' + e.message);\n}\n\nconst incoming = msg.payload;\n\n// Preserve wm from current config for each plant group\nfor (const [deviceName, device] of Object.entries(incoming)) {\n    if (!device || !device.plantConfig) continue;\n    const currentDevice = currentConfig[deviceName];\n    if (!currentDevice || !currentDevice.plantConfig) continue;\n\n    for (const [groupKey, group] of Object.entries(device.plantConfig)) {\n        const currentGroup = currentDevice.plantConfig[groupKey];\n        if (currentGroup && currentGroup.wm !== undefined) {\n            group.wm = currentGroup.wm;\n        }\n    }\n}\n\nmsg.payload = incoming;\nreturn msg;",
+        "func": "const configPath = '/data/bewae/full-config.json';\nlet currentConfig = {};\ntry {\n    currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));\n} catch(e) {\n    node.warn('Could not read existing config: ' + e.message);\n}\n\nconst incoming = msg.payload;\n\nfor (const [deviceName, device] of Object.entries(incoming)) {\n    if (!device || !device.plantConfig) continue;\n    const currentDevice = currentConfig[deviceName];\n    if (!currentDevice || !currentDevice.plantConfig) continue;\n\n    for (const [groupKey, group] of Object.entries(device.plantConfig)) {\n        const currentGroup = currentDevice.plantConfig[groupKey];\n        if (currentGroup && currentGroup.wm !== undefined) {\n            group.wm = currentGroup.wm;\n        }\n    }\n}\n\nmsg.payload = incoming;\nreturn msg;",
         "outputs": 1,
         "timeout": "",
         "noerr": 0,
@@ -222,14 +196,14 @@
         "y": 280,
         "wires": [
             [
-                "d86642a38e36784a"
+                "rw_json2"
             ]
         ]
     },
     {
-        "id": "d86642a38e36784a",
+        "id": "rw_json2",
         "type": "json",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "stringify",
         "property": "payload",
         "action": "str",
@@ -238,16 +212,16 @@
         "y": 300,
         "wires": [
             [
-                "68092efd52b7328b"
+                "rw_write"
             ]
         ]
     },
     {
-        "id": "68092efd52b7328b",
+        "id": "rw_write",
         "type": "file",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "write config",
-        "filename": "/home/homepi/bewae/full-config.json",
+        "filename": "/data/bewae/full-config.json",
         "filenameType": "str",
         "appendNewline": true,
         "createDir": false,
@@ -257,15 +231,15 @@
         "y": 300,
         "wires": [
             [
-                "f1a2b3c4d5e60007",
-                "8f40ba3335823372"
+                "rw_resp_post",
+                "rw_dbg_post"
             ]
         ]
     },
     {
-        "id": "f1a2b3c4d5e60007",
+        "id": "rw_resp_post",
         "type": "http response",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "200 OK",
         "statusCode": "200",
         "headers": {},
@@ -274,9 +248,9 @@
         "wires": []
     },
     {
-        "id": "8f40ba3335823372",
+        "id": "rw_dbg_post",
         "type": "debug",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "debug POST",
         "active": false,
         "tosidebar": true,
@@ -290,9 +264,9 @@
         "wires": []
     },
     {
-        "id": "e7967eb7e0e6da5c",
+        "id": "rw_inject",
         "type": "inject",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "test data",
         "props": [
             {
@@ -304,20 +278,20 @@
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "payload": "{\"default\":{\"plantConfig\":{\"0\":{\"pn\":\"Big Tomato\",\"pw\":20,\"pls\":3,\"pts\":30,\"wt\":25,\"pp\":[1],\"ps\":1,\"kc\":1.05,\"ignore_rain\":false,\"moisture_sensor\":\"moisture\"},\"1\":{\"pn\":\"Red Rose\",\"pw\":15,\"pls\":2,\"pts\":20,\"wt\":128,\"pp\":[2,3],\"ps\":1,\"kc\":0.8,\"ignore_rain\":true,\"moisture_sensor\":\"\"}},\"sensorConfig\":{\"0\":{\"sn\":\"bme280\",\"sf\":\"bmetemp\",\"sp\":0,\"hl\":50,\"ll\":0,\"ss\":1},\"1\":{\"sn\":\"Soil\",\"sf\":\"vanalog\",\"sp\":15,\"hl\":600,\"ll\":250,\"ss\":1}},\"deviceConfig\":{\"dn\":\"Test\",\"mssr\":1,\"main\":1,\"irig\":1}}}",
+        "payload": "{\"default\": {\"plantConfig\": {\"0\": {\"pn\": \"Big Tomato\", \"pw\": 20, \"pls\": 3, \"pts\": 30, \"wt\": 25, \"pp\": [1], \"ps\": 1, \"kc\": 1.05, \"ignore_rain\": false, \"moisture_sensor\": \"moisture\"}, \"1\": {\"pn\": \"Red Rose\", \"pw\": 15, \"pls\": 2, \"pts\": 20, \"wt\": 128, \"pp\": [2, 3], \"ps\": 1, \"kc\": 0.8, \"ignore_rain\": true, \"moisture_sensor\": \"\"}}, \"sensorConfig\": {\"0\": {\"sn\": \"bme280\", \"sm\": \"bmetemp\", \"sf\": \"temperature\", \"sp\": 0, \"hl\": 50, \"ll\": 0, \"ss\": 1}, \"1\": {\"sn\": \"Soil\", \"sm\": \"vanalog\", \"sf\": \"moisture\", \"sp\": 15, \"hl\": 600, \"ll\": 250, \"ss\": 1}}, \"deviceConfig\": {\"dn\": \"Test\", \"mssr\": 1, \"main\": 1, \"irig\": 1}}}",
         "payloadType": "json",
         "x": 420,
         "y": 340,
         "wires": [
             [
-                "d86642a38e36784a"
+                "rw_json2"
             ]
         ]
     },
     {
-        "id": "68cc2880ef961bd1",
+        "id": "rw_c3",
         "type": "comment",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "ESP32 Config API (filtered by device/fileType)",
         "info": "",
         "x": 300,
@@ -325,9 +299,9 @@
         "wires": []
     },
     {
-        "id": "e8af3f1d.4c5d",
+        "id": "rw_get_esp",
         "type": "http in",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "[get] device config",
         "url": "/bewae/get-config",
         "method": "get",
@@ -337,16 +311,16 @@
         "y": 420,
         "wires": [
             [
-                "a1b4c1d9.6a8d"
+                "rw_read2"
             ]
         ]
     },
     {
-        "id": "a1b4c1d9.6a8d",
+        "id": "rw_read2",
         "type": "file in",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "read config",
-        "filename": "/home/homepi/bewae/full-config.json",
+        "filename": "/data/bewae/full-config.json",
         "filenameType": "str",
         "format": "utf8",
         "chunk": false,
@@ -357,16 +331,16 @@
         "y": 420,
         "wires": [
             [
-                "7db2c1d9.6a8d"
+                "rw_filt"
             ]
         ]
     },
     {
-        "id": "7db2c1d9.6a8d",
+        "id": "rw_filt",
         "type": "function",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "filter config",
-        "func": "// Extract query parameters\nvar deviceName = msg.req.query.deviceName;\nvar fileType = msg.req.query.fileType;\n\ntry {\n    var config = JSON.parse(msg.payload);\n\n    // Function to return an empty payload\n    function returnEmpty() {\n        msg.payload = {};\n        return msg;\n    }\n\n    // No query parameters provided, return the whole config\n    if (!deviceName && !fileType) {\n        msg.payload = config;\n        return msg;\n    }\n\n    // Only deviceName is provided, return the configuration for the device\n    if (deviceName && !fileType) {\n        if (config[deviceName]) {\n            msg.payload = config[deviceName];\n            return msg;\n        } else {\n            return returnEmpty();\n        }\n    }\n\n    // Both deviceName and fileType are provided\n    if (deviceName && fileType) {\n        if (config[deviceName] && config[deviceName][fileType]) {\n            msg.payload = config[deviceName][fileType];\n            return msg;\n        } else {\n            return returnEmpty();\n        }\n    }\n\n    // If only fileType is provided or any other invalid combination\n    return returnEmpty();\n} catch (error) {\n    return returnEmpty();\n}\n",
+        "func": "var deviceName = msg.req.query.deviceName;\nvar fileType = msg.req.query.fileType;\n\ntry {\n    var config = JSON.parse(msg.payload);\n\n    function returnEmpty() {\n        msg.payload = {};\n        return msg;\n    }\n\n    if (!deviceName && !fileType) {\n        msg.payload = config;\n        return msg;\n    }\n\n    if (deviceName && !fileType) {\n        if (config[deviceName]) {\n            msg.payload = config[deviceName];\n            return msg;\n        } else {\n            return returnEmpty();\n        }\n    }\n\n    if (deviceName && fileType) {\n        if (config[deviceName] && config[deviceName][fileType]) {\n            msg.payload = config[deviceName][fileType];\n            return msg;\n        } else {\n            return returnEmpty();\n        }\n    }\n\n    return returnEmpty();\n} catch (error) {\n    return returnEmpty();\n}",
         "outputs": 1,
         "timeout": "",
         "noerr": 0,
@@ -377,14 +351,14 @@
         "y": 420,
         "wires": [
             [
-                "9b8b33f5.6c74d"
+                "rw_resp_esp"
             ]
         ]
     },
     {
-        "id": "9b8b33f5.6c74d",
+        "id": "rw_resp_esp",
         "type": "http response",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "return filtered",
         "statusCode": "",
         "headers": {},
@@ -393,41 +367,157 @@
         "wires": []
     },
     {
-        "id": "f1a2b3c4d5e60008",
+        "id": "rw_c5",
         "type": "comment",
-        "z": "450f83c2a1abd42e",
-        "name": "Error Handling",
-        "info": "Catches file read/write errors and returns 500 with error detail.",
-        "x": 210,
+        "z": "rw_tab",
+        "name": "Update WM API (Pi scripts POST wm values)",
+        "info": "",
+        "x": 300,
         "y": 480,
         "wires": []
     },
     {
-        "id": "f1a2b3c4d5e60009",
-        "type": "catch",
-        "z": "450f83c2a1abd42e",
-        "name": "catch file errors",
-        "scope": [
-            "f1a2b3c4d5e60001",
-            "d8d9957100971ae5",
-            "f1a2b3c4d5e60006",
-            "68092efd52b7328b",
-            "a1b4c1d9.6a8d",
-            "7db2c1d9.6a8d"
-        ],
-        "uncaught": false,
-        "x": 230,
+        "id": "rw_post_wm",
+        "type": "http in",
+        "z": "rw_tab",
+        "name": "[post] update wm",
+        "url": "/bewae/update-wm",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 210,
         "y": 520,
         "wires": [
             [
-                "f1a2b3c4d5e6000a"
+                "rw_wm_merge"
             ]
         ]
     },
     {
-        "id": "f1a2b3c4d5e6000a",
+        "id": "rw_wm_merge",
         "type": "function",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
+        "name": "merge wm updates",
+        "func": "var configPath = '/data/bewae/full-config.json';\nvar currentConfig = {};\ntry {\n    currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));\n} catch(e) {\n    node.error('Could not read config: ' + e.message);\n    msg.payload = { error: 'Failed to read config', detail: e.message };\n    msg.statusCode = 500;\n    return msg;\n}\n\nvar wmUpdates = msg.payload;\nvar updated = 0;\nvar deviceNames = Object.keys(wmUpdates);\n\nfor (var i = 0; i < deviceNames.length; i++) {\n    var deviceName = deviceNames[i];\n    var groups = wmUpdates[deviceName];\n    if (!currentConfig[deviceName] || !currentConfig[deviceName].plantConfig) {\n        node.warn('Device not found in config: ' + deviceName);\n        continue;\n    }\n    var groupKeys = Object.keys(groups);\n    for (var j = 0; j < groupKeys.length; j++) {\n        var groupKey = groupKeys[j];\n        if (currentConfig[deviceName].plantConfig[groupKey]) {\n            currentConfig[deviceName].plantConfig[groupKey].wm = groups[groupKey];\n            updated++;\n        } else {\n            node.warn('Group not found: ' + deviceName + '/' + groupKey);\n        }\n    }\n}\n\nmsg.payload = currentConfig;\nmsg.wmUpdated = updated;\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "fs",
+                "module": "fs"
+            }
+        ],
+        "x": 440,
+        "y": 520,
+        "wires": [
+            [
+                "rw_wm_json"
+            ]
+        ]
+    },
+    {
+        "id": "rw_wm_json",
+        "type": "json",
+        "z": "rw_tab",
+        "name": "stringify",
+        "property": "payload",
+        "action": "str",
+        "pretty": true,
+        "x": 620,
+        "y": 520,
+        "wires": [
+            [
+                "rw_wm_write"
+            ]
+        ]
+    },
+    {
+        "id": "rw_wm_write",
+        "type": "file",
+        "z": "rw_tab",
+        "name": "write config",
+        "filename": "/data/bewae/full-config.json",
+        "filenameType": "str",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "true",
+        "encoding": "utf8",
+        "x": 790,
+        "y": 520,
+        "wires": [
+            [
+                "rw_wm_resp",
+                "rw_wm_dbg"
+            ]
+        ]
+    },
+    {
+        "id": "rw_wm_resp",
+        "type": "http response",
+        "z": "rw_tab",
+        "name": "200 OK",
+        "statusCode": "200",
+        "headers": {},
+        "x": 960,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "rw_wm_dbg",
+        "type": "debug",
+        "z": "rw_tab",
+        "name": "debug WM",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 960,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "rw_c4",
+        "type": "comment",
+        "z": "rw_tab",
+        "name": "Error Handling",
+        "info": "Catches file read/write errors and returns 500.",
+        "x": 210,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "rw_catch",
+        "type": "catch",
+        "z": "rw_tab",
+        "name": "catch file errors",
+        "scope": [
+            "rw_read1",
+            "rw_merge",
+            "rw_write",
+            "rw_read2",
+            "rw_filt",
+            "rw_wm_merge",
+            "rw_wm_write"
+        ],
+        "uncaught": false,
+        "x": 230,
+        "y": 640,
+        "wires": [
+            [
+                "rw_fmterr"
+            ]
+        ]
+    },
+    {
+        "id": "rw_fmterr",
+        "type": "function",
+        "z": "rw_tab",
         "name": "format error",
         "func": "msg.payload = {\n    error: \"Config file operation failed\",\n    detail: msg.error ? msg.error.message : \"Unknown error\"\n};\nmsg.statusCode = 500;\nreturn msg;",
         "outputs": 1,
@@ -437,22 +527,22 @@
         "finalize": "",
         "libs": [],
         "x": 470,
-        "y": 520,
+        "y": 640,
         "wires": [
             [
-                "f1a2b3c4d5e6000b"
+                "rw_resp_err"
             ]
         ]
     },
     {
-        "id": "f1a2b3c4d5e6000b",
+        "id": "rw_resp_err",
         "type": "http response",
-        "z": "450f83c2a1abd42e",
+        "z": "rw_tab",
         "name": "error 500",
         "statusCode": "500",
         "headers": {},
         "x": 670,
-        "y": 520,
+        "y": 640,
         "wires": []
     }
 ]
