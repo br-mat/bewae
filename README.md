@@ -142,7 +142,7 @@ The page is served by Node-RED and communicates with the ESP32 via HTTP. Changes
 
 **Sensors** — each sensor entry defines a measurement point:
 - Sensor name, measurement field, and mode (see [MANUAL_CONFIGURATION.md](MANUAL_CONFIGURATION.md) for all modes)
-- Optional calibration: offset (`add`), scaling factor (`fac`), percentage range (`hlim`/`llim`)
+- Optional calibration: percentage range (`hl`/`ll` — raw values mapped to 0–100%)
 
 **System switches** — enable or disable subsystems:
 

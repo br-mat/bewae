@@ -64,7 +64,7 @@ Fill in before first run. All fields required unless marked optional.
 | `weatherAPI` | OpenWeatherMap API key (free tier works) |
 | `lat` / `lon` / `location` | Location for weather forecast |
 | `nodered_url` | Base URL for Node-RED (used for config read/write) |
-| `logfire_url` | LogFire hub URL for remote logging |
+| `logfire_url` | Base URL of the Node-RED instance running the LogFire logging flow (same host as `nodered_url`) |
 | `config_path` | Path to `full-config.json` on the Pi (legacy fallback, normally unused) |
 | `baseline_temp` / `baseline_humidity` / `baseline_wind` | Reference climate values for ET calculation |
 | `rain_threshold_mm` | Forecasted rain above this reduces `wm` |
