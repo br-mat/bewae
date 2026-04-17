@@ -74,6 +74,7 @@ class IrrigationController {
     byte lastDay; //[pu][0] runntimevariable
     byte lastHour; //[pu][0] runntimevariable
     int watering; //[dty] runntimevariable
+    bool override_mode; // manual override active — bypasses timetable, uses dty directly
 
     // Helper config member
     //HelperBase* helper;
@@ -81,10 +82,10 @@ class IrrigationController {
     // PRIVATE METHODS:
     // Member function to activate watering using PWM
     void activatePWM(int time_s);
-    // Member function to activate watering
-    void activate(int time_s);
 
   public:
+    // Member function to activate watering
+    void activate(int time_s);
     // DEFAULT Constructor seting an empty class, populate with loadScheduleConfig for specific irrigation functionality
     IrrigationController();
 

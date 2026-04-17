@@ -82,7 +82,7 @@ LoadDriverPin controller_pins[max_groups] =
 
 // DEFAULT Constructor seting an empty class
 IrrigationController::IrrigationController()
-    : is_set(false), timetable(0), watering(0), water_time(0), weather_multiplier(1.0f), name("NV") {
+    : is_set(false), timetable(0), watering(0), water_time(0), weather_multiplier(1.0f), override_mode(false), name("NV") {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -348,6 +348,7 @@ void IrrigationController::reset() {
   watering = 0;
   water_time = 0;
   weather_multiplier = 1.0f;
+  override_mode = false;
   driver_pins.clear(); // Clear the elements of driver_pins vector
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -440,37 +441,42 @@ int IrrigationController::watering_task_handler() {
     return 0;
   }
 
-  //lastDay = 0; lastHour = 0; // TESTING/DEBUGING
-  // check if group is set for this hour
-  bool correcthour = (this->timetable & (1 << hour)) != 0;
-  if(!correcthour){
-    #ifdef DEBUG
-    Serial.print(F("Group '"));
-    Serial.print(this->name); Serial.println(F("' nothing to do this time"));
-Serial.print("TODO: timetable = "); Serial.println(this->timetable);
-    #endif
-    return 0; // nothing to do this time
-  }
+  // Manual override: skip timetable and hour-change logic, watering is already set by loadDuty
+  if (this->override_mode) {
+    LogFire.log("override: \"" + String(this->name) + "\" remaining=" + String(this->watering) + "s", 1);
+  } else {
+    //lastDay = 0; lastHour = 0; // TESTING/DEBUGING
+    // check if group is set for this hour
+    bool correcthour = (this->timetable & (1 << hour)) != 0;
+    if(!correcthour){
+      #ifdef DEBUG
+      Serial.print(F("Group '"));
+      Serial.print(this->name); Serial.println(F("' nothing to do this time"));
+  Serial.print("TODO: timetable = "); Serial.println(this->timetable);
+      #endif
+      return 0; // nothing to do this time
+    }
 
-  // look for new hour and update runtimevariables
-  bool timechange = (this->lastDay != day) || (this->lastHour != hour);
-  if(timechange){
-    #ifdef DEBUG
-    Serial.print(F("Group '"));
-    Serial.print(this->name); Serial.println(F("' hour change detected"));
-    #endif
-    // set new update timestamp
-    this->lastDay = day;
-    this->lastHour = hour;
+    // look for new hour and update runtimevariables
+    bool timechange = (this->lastDay != day) || (this->lastHour != hour);
+    if(timechange){
+      #ifdef DEBUG
+      Serial.print(F("Group '"));
+      Serial.print(this->name); Serial.println(F("' hour change detected"));
+      #endif
+      // set new update timestamp
+      this->lastDay = day;
+      this->lastHour = hour;
 
-    // apply weather multiplier to base watering duration
-    this->watering = (int)(this->water_time * this->weather_multiplier);
-    if (this->watering < 0) this->watering = 0;
-    LogFire.log("group \"" + String(this->name) + "\": wm=" + String(this->weather_multiplier, 2) + " base=" + String(this->water_time) + "s -> " + String(this->watering) + "s", 1);
-    #ifdef DEBUG
-    Serial.print(F("Weather multiplier: ")); Serial.println(this->weather_multiplier);
-    Serial.print(F("Adjusted watering: ")); Serial.println(this->watering);
-    #endif
+      // apply weather multiplier to base watering duration
+      this->watering = (int)(this->water_time * this->weather_multiplier);
+      if (this->watering < 0) this->watering = 0;
+      LogFire.log("group \"" + String(this->name) + "\": wm=" + String(this->weather_multiplier, 2) + " base=" + String(this->water_time) + "s -> " + String(this->watering) + "s", 1);
+      #ifdef DEBUG
+      Serial.print(F("Weather multiplier: ")); Serial.println(this->weather_multiplier);
+      Serial.print(F("Adjusted watering: ")); Serial.println(this->watering);
+      #endif
+    }
   }
 
   // get info if system is allowed to water
@@ -611,6 +617,15 @@ void IrrigationController::loadDuty(const char* objkey) {
 
     JsonObject groupData = jsonDoc.as<JsonObject>()[objkey];
 
+    // Manual override: use dty directly, skip normal water_time addition
+    if (groupData.containsKey("ovr") && groupData["ovr"].as<int>() == 1) {
+      this->override_mode = true;
+      this->watering = groupData.containsKey("dty") ? groupData["dty"].as<int>() : 0;
+      this->lastHour = 0;
+      this->lastDay = 0;
+      return;
+    }
+
     // Check for "dty" and "up" keys and set default values if not present
     this->watering = groupData.containsKey("dty") ? groupData["dty"].as<int16_t>() : 0;
     JsonArray timestampArr = groupData.containsKey("up") ? groupData["up"].as<JsonArray>() : jsonDoc.createNestedArray("up");
@@ -648,6 +663,11 @@ bool IrrigationController::saveDuty(const char* objkey) {
   JsonArray timestampArr = jsonDoc[objkey]["up"];
   timestampArr.add(this->lastHour);
   timestampArr.add(this->lastDay);
+
+  // Clear override flag when watering is finished
+  if (this->watering == 0 && jsonDoc[objkey].containsKey("ovr")) {
+    jsonDoc[objkey].remove("ovr");
+  }
 
   // Write the updated JSON data to the config file
   HWHelper.writeConfigFile(jsonDoc, RUNTIME_FILE_PATH);

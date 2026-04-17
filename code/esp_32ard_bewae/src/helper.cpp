@@ -697,6 +697,31 @@ DynamicJsonDocument HelperBase::getJSONConfig(const char* server, int serverPort
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// HTTP POST JSON payload to server, returns true on HTTP 200
+bool HelperBase::postJSON(const char* server, int serverPort, const char* serverPath, const String& payload) {
+  int max_retries = 3;
+  int retries = 0;
+  while (retries < max_retries) {
+    HTTPClient http;
+    String serverAddress = String("http://") + server + ":" + serverPort + serverPath;
+    http.begin(serverAddress);
+    http.addHeader("Content-Type", "application/json");
+    int httpCode = http.POST(payload);
+    http.end();
+
+    if (httpCode == HTTP_CODE_OK) {
+      return true;
+    }
+    #ifdef DEBUG
+    Serial.println(String("Warning: POST failed (") + serverAddress + ") code=" + String(httpCode));
+    #endif
+    retries++;
+  }
+  #ifdef DEBUG
+  Serial.println(F("Error: POST failed after retries"));
+  #endif
+  return false;
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // (HEX) This function calculates the SHA-256 hash of the input content and returns the hash as a hexadecimal string.

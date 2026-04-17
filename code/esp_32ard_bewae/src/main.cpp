@@ -89,6 +89,8 @@ bool irrigationTask();
 long sensoringTask();
 // powering down system, returning false when theres something to do else true!
 bool checkSleepTask();
+// check server for manual override requests and fire them
+void overrideTask();
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -567,10 +569,78 @@ bool checkSleepTask(){
   if(controller_switches.getMainSwitch()){ // condition get checked with little delay!
 #ifndef OFFLINE_TEST
     HWHelper.wakeModemSleep();
+    overrideTask(); // check for manual watering overrides
 #endif
     LogFire.log("awake", 1);
     return false;
   }
 
   return true; // default
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// override — fetch manual watering requests, write to running.Json, let irrigationTask handle it
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void overrideTask() {
+  // Fetch overrideConfig from server
+  String webPath = String(WEB_PREFIX) + "?deviceName=" + DEVICE_NAME + "&fileType=overrideConfig";
+  DynamicJsonDocument overrideDoc = HWHelper.getJSONConfig(SERVER, NODERED_PORT, webPath.c_str());
+
+  if (overrideDoc.isNull() || overrideDoc.size() == 0) return;
+
+  // Collect active overrides and build clear payload
+  JsonObject overrides = overrideDoc.as<JsonObject>();
+  DynamicJsonDocument clearDoc(256);
+  JsonArray clearKeys = clearDoc.createNestedArray(DEVICE_NAME);
+
+  for (JsonPair p : overrides) {
+    JsonObject entry = p.value();
+    if (entry.containsKey("active") && entry["active"].as<int>() == 1) {
+      clearKeys.add(p.key().c_str());
+    }
+  }
+  if (clearKeys.size() == 0) return;
+
+  // Clear overrides on server BEFORE firing (safety: if ESP crashes mid-water, override won't re-fire)
+  String clearPayload;
+  serializeJson(clearDoc, clearPayload);
+  if (!HWHelper.postJSON(SERVER, NODERED_PORT, "/bewae/clear-override", clearPayload)) {
+    LogFire.log("override: clear failed, abort", 2);
+    return;
+  }
+  LogFire.log("override: cleared " + String(clearKeys.size()), 1);
+
+  // Validate override groups exist in local plantConfig
+  String plantPath = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
+  DynamicJsonDocument plantDoc = HWHelper.readConfigFile(plantPath.c_str());
+  if (plantDoc.isNull()) return;
+  JsonObject groups = plantDoc.as<JsonObject>();
+
+  // Write override durations to running.Json with ovr flag
+  DynamicJsonDocument runDoc = HWHelper.readConfigFile(RUNNING_FILE_PATH);
+  bool hasValid = false;
+
+  for (JsonPair p : overrides) {
+    JsonObject entry = p.value();
+    if (!entry.containsKey("active") || entry["active"].as<int>() != 1) continue;
+    String key = p.key().c_str();
+    int duration = entry["duration"].as<int>();
+
+    if (!groups.containsKey(key)) {
+      LogFire.log("override: unknown group " + key, 2);
+      continue;
+    }
+
+    runDoc[key]["dty"] = duration;
+    runDoc[key]["ovr"] = 1;
+    LogFire.log("override: queued " + key + " " + String(duration) + "s", 1);
+    hasValid = true;
+  }
+
+  if (hasValid) {
+    HWHelper.writeConfigFile(runDoc, RUNNING_FILE_PATH);
+    thirsty = true;
+  }
 }
