@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Build the production flow JSON with HTML embedded as a template node."""
+import argparse
 import json
+
+parser = argparse.ArgumentParser(description='Build bewae Node-RED flow JSON.')
+parser.add_argument('--output', default='node-red-flows/bewaeConfigPageFlow.json',
+                    help='Output flow JSON path (default: production file)')
+args = parser.parse_args()
 
 with open('node-red-flows/bewae-config.html', 'r', encoding='utf-8') as f:
     html = f.read()
@@ -108,6 +114,41 @@ msg.payload = currentConfig;
 msg.wmUpdated = updated;
 return msg;"""
 
+clear_override_func = """var configPath = '/data/bewae/full-config.json';
+var currentConfig = {};
+try {
+    currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+} catch(e) {
+    node.error('Could not read config: ' + e.message);
+    msg.payload = { error: 'Failed to read config', detail: e.message };
+    msg.statusCode = 500;
+    return msg;
+}
+
+var clearRequests = msg.payload;
+var cleared = 0;
+var deviceNames = Object.keys(clearRequests);
+
+for (var i = 0; i < deviceNames.length; i++) {
+    var deviceName = deviceNames[i];
+    var groupKeys = clearRequests[deviceName];
+    if (!currentConfig[deviceName] || !currentConfig[deviceName].overrideConfig) {
+        continue;
+    }
+    if (!Array.isArray(groupKeys)) groupKeys = [groupKeys];
+    for (var j = 0; j < groupKeys.length; j++) {
+        var gk = String(groupKeys[j]);
+        if (currentConfig[deviceName].overrideConfig[gk]) {
+            delete currentConfig[deviceName].overrideConfig[gk];
+            cleared++;
+        }
+    }
+}
+
+msg.payload = currentConfig;
+msg.overrideCleared = cleared;
+return msg;"""
+
 error_func = 'msg.payload = {\n    error: "Config file operation failed",\n    detail: msg.error ? msg.error.message : "Unknown error"\n};\nmsg.statusCode = 500;\nreturn msg;'
 
 test_data = json.dumps({
@@ -170,14 +211,23 @@ flow = [
     {"id": "rw_wm_resp", "type": "http response", "z": TAB, "name": "200 OK", "statusCode": "200", "headers": {}, "x": 960, "y": 500, "wires": []},
     {"id": "rw_wm_dbg", "type": "debug", "z": TAB, "name": "debug WM", "active": False, "tosidebar": True, "console": False, "tostatus": False, "complete": "true", "statusVal": "", "statusType": "auto", "x": 960, "y": 540, "wires": []},
 
+    # --- Clear Override API (ESP32 clears consumed overrides) ---
+    {"id": "rw_c6", "type": "comment", "z": TAB, "name": "Clear Override API (ESP32 clears consumed overrides)", "info": "", "x": 320, "y": 580, "wires": []},
+    {"id": "rw_post_clr", "type": "http in", "z": TAB, "name": "[post] clear override", "url": "/bewae/clear-override", "method": "post", "upload": False, "swaggerDoc": "", "x": 220, "y": 620, "wires": [["rw_clr_fn"]]},
+    {"id": "rw_clr_fn", "type": "function", "z": TAB, "name": "clear overrides", "func": clear_override_func, "outputs": 1, "timeout": "", "noerr": 0, "initialize": "", "finalize": "", "libs": [{"var": "fs", "module": "fs"}], "x": 440, "y": 620, "wires": [["rw_clr_json"]]},
+    {"id": "rw_clr_json", "type": "json", "z": TAB, "name": "stringify", "property": "payload", "action": "str", "pretty": True, "x": 620, "y": 620, "wires": [["rw_clr_write"]]},
+    {"id": "rw_clr_write", "type": "file", "z": TAB, "name": "write config", "filename": "/data/bewae/full-config.json", "filenameType": "str", "appendNewline": True, "createDir": False, "overwriteFile": "true", "encoding": "utf8", "x": 790, "y": 620, "wires": [["rw_clr_resp", "rw_clr_dbg"]]},
+    {"id": "rw_clr_resp", "type": "http response", "z": TAB, "name": "200 OK", "statusCode": "200", "headers": {}, "x": 960, "y": 600, "wires": []},
+    {"id": "rw_clr_dbg", "type": "debug", "z": TAB, "name": "debug CLR", "active": False, "tosidebar": True, "console": False, "tostatus": False, "complete": "true", "statusVal": "", "statusType": "auto", "x": 960, "y": 640, "wires": []},
+
     # --- Error handling ---
-    {"id": "rw_c4", "type": "comment", "z": TAB, "name": "Error Handling", "info": "Catches file read/write errors and returns 500.", "x": 210, "y": 600, "wires": []},
-    {"id": "rw_catch", "type": "catch", "z": TAB, "name": "catch file errors", "scope": ["rw_read1", "rw_merge", "rw_write", "rw_read2", "rw_filt", "rw_wm_merge", "rw_wm_write"], "uncaught": False, "x": 230, "y": 640, "wires": [["rw_fmterr"]]},
-    {"id": "rw_fmterr", "type": "function", "z": TAB, "name": "format error", "func": error_func, "outputs": 1, "timeout": "", "noerr": 0, "initialize": "", "finalize": "", "libs": [], "x": 470, "y": 640, "wires": [["rw_resp_err"]]},
-    {"id": "rw_resp_err", "type": "http response", "z": TAB, "name": "error 500", "statusCode": "500", "headers": {}, "x": 670, "y": 640, "wires": []},
+    {"id": "rw_c4", "type": "comment", "z": TAB, "name": "Error Handling", "info": "Catches file read/write errors and returns 500.", "x": 210, "y": 700, "wires": []},
+    {"id": "rw_catch", "type": "catch", "z": TAB, "name": "catch file errors", "scope": ["rw_read1", "rw_merge", "rw_write", "rw_read2", "rw_filt", "rw_wm_merge", "rw_wm_write", "rw_clr_fn", "rw_clr_write"], "uncaught": False, "x": 230, "y": 740, "wires": [["rw_fmterr"]]},
+    {"id": "rw_fmterr", "type": "function", "z": TAB, "name": "format error", "func": error_func, "outputs": 1, "timeout": "", "noerr": 0, "initialize": "", "finalize": "", "libs": [], "x": 470, "y": 740, "wires": [["rw_resp_err"]]},
+    {"id": "rw_resp_err", "type": "http response", "z": TAB, "name": "error 500", "statusCode": "500", "headers": {}, "x": 670, "y": 740, "wires": []},
 ]
 
-with open('node-red-flows/bewaeConfigPageFlow.json', 'w', encoding='utf-8') as f:
+with open(args.output, 'w', encoding='utf-8') as f:
     json.dump(flow, f, indent=4, ensure_ascii=False)
 
-print(f"Done. Flow file: {len(json.dumps(flow)):,} bytes, {len(flow)} nodes")
+print(f"Done. {args.output}: {len(json.dumps(flow)):,} bytes, {len(flow)} nodes")

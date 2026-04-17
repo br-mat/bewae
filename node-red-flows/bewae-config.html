@@ -115,7 +115,7 @@
     border-radius: var(--radius);
   }
 
-  table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; min-width: 920px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
 
   thead th {
     background: var(--primary);
@@ -353,6 +353,33 @@
   .toast.ok { background: var(--success); }
   .toast.err { background: var(--danger); }
 
+  /* ── Expandable detail rows ──────────────────────────────── */
+  .detail-row { display: none; }
+  .detail-row.open { display: table-row; }
+  .detail-row td { padding: 12px 16px; background: var(--primary-bg); border-bottom: 1px solid var(--border); }
+  .detail-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px;
+  }
+  .detail-field { display: flex; flex-direction: column; gap: 4px; }
+  .detail-field label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
+  .expand-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 0.75rem; color: var(--text-muted); padding: 2px 4px;
+    transition: color 150ms;
+  }
+  .expand-btn:hover { color: var(--primary); }
+
+  /* ── Override rows ─────────────────────────────────────── */
+  .override-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .override-row:last-child { border-bottom: none; }
+  .override-name { font-weight: 500; min-width: 120px; }
+  .override-duration { width: 70px; padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem; }
+  .override-duration:focus { outline: none; border-color: var(--primary-light); box-shadow: 0 0 0 2px rgba(168,85,247,0.15); }
+  .override-pending { color: var(--accent); font-size: 0.8rem; font-weight: 600; }
+
   /* ── Sections ───────────────────────────────────────────── */
   .section { display: none; }
   .section.active { display: block; }
@@ -362,6 +389,8 @@
     .sidebar { display: none; }
     .main { padding: 14px; }
     .form-grid { grid-template-columns: 1fr; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .override-row { flex-direction: column; align-items: flex-start; gap: 6px; }
   }
   </style>
 </head>
@@ -374,6 +403,7 @@
     <a class="nav-item" data-section="device">Device</a>
     <a class="nav-item" data-section="irrigation">Irrigation</a>
     <a class="nav-item" data-section="sensors">Sensors</a>
+    <a class="nav-item" data-section="waternow">Water Now</a>
   </nav>
 
   <main class="main">
@@ -398,9 +428,8 @@
         <div class="table-wrap">
           <table id="plantTable">
             <thead><tr>
-              <th>Plant Name</th><th>Water (s)</th><th>Plant Size</th><th>Pot Size</th>
-              <th>Schedule</th><th>vPins</th><th>Crop Coeff.</th><th>Under Roof</th>
-              <th>Soil Sensor</th><th>Weather &times;</th><th>Active</th><th></th>
+              <th></th><th>Plant Name</th><th>Water (s)</th>
+              <th>Schedule</th><th>vPins</th><th>Weather &times;</th><th>Active</th><th></th>
             </tr></thead>
             <tbody></tbody>
           </table>
@@ -419,17 +448,6 @@
             <input type="number" id="pw" min="0" value="10">
           </div>
           <div class="field">
-            <label for="pls">Plant Size</label>
-            <div class="mini-slider">
-              <input type="range" id="pls" min="0" max="100" value="50">
-              <span class="slider-label" id="pls-label">50%</span>
-            </div>
-          </div>
-          <div class="field">
-            <label for="pts">Pot Size</label>
-            <input type="number" id="pts" min="0" step="0.1" value="1.0">
-          </div>
-          <div class="field">
             <label>Schedule (hours)</label>
             <div class="sched-picker">
               <button type="button" class="sched-btn" id="wt-btn">
@@ -445,33 +463,49 @@
             <input type="text" id="pp" placeholder="0,5">
           </div>
           <div class="field">
-            <label for="kc">Crop Coefficient</label>
-            <input type="number" id="kc" min="0.1" max="2.0" step="0.05" value="1.0">
-            <span class="hint">Tomatoes ~1.05, herbs ~0.7, succulents ~0.3</span>
-          </div>
-          <div class="field">
-            <label>Under Roof</label>
-            <label class="toggle">
-              <input type="checkbox" id="ignore_rain">
-              <span class="track"></span>
-            </label>
-            <span class="hint">Enable if rain doesn't reach this plant</span>
-          </div>
-          <div class="field">
-            <label for="moisture_sensor">Soil Sensor Field</label>
-            <input type="text" id="moisture_sensor" placeholder="e.g. moisture">
-            <span class="hint">InfluxDB field name. Leave empty if none.</span>
-          </div>
-          <div class="field">
             <label>Active</label>
             <label class="toggle">
               <input type="checkbox" id="ps" checked>
               <span class="track"></span>
             </label>
           </div>
-          <div class="field full">
-            <button class="btn btn-success" onclick="addItem(plantCfg)">Add Plant</button>
+        </div>
+        <details style="margin-top:14px;">
+          <summary style="cursor:pointer; font-weight:600; font-size:0.9rem; color:var(--text-muted);">Auto-Watering Settings</summary>
+          <div class="form-grid" style="margin-top:10px;">
+            <div class="field">
+              <label for="kc">Crop Coefficient</label>
+              <input type="number" id="kc" min="0.1" max="2.0" step="0.05" value="1.0">
+              <span class="hint">Tomatoes ~1.05, herbs ~0.7, succulents ~0.3</span>
+            </div>
+            <div class="field">
+              <label>Under Roof</label>
+              <label class="toggle">
+                <input type="checkbox" id="ignore_rain">
+                <span class="track"></span>
+              </label>
+              <span class="hint">Enable if rain doesn't reach this plant</span>
+            </div>
+            <div class="field">
+              <label for="moisture_sensor">Soil Sensor Field</label>
+              <input type="text" id="moisture_sensor" placeholder="e.g. moisture">
+              <span class="hint">InfluxDB field name. Leave empty if none.</span>
+            </div>
+            <div class="field">
+              <label for="pls">Plant Size</label>
+              <div class="mini-slider">
+                <input type="range" id="pls" min="0" max="100" value="50">
+                <span class="slider-label" id="pls-label">50%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="pts">Pot Size</label>
+              <input type="number" id="pts" min="0" step="0.1" value="1.0">
+            </div>
           </div>
+        </details>
+        <div style="margin-top:14px;">
+          <button class="btn btn-success" onclick="addItem(plantCfg)">Add Plant</button>
         </div>
       </div>
     </div>
@@ -570,6 +604,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Water Now -->
+    <div id="waternow" class="section">
+      <div class="card">
+        <h2>Water Now</h2>
+        <p class="hint" style="margin-bottom:14px;">Queue a manual override. Fires on next device sync (~10 min).</p>
+        <div id="overrideList"></div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -591,17 +634,19 @@ var configData = null;
 var plantCfg = {
   tableId: 'plantTable', dataKey: 'plantConfig',
   columns: [
-    { key: 'pn',              type: 'string',    editable: true,  widget: 'click-text' },
-    { key: 'pw',              type: 'number',    editable: true,  widget: 'click-number' },
-    { key: 'pls',             type: 'number',    editable: true,  widget: 'slider', attrs: { min: 0, max: 100 } },
-    { key: 'pts',             type: 'number',    editable: true,  widget: 'click-float', attrs: { step: 0.1, min: 0 } },
-    { key: 'wt',              type: 'timetable', editable: true,  widget: 'chips' },
-    { key: 'pp',              type: 'array',     editable: true,  widget: 'click-text' },
-    { key: 'kc',              type: 'number',    editable: true,  widget: 'click-float', attrs: { step: 0.05, min: 0.1, max: 2.0 } },
-    { key: 'ignore_rain',     type: 'boolean',   editable: true,  widget: 'toggle' },
-    { key: 'moisture_sensor', type: 'string',    editable: true,  widget: 'click-text' },
-    { key: 'wm',              type: 'readonly',  editable: false, widget: 'badge' },
-    { key: 'ps',              type: 'number',    editable: true,  widget: 'toggle' }
+    { key: 'pn',  type: 'string',    editable: true,  widget: 'click-text' },
+    { key: 'pw',  type: 'number',    editable: true,  widget: 'click-number' },
+    { key: 'wt',  type: 'timetable', editable: true,  widget: 'chips' },
+    { key: 'pp',  type: 'array',     editable: true,  widget: 'click-text' },
+    { key: 'wm',  type: 'readonly',  editable: false, widget: 'badge' },
+    { key: 'ps',  type: 'number',    editable: true,  widget: 'toggle' }
+  ],
+  detailColumns: [
+    { key: 'kc',              type: 'number',  editable: true, widget: 'click-float', attrs: { step: 0.05, min: 0.1, max: 2.0 }, label: 'Crop Coeff.' },
+    { key: 'ignore_rain',     type: 'boolean', editable: true, widget: 'toggle',      label: 'Under Roof' },
+    { key: 'moisture_sensor', type: 'string',  editable: true, widget: 'click-text',  label: 'Soil Sensor' },
+    { key: 'pls',             type: 'number',  editable: true, widget: 'slider', attrs: { min: 0, max: 100 }, label: 'Plant Size' },
+    { key: 'pts',             type: 'number',  editable: true, widget: 'click-float', attrs: { step: 0.1, min: 0 }, label: 'Pot Size' }
   ]
 };
 
@@ -749,6 +794,11 @@ function saveField(cfg, rowIdx, colKey, value) {
   var col = null;
   for (var i = 0; i < cfg.columns.length; i++) {
     if (cfg.columns[i].key === colKey) { col = cfg.columns[i]; break; }
+  }
+  if (!col && cfg.detailColumns) {
+    for (var i = 0; i < cfg.detailColumns.length; i++) {
+      if (cfg.detailColumns[i].key === colKey) { col = cfg.detailColumns[i]; break; }
+    }
   }
   if (!col) return;
   configData[d][cfg.dataKey][rowIdx][colKey] = fmt(value, col.type);
@@ -969,6 +1019,33 @@ function renderDropdown(td, value, col, cfg, rowIdx) {
 
 /* ── Table rendering ───────────────────────────────────────── */
 
+function renderWidget(container, val, col, cfg, key) {
+  switch (col.widget) {
+    case 'click-text':
+    case 'click-number':
+    case 'click-float':
+      renderClickEdit(container, val, col, cfg, key);
+      break;
+    case 'slider':
+      renderSlider(container, val, col, cfg, key);
+      break;
+    case 'toggle':
+      renderToggle(container, val, col, cfg, key);
+      break;
+    case 'chips':
+      renderChips(container, val, col, cfg, key);
+      break;
+    case 'badge':
+      renderBadge(container, val);
+      break;
+    case 'dropdown':
+      renderDropdown(container, val, col, cfg, key);
+      break;
+    default:
+      container.textContent = displayVal(val, col.type);
+  }
+}
+
 function renderTable(cfg) {
   var tbody = document.querySelector('#' + cfg.tableId + ' tbody');
   if (!tbody) return;
@@ -976,43 +1053,33 @@ function renderTable(cfg) {
 
   var data = configData && configData[curDev()] && configData[curDev()][cfg.dataKey];
   if (!data) return;
+  var hasDetails = cfg.detailColumns && cfg.detailColumns.length > 0;
+  var totalCols = cfg.columns.length + (hasDetails ? 1 : 0) + 1; // +expand +delete
 
   Object.keys(data).forEach(function(key) {
     var item = data[key];
     if (!item || typeof item !== 'object') return;
 
     var tr = document.createElement('tr');
+
+    // Expand button cell (only if detail columns exist)
+    if (hasDetails) {
+      var expTd = document.createElement('td');
+      var expBtn = document.createElement('button');
+      expBtn.className = 'expand-btn';
+      expBtn.textContent = '\u25B6';
+      expTd.appendChild(expBtn);
+      tr.appendChild(expTd);
+    }
+
+    // Main columns
     cfg.columns.forEach(function(col) {
       var td = document.createElement('td');
-      var val = item[col.key];
-
-      switch (col.widget) {
-        case 'click-text':
-        case 'click-number':
-        case 'click-float':
-          renderClickEdit(td, val, col, cfg, key);
-          break;
-        case 'slider':
-          renderSlider(td, val, col, cfg, key);
-          break;
-        case 'toggle':
-          renderToggle(td, val, col, cfg, key);
-          break;
-        case 'chips':
-          renderChips(td, val, col, cfg, key);
-          break;
-        case 'badge':
-          renderBadge(td, val);
-          break;
-        case 'dropdown':
-          renderDropdown(td, val, col, cfg, key);
-          break;
-        default:
-          td.textContent = displayVal(val, col.type);
-      }
+      renderWidget(td, item[col.key], col, cfg, key);
       tr.appendChild(td);
     });
 
+    // Delete button
     var actTd = document.createElement('td');
     var delBtn = document.createElement('button');
     delBtn.className = 'btn-del-icon';
@@ -1031,6 +1098,38 @@ function renderTable(cfg) {
     actTd.appendChild(delBtn);
     tr.appendChild(actTd);
     tbody.appendChild(tr);
+
+    // Detail row (expandable)
+    if (hasDetails) {
+      var detailTr = document.createElement('tr');
+      detailTr.className = 'detail-row';
+      var detailTd = document.createElement('td');
+      detailTd.colSpan = totalCols;
+      var grid = document.createElement('div');
+      grid.className = 'detail-grid';
+
+      cfg.detailColumns.forEach(function(col) {
+        var field = document.createElement('div');
+        field.className = 'detail-field';
+        var lbl = document.createElement('label');
+        lbl.textContent = col.label || col.key;
+        field.appendChild(lbl);
+        var widgetEl = document.createElement('div');
+        renderWidget(widgetEl, item[col.key], col, cfg, key);
+        field.appendChild(widgetEl);
+        grid.appendChild(field);
+      });
+
+      detailTd.appendChild(grid);
+      detailTr.appendChild(detailTd);
+      tbody.appendChild(detailTr);
+
+      // Wire up expand button
+      expBtn.onclick = function() {
+        detailTr.classList.toggle('open');
+        expBtn.textContent = detailTr.classList.contains('open') ? '\u25BC' : '\u25B6';
+      };
+    }
   });
 }
 
@@ -1038,7 +1137,9 @@ function renderTable(cfg) {
 
 function addItem(cfg) {
   var item = {};
-  cfg.columns.forEach(function(col) {
+  var allCols = cfg.columns.slice();
+  if (cfg.detailColumns) allCols = allCols.concat(cfg.detailColumns);
+  allCols.forEach(function(col) {
     if (col.type === 'readonly') return;
     // Schedule chip grid
     if (col.key === 'wt') {
@@ -1108,6 +1209,104 @@ function saveDeviceConfig() {
   saveConfig().then(function() { toast('Device config saved'); refresh(); });
 }
 
+/* ── Override (Water Now) ──────────────────────────────────── */
+
+function renderOverrides() {
+  var container = document.getElementById('overrideList');
+  if (!container) return;
+  container.innerHTML = '';
+
+  var d = curDev();
+  var pc = configData && configData[d] && configData[d].plantConfig;
+  if (!pc) { container.innerHTML = '<p class="hint">No device selected.</p>'; return; }
+
+  var oc = (configData[d].overrideConfig) || {};
+  var hasRows = false;
+
+  Object.keys(pc).forEach(function(key) {
+    var group = pc[key];
+    if (!group || !group.pn) return;
+    if (group.ps !== 1 && group.ps !== '1' && group.ps !== true) return;
+    hasRows = true;
+
+    var row = document.createElement('div');
+    row.className = 'override-row';
+
+    var name = document.createElement('span');
+    name.className = 'override-name';
+    name.textContent = group.pn;
+    row.appendChild(name);
+
+    var pending = oc[key] && oc[key].active;
+
+    if (pending) {
+      var badge = document.createElement('span');
+      badge.className = 'override-pending';
+      badge.textContent = 'Pending (' + oc[key].duration + 's)';
+      row.appendChild(badge);
+
+      var cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn btn-danger btn-sm';
+      cancelBtn.textContent = 'Cancel';
+      (function(k) {
+        cancelBtn.onclick = function() { cancelOverride(k); };
+      })(key);
+      row.appendChild(cancelBtn);
+    } else {
+      var durInput = document.createElement('input');
+      durInput.type = 'number';
+      durInput.className = 'override-duration';
+      durInput.min = '1';
+      durInput.value = group.pw || 10;
+      row.appendChild(durInput);
+
+      var unit = document.createElement('span');
+      unit.className = 'hint';
+      unit.textContent = 's';
+      unit.style.marginRight = '4px';
+      row.appendChild(unit);
+
+      var queueBtn = document.createElement('button');
+      queueBtn.className = 'btn btn-warn btn-sm';
+      queueBtn.textContent = 'Queue';
+      (function(k, inp) {
+        queueBtn.onclick = function() { queueOverride(k, inp.value); };
+      })(key, durInput);
+      row.appendChild(queueBtn);
+    }
+
+    container.appendChild(row);
+  });
+
+  if (!hasRows) {
+    container.innerHTML = '<p class="hint">No active plant groups.</p>';
+  }
+}
+
+function queueOverride(groupKey, duration) {
+  var d = curDev();
+  if (!d) return toast('Select a device', true);
+  if (!configData[d].overrideConfig) configData[d].overrideConfig = {};
+  configData[d].overrideConfig[groupKey] = { active: 1, duration: parseInt(duration) || 10 };
+  var name = (configData[d].plantConfig[groupKey] || {}).pn || groupKey;
+  saveConfig().then(function() {
+    toast('Override queued for ' + name);
+    renderOverrides();
+  });
+}
+
+function cancelOverride(groupKey) {
+  var d = curDev();
+  if (!d) return;
+  if (configData[d].overrideConfig) {
+    delete configData[d].overrideConfig[groupKey];
+  }
+  saveConfig().then(function() {
+    toast('Override cancelled');
+    renderOverrides();
+  });
+}
+
 /* ── Navigation ────────────────────────────────────────────── */
 
 function showSection(id) {
@@ -1125,6 +1324,7 @@ function refresh() {
   renderTable(plantCfg);
   renderTable(sensorCfg);
   renderDeviceConfig();
+  renderOverrides();
 }
 
 function init() {
