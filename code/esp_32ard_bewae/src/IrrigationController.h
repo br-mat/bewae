@@ -110,13 +110,11 @@ class IrrigationController {
 
     // Public function: Handling watering process calling related functionality
     // call this function every now and then to keep track of time variables
-    int watering_task_handler();
+    int watering_task_handler(const struct tm& localTime);
 
     // Resets all member variables to their default values
     void reset();
 
-    // Static member function to combine the timetables of an array of IrrigationController objects using a loop
-    static long combineTimetables();
     // function to init running file & update
     void loadDuty(const char* objkey);
     bool saveDuty(const char* objkey);

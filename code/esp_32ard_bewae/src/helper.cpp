@@ -116,14 +116,16 @@ bool HelperBase::setTime(struct tm timeinfo)
 bool HelperBase::readTime(struct tm* timeinfo)
 {
 #ifdef OFFLINE_TEST
-  // hardcoded time for offline testing — no RTC or NTP needed
+  // Time simulation: 10 real seconds = 1 simulated hour. Cycles through full days.
+  // Scheduled hours in plantConfig timetable 8399362: 1, 9, 11, 13, 23
+  unsigned long elapsed_hours = millis() / 10000UL;
   memset(timeinfo, 0, sizeof(struct tm));
-  timeinfo->tm_hour = 9;  // matches timetable 8399362 (bit 9 set)
+  timeinfo->tm_hour = elapsed_hours % 24;
   timeinfo->tm_min  = 0;
   timeinfo->tm_sec  = 0;
-  timeinfo->tm_mday = 1;
-  timeinfo->tm_mon  = 2;   // March (0-indexed)
-  timeinfo->tm_year = 125; // 2025 (years since 1900)
+  timeinfo->tm_mday = 1 + (int)((elapsed_hours / 24) % 28);
+  timeinfo->tm_mon  = 2;
+  timeinfo->tm_year = 125;
   return true;
 #endif
   #ifdef DEBUG

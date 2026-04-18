@@ -421,17 +421,13 @@ void IrrigationController::activate(int time_s) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Public function: Handling watering process calling related functionality, seting variables saving config
-int IrrigationController::watering_task_handler() {
+int IrrigationController::watering_task_handler(const struct tm& localTime) {
   // Function description: Starts the irrigation procedure after checking if the hardware is ready
   // FUNCTION PARAMETER:
-  // currentHour - the active hour to check the with the timetable
-  // currentDay - the active day
+  // localTime - current time struct, read once by caller and shared across all groups (avoids N I2C reads)
   // returns - int 1 if not finished and 0 if finished
-  // call this function at least once an hour to update information on what is already done  
-  // check for hour change and shift water_time base value into watering value to be processed
-  struct tm localTime;
-  bool status = HWHelper.readTime(&localTime);
-  byte minute = localTime.tm_min, hour = localTime.tm_hour, day = localTime.tm_mday;
+  // call this function every iteration of the watering loop to advance the group's watering state
+  byte hour = localTime.tm_hour, day = localTime.tm_mday;
 
   // if not set return early
   if(!this->is_set){
@@ -441,14 +437,28 @@ int IrrigationController::watering_task_handler() {
     return 0;
   }
 
-  // Manual override: skip timetable and hour-change logic, watering is already set by loadDuty
+  // Manual override: bypass timetable gate so it fires outside scheduled hours too.
+  // But if this is also a scheduled hour that hasn't been watered yet, add the scheduled
+  // amount on top so the override is purely additive — it never silently skips the schedule.
   if (this->override_mode) {
-    LogFire.log("override: \"" + String(this->name) + "\" remaining=" + String(this->watering) + "s", 1);
+    bool correcthour = (this->timetable & (1 << hour)) != 0;
+    bool timechange = (this->lastDay != day) || (this->lastHour != hour);
+    if (correcthour && timechange) {
+      this->lastHour = hour;
+      this->lastDay = day;
+      int scheduled = (int)(this->water_time * this->weather_multiplier);
+      if (scheduled < 0) scheduled = 0;
+      this->watering += scheduled;
+      LogFire.log("group \"" + String(this->name) + "\": override + scheduled +" + String(scheduled) + "s -> " + String(this->watering) + "s total", 1);
+    } else {
+      LogFire.log("group \"" + String(this->name) + "\": override remaining=" + String(this->watering) + "s", 1);
+    }
   } else {
     //lastDay = 0; lastHour = 0; // TESTING/DEBUGING
     // check if group is set for this hour
     bool correcthour = (this->timetable & (1 << hour)) != 0;
     if(!correcthour){
+      LogFire.log("group \"" + String(this->name) + "\": skip (not scheduled h=" + String(hour) + ")", 0);
       #ifdef DEBUG
       Serial.print(F("Group '"));
       Serial.print(this->name); Serial.println(F("' nothing to do this time"));
@@ -535,26 +545,25 @@ int IrrigationController::watering_task_handler() {
     this->watering = this->watering - active_time; // update the water time
     if (this->watering < 0) this->watering = 0;
 
-    // Log just before solenoids open — WiFi managed by irrigationTask() caller
+    // Log just before solenoids open — WiFi managed by Phase 4 caller
     {
       String pins = "";
       for (int pin : this->driver_pins) {
         if (pins.length()) pins += ",";
         pins += String(pin);
       }
-      LogFire.log("activate: \"" + String(this->name) + "\" pins=[" + pins + "] for " + String(active_time) + "s", 1);
+      LogFire.log("group \"" + String(this->name) + "\": activate pins=[" + pins + "] for " + String(active_time) + "s", 1);
     }
 
     // Activate watering process
     activate(active_time);
 
-    // Only save to flash when cycle finishes to reduce SPIFFS wear.
-    // If ESP32 resets mid-cycle it will re-water that hour on next wake (safe for plants).
+    // Save runtime state when group finishes. plantConfig fields haven't changed so
+    // saveScheduleConfig() would just read+checksum+skip — call saveDuty() directly.
     if (this->watering == 0) {
-      String path = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
-      if (!saveScheduleConfig(path.c_str(), this->key)){
+      if (!saveDuty(this->key)){
         #ifdef DEBUG
-        Serial.println(F("Failed to save status!"));
+        Serial.println(F("Failed to save duty!"));
         #endif
       }
     }
@@ -574,33 +583,6 @@ int IrrigationController::watering_task_handler() {
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Define the implementation of the combineTimetables() static member function
-long IrrigationController::combineTimetables() {
-  // Initialize the combined timetable to 0.
-  long combinedTimetable = 0;
-
-  // load config
-  String path = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
-  DynamicJsonDocument doc(CONF_FILE_SIZE);
-  doc = HWHelper.readConfigFile(path.c_str());
-
-  // Access the "groups" object
-  JsonObject groups = doc.as<JsonObject>();
-  doc.clear();
-  for (JsonObject::iterator it = groups.begin(); it != groups.end(); ++it) {
-    // validate if key is something that could be used
-    JsonObject groupItem = it->value();
-    bool condition = groupItem["ps"];
-    if(!condition){
-      continue; // skip if not set
-    }
-    long timetable = groupItem["wt"];
-    combinedTimetable |= timetable;
-  }
-  return combinedTimetable;
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 // function to init running file & update use this funciton to set a irrigation duty
 void IrrigationController::loadDuty(const char* objkey) {
   const char* RUNTIME_FILE_PATH = RUNNING_FILE_PATH;
@@ -617,12 +599,14 @@ void IrrigationController::loadDuty(const char* objkey) {
 
     JsonObject groupData = jsonDoc.as<JsonObject>()[objkey];
 
-    // Manual override: use dty directly, skip normal water_time addition
+    // Manual override: use dty directly, but still load up[] so the additive
+    // scheduled-hour logic in watering_task_handler knows which hours already ran.
     if (groupData.containsKey("ovr") && groupData["ovr"].as<int>() == 1) {
       this->override_mode = true;
       this->watering = groupData.containsKey("dty") ? groupData["dty"].as<int>() : 0;
-      this->lastHour = 0;
-      this->lastDay = 0;
+      JsonArray upArr = groupData.containsKey("up") ? groupData["up"].as<JsonArray>() : JsonArray();
+      this->lastHour = upArr.size() > 0 ? upArr[0].as<byte>() : 0;
+      this->lastDay = upArr.size() > 1 ? upArr[1].as<byte>() : 0;
       return;
     }
 
@@ -631,9 +615,6 @@ void IrrigationController::loadDuty(const char* objkey) {
     JsonArray timestampArr = groupData.containsKey("up") ? groupData["up"].as<JsonArray>() : jsonDoc.createNestedArray("up");
     this->lastHour = timestampArr.size() > 0 ? timestampArr[0] : 0;
     this->lastDay = timestampArr.size() > 1 ? timestampArr[1] : 0;
-
-    // Add water_time to watering
-    this->watering += this->water_time;
 
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -40,19 +40,7 @@ using namespace std;
 //important global variables
 //byte sec_; byte min_; byte hour_; byte day_w_; byte day_m_; byte mon_; byte year_; // containing time variables
 
-struct tm oldtimeMark; // timemark
-
-unsigned long nextActionTime = 0; // timestamp variable
-
-bool thirsty = false; // marks if a watering cycle is finished
-
-//timetable example
-//                                             2523211917151311 9 7 5 3 1
-//                                              | | | | | | | | | | | | |
-//unsigned long int timetable_default = 0b00000000000000000000010000000000;
-//                                               | | | | | | | | | | | | |
-//                                              2422201816141210 8 6 4 2 0
-unsigned long int timetable = 0; // holding info at which hour system needs to do something
+bool thirsty = false; // marks if a watering cycle is needed
 
 // Setup a oneWire instance to communicate with any OneWire device
 OneWire oneWireGlobal(oneWireBus);
@@ -83,14 +71,10 @@ InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLU
 
 // Task implementation can be found on bottom of code
 
-// containing irrigation implementation, returns false if irrigation finished else true
-bool irrigationTask();
 // sensoring implementation, returns timestamp of next event in UL
 long sensoringTask();
-// powering down system, returning false when theres something to do else true!
-bool checkSleepTask();
-// check server for manual override requests and fire them
-void overrideTask();
+// fetch manual watering overrides from server, write to running.Json, set thirsty
+void checkOverrides();
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -173,8 +157,8 @@ void setup() {
 // init time and date
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef OFFLINE_TEST
-  // OFFLINE_TEST: skip NTP/WiFi time sync — leave oldtimeMark at zero so
-  // checkSleepTask() detects an hour change on the first loop iteration.
+  // OFFLINE_TEST: skip NTP/WiFi time sync. loop() starts with last_hour=255,
+  // so the first iteration always detects an hour change and runs Phase 2 sync.
   LogFire.log("bewae boot (offline)", 1);
   delay(30);
 #else
@@ -200,10 +184,6 @@ void setup() {
     LogFire.log("NTP sync failed", 2);
   }
   delay(100);
-  //initialize global time
-  bool condition = HWHelper.readTime(&oldtimeMark);
-  delay(30);
-
   LogFire.log("bewae boot", 1);
 #endif
 
@@ -244,43 +224,159 @@ void setup() {
 //----------------------------------------------------------------------------------------------------------------------
 //######################################################################################################################
 void loop(){
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// start & sleep loop
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Persistent state — statics survive across loop() calls (light sleep preserves RAM)
+  static byte last_hour = 255;            // 255 = sentinel: force hour-change on first boot
+  static unsigned long last_sense_ms = 0; // tracks last sensor read timestamp
 
-// manage sleep and updating of configuration
-while(checkSleepTask()){ // uncomment for Test (TESTRUN FLAG)
-}
-SwitchController status_switches(&HWHelper); // initialize switch class
-//status_switches.updateSwitches(); // get called when initialized
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Phase 1: WAKE — read time, load switches, detect hour change
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  HWHelper.enablePeripherals();
+  delay(10);
 
-LogFire.log("loop", 1);
+  struct tm now;
+  HWHelper.readTime(&now);
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// collect & send data
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-if(status_switches.getDataloggingSwitch() && millis() > nextActionTime){
-  LogFire.log("sensors: running", 1);
-  nextActionTime = sensoringTask() + measure_intervall;
-  LogFire.log("sensors: done", 1);
-}
-else{
-  String reason = !status_switches.getDataloggingSwitch() ? "switch off" : "too soon";
-  LogFire.log("sensors: skip (" + reason + ")", 1);
-  nextActionTime = millis() + measure_intervall * 2;
-}
+  SwitchController switches(&HWHelper);
+  bool hour_changed = (now.tm_hour != last_hour);
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// watering - return true if finished
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-if(status_switches.getIrrigationSystemSwitch()){
-  LogFire.log("irrig: check thirsty=" + String(thirsty ? "yes" : "no"), 1);
-  irrigationTask();
-  LogFire.log("irrig: check done", 1);
-}
-else{
-  LogFire.log("irrig: skip (switch off)", 1);
-}
+  LogFire.log(
+    String("wake ") +
+    String(now.tm_hour) + ":" + (now.tm_min < 10 ? "0" : "") + String(now.tm_min) +
+    " main=" + String(switches.getMainSwitch()) +
+    " irrig=" + String(switches.getIrrigationSystemSwitch()) +
+    " data=" + String(switches.getDataloggingSwitch()) +
+    " heap=" + String(ESP.getFreeHeap()) + "B", 0);
+
+  if (!switches.getMainSwitch()) {
+    LogFire.log("sleep: main off", 0);
+    HWHelper.disablePeripherals();
+    HWHelper.system_sleep();
+#ifndef OFFLINE_TEST
+    unsigned long sleepTarget = millis() + measure_intervall;
+    while (millis() < sleepTarget) {
+      delayMicroseconds(500);
+      esp_light_sleep_start();
+    }
+#endif
+    return;
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Phase 2: SYNC — on hour change: WiFi up, sync config, check overrides
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  if (hour_changed) {
+#ifndef OFFLINE_TEST
+    HWHelper.wakeModemSleep();
+    LogFire.log("sync: config update h=" + String(now.tm_hour), 1);
+    if (HWHelper.syncConfig()) LogFire.log("sync: config error", 2);
+    checkOverrides();
+#else
+    LogFire.log("OFFLINE_TEST: skipping syncConfig", 0);
+#endif
+    last_hour = now.tm_hour;
+    if (switches.getIrrigationSystemSwitch()) thirsty = true;
+    if (!thirsty) HWHelper.disableWiFi();
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Phase 3: SENSE — if datalogging on and interval elapsed, read sensors
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  if (switches.getDataloggingSwitch() && (millis() - last_sense_ms > measure_intervall)) {
+    LogFire.log("sense: reading sensors", 1);
+#ifndef OFFLINE_TEST
+    if (WiFi.status() != WL_CONNECTED) HWHelper.wakeModemSleep();
+#endif
+    sensoringTask();
+    last_sense_ms = millis();
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Phase 4: WATER — if thirsty and irrigation on, run watering loop to completion
+  // Safety: activate() blocks for full duration; NEVER interrupted; cooldowns enforced by readyToWater()
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  if (thirsty && switches.getIrrigationSystemSwitch()) {
+    String path = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
+    DynamicJsonDocument doc = HWHelper.getJsonDoc(path.c_str());
+
+    if (doc.isNull() || !doc.is<JsonObject>()) {
+      LogFire.log("water: config invalid", 3);
+    } else {
+      JsonObject groups = doc.as<JsonObject>();
+      int numgroups = groups.size();
+
+      if (numgroups > max_groups) {
+        LogFire.log("water: too many groups=" + String(numgroups), 3);
+      } else {
+        // Use static array to avoid stack overflow; reset all entries each cycle
+        static IrrigationController Group[max_groups];
+        for (int i = 0; i < max_groups; i++) Group[i].reset();
+        int j = 0;
+
+        for (JsonObject::iterator it = groups.begin(); it != groups.end(); ++it) {
+          if (String(it->key().c_str()) == String("checksum")) continue;
+          if (!Group[j].loadScheduleConfig(*it)) {
+            LogFire.log("water: schedule load failed group=" + String(it->key().c_str()), 3);
+            Group[j].reset();
+            break;
+          }
+          j++;
+        }
+
+        LogFire.log("water: starting cycle h=" + String(now.tm_hour) + ", " + String(j) + " groups loaded", 1);
+
+#ifndef OFFLINE_TEST
+        if (WiFi.status() != WL_CONNECTED) HWHelper.wakeModemSleep();
+#endif
+        HWHelper.enablePeripherals();
+
+        // Read RTC once — shared across all group calls (avoids N I2C reads per loop iteration)
+        struct tm waterTime;
+        HWHelper.readTime(&waterTime);
+
+        bool still_watering = true;
+        while (still_watering) {
+          delay(15);
+          int finStatus = 0;
+          for (int i = 0; i < j; i++) {
+            finStatus += Group[i].watering_task_handler(waterTime);
+            delay(500);
+          }
+          if (!finStatus) {
+            thirsty = false;
+            still_watering = false;
+          } else {
+            esp_light_sleep_start();
+          }
+        }
+        LogFire.log("water: complete", 1);
+      }
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Phase 5: SLEEP — WiFi down, peripherals off, sleep ~10 min
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  HWHelper.disableWiFi();
+  HWHelper.disablePeripherals();
+
+  {
+    int sleepMin = (int)(measure_intervall / 60000);
+    int wakeMin = (now.tm_min + sleepMin) % 60;
+    int wakeHour = (now.tm_hour + (now.tm_min + sleepMin) / 60) % 24;
+    LogFire.log(
+      String("sleep: ") + String(sleepMin) + "min until " +
+      String(wakeHour) + ":" + (wakeMin < 10 ? "0" : "") + String(wakeMin), 1);
+  }
+
+  HWHelper.system_sleep();
+#ifndef OFFLINE_TEST
+  unsigned long sleepTarget = millis() + measure_intervall;
+  while (millis() < sleepTarget) {
+    delayMicroseconds(500);
+    esp_light_sleep_start();
+  }
+#endif
 }
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -312,9 +408,6 @@ long sensoringTask(){
   String path = String(SENS_CONFIG_PATH) + String(JSON_SUFFIX);
   configf = HWHelper.readConfigFile(path.c_str());
   JsonObject obj;
-
-  //float test = Sensors.onewirehandler();
-  //Serial.print("ds18b20 temp: "); Serial.println(test);
 
   // handle analog pins
   obj = configf.as<JsonObject>();
@@ -350,245 +443,17 @@ long sensoringTask(){
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// watering - return true if NOT fnished
+// override — fetch manual watering requests, write to running.Json, let Phase 4 handle it
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool irrigationTask(){
-//thirsty = true; //uncoment for testing only (TESTRUN FLAG)
-  HWHelper.enablePeripherals();
-  if(thirsty) LogFire.log("irrigationTask start", 1);
-  delay(30);
-
-  // load config file
-  String path = String(IRRIG_CONFIG_PATH) + String(JSON_SUFFIX);
-  DynamicJsonDocument doc = HWHelper.getJsonDoc(path.c_str());
-  JsonObject groups;
-  // Check if the document is not null and contains a JsonObject
-  if (doc.isNull() || !doc.is<JsonObject>()) {
-    LogFire.log("irrigationTask: config invalid", 3);
-    return false;
-  }
-  groups = doc.as<JsonObject>();
-  int numgroups = groups.size();
-  // sanity check
-  if (numgroups > max_groups) {
-    LogFire.log("irrigationTask: too many groups=" + String(numgroups), 3);
-    return false;
-  }
-  // check for valid object
-  if (groups.isNull()) {
-    LogFire.log("irrigationTask: no groups in config", 3);
-    return false; // break loop and continue programm
-  }
-
-  // use static array to avoid stack overflow from VLA with dynamic numgroups
-  static IrrigationController Group[max_groups];
-  // reset all entries to avoid stale state from previous calls
-  for (int i = 0; i < max_groups; i++) {
-    Group[i].reset();
-  }
-  int j = 0;
-
-  // Iterate over each group and load the config
-  for (JsonObject::iterator groupIterator = groups.begin(); groupIterator != groups.end(); ++groupIterator) {
-    // Load schedule configuration for the current group
-    if (String(groupIterator->key().c_str()) == String("checksum")){
-      continue; // skip checksum (TODO: idea for rework of config files, then this "forbiden" name would be ok {"name"{config},"checksum":"asdfxcz"})
-    }
-    bool success = Group[j].loadScheduleConfig(*groupIterator);
-    if (!success) { // if it fails reset class instance
-      LogFire.log("irrigationTask: schedule load failed group=" + String(groupIterator->key().c_str()), 3);
-      // Reset the class to an empty state
-      Group[j].reset();
-      break;
-    }
-
-    // Increment j for the next group
-    j++;
-  }
-  if(thirsty){
-    LogFire.log("watering: " + String(j) + "/" + String(numgroups) + " groups loaded", 1);
-    // WiFi up for the whole watering session — needed for activate: logs
-    // WiFi stack runs on separate core, no interference with shift register timing
-    HWHelper.wakeModemSleep();
-  }
-
-  // --- Watering ---
-  // description: trigger at specific time
-  //              alternate the solenoids to avoid heat damage, let cooldown time if only one remains
-  // Hints:  main mosfet probably get warm
-  //         pause procedure when measure events needs to happen
-  //         NEVER INTERUPT WHILE WATERING!
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  while((nextActionTime > millis()) && (thirsty)){
-  //while(true){ // TEMP DEBUG ONLY!!!
-    // process will trigger multiple loop iterations until thirsty is set false
-    // this should allow a regular measure intervall and give additional time to the water to slowly drip into the soil
-    delay(15);
-
-    // Iterate over all irrigation controller objects in the Group array
-    // This process will trigger multiple loop iterations until thirsty is set false
-    int finStatus = 0;
-    for(int i = 0; i < numgroups; i++){
-      // ACTIVATE SELECTED GROUP
-      //hour1 = 19 // change for testing
-
-      // start watering selected group
-      // it will check if the instance is ready for watering (or on cooldown)
-      finStatus += Group[i].watering_task_handler();
-      delay(500); // give little delay
-    }
-
-    // check if all groups are finished and reset status
-    if(!finStatus){
-      thirsty = false;
-      LogFire.log("irrigation complete", 1);
-    }
-    esp_light_sleep_start(); // sleep one period
-  }
-
-  HWHelper.disablePeripherals();
-  HWHelper.disableSensor();
-
-  return thirsty;
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// loop setup
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// this function should be usable in a while loop returning true most of the time and false if there is something
-bool checkSleepTask(){
-  // activate 3.3v supply
-  HWHelper.enablePeripherals();
-  delay(10);
-
-  // check real time clock module
-  struct tm newtimeMark;
-
-  // check return status
-  byte rtc_status = HWHelper.readTime(&newtimeMark); // update current timestamp
-
-  #ifdef DEBUG_SPAM
-  Serial.print(F("Info: Rtc Status: ")); Serial.println(!rtc_status);
-  #endif
-
-  // load switches from SPIFFS — no WiFi needed
-  SwitchController controller_switches(&HWHelper);
-  controller_switches.updateSwitches();
-
-  // heartbeat — Serial only (WiFi off); goes remote once per hour during hour-change block below
-  LogFire.log(
-    String("cycle ") +
-    String(newtimeMark.tm_hour) + ":" +
-    (newtimeMark.tm_min < 10 ? "0" : "") + String(newtimeMark.tm_min) +
-    " main=" + controller_switches.getMainSwitch() +
-    " irrig=" + controller_switches.getIrrigationSystemSwitch() +
-    " datalog=" + controller_switches.getDataloggingSwitch() +
-    " heap=" + String(ESP.getFreeHeap()) + "B", 0);
-
-  //oldtimeMark.tm_hour = 0; // DEBUG DEBUGING ONLY
-
-  // check for hour change — only here do we need WiFi
-  //if(true){ //DEBUGING ONLY (TESTRUN FLAG)
-  if((newtimeMark.tm_hour != oldtimeMark.tm_hour) && (rtc_status) && (controller_switches.getMainSwitch())){
-    HWHelper.readTime(&oldtimeMark); // update long time timestamp
-    delay(5);
-
-#ifndef OFFLINE_TEST
-    // WiFi up for config sync and remote logs for the rest of this block
-    HWHelper.wakeModemSleep();
-    delay(1);
-    if(HWHelper.syncConfig()){
-      LogFire.log("Config sync error", 2);
-    }
-#else
-    LogFire.log("OFFLINE_TEST: skipping syncConfig", 0);
-#endif
-
-    timetable = IrrigationController::combineTimetables();
-    LogFire.log("timetable updated", 1);
-
-    if(bitRead(timetable, newtimeMark.tm_hour)){
-      if(controller_switches.getIrrigationSystemSwitch())
-      {
-        thirsty = true; //initialize watering phase
-        LogFire.log(String("Irrigation triggered h=") + String(newtimeMark.tm_hour), 1);
-      }
-      else{
-        thirsty = false;
-        LogFire.log("Irrigation hour but switch off", 1);
-      }
-    }
-
-  }
-
-  // deactivate 3.3v supply
-  HWHelper.disablePeripherals();
-
-  // prepare sleep
-  unsigned long breakTime = 0;
-  if((nextActionTime > 600000UL + millis()) || (nextActionTime < millis())){
-    breakTime = millis() + 600000UL; // reduce time to once per 10 min if intervall is bigger
-  }
-  else{
-    breakTime = nextActionTime + 1;
-  }
-
-  // log sleep duration and wakeup time
-  {
-    int sleepMin = (int)((breakTime - millis()) / 60000);
-    int wakeMin = (newtimeMark.tm_min + sleepMin) % 60;
-    int wakeHour = (newtimeMark.tm_hour + (newtimeMark.tm_min + sleepMin) / 60) % 24;
-    LogFire.log(
-      String("sleeping ") + String(sleepMin) + "min until " +
-      String(wakeHour) + ":" + (wakeMin < 10 ? "0" : "") + String(wakeMin), 1);
-  }
-#ifndef OFFLINE_TEST
-  HWHelper.disableWiFi();
-#endif
-
-#ifdef OFFLINE_TEST
-  // OFFLINE_TEST: skip the entire sleep loop (normally waits up to 10 min).
-  // Fall straight through to the return statement.
-#else
-  delay(3);
-  while(true){ // sleep until break
-    if(breakTime < millis()){
-      break; //break loop to start doing stuff
-    }
-    HWHelper.system_sleep(); //turn off all external transistors
-    delayMicroseconds(500);
-    esp_light_sleep_start();
-    #ifdef DEBUG_SPAM
-    Serial.print(F("Sleeping: Wifi status: ")); Serial.println(WiFi.status());
-    #endif
-  }
-#endif
-  // exit whole loop only if system is switched ON
-  if(controller_switches.getMainSwitch()){ // condition get checked with little delay!
-#ifndef OFFLINE_TEST
-    HWHelper.wakeModemSleep();
-    overrideTask(); // check for manual watering overrides
-#endif
-    LogFire.log("awake", 1);
-    return false;
-  }
-
-  return true; // default
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// override — fetch manual watering requests, write to running.Json, let irrigationTask handle it
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void overrideTask() {
+void checkOverrides() {
   // Fetch overrideConfig from server
   String webPath = String(WEB_PREFIX) + "?deviceName=" + DEVICE_NAME + "&fileType=overrideConfig";
   DynamicJsonDocument overrideDoc = HWHelper.getJSONConfig(SERVER, NODERED_PORT, webPath.c_str());
 
-  if (overrideDoc.isNull() || overrideDoc.size() == 0) return;
+  if (overrideDoc.isNull() || overrideDoc.size() == 0) {
+    LogFire.log("override: none pending", 1);
+    return;
+  }
 
   // Collect active overrides and build clear payload
   JsonObject overrides = overrideDoc.as<JsonObject>();
@@ -601,7 +466,10 @@ void overrideTask() {
       clearKeys.add(p.key().c_str());
     }
   }
-  if (clearKeys.size() == 0) return;
+  if (clearKeys.size() == 0) {
+    LogFire.log("override: none pending", 1);
+    return;
+  }
 
   // Clear overrides on server BEFORE firing (safety: if ESP crashes mid-water, override won't re-fire)
   String clearPayload;
