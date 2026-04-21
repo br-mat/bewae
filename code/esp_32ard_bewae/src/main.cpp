@@ -74,7 +74,8 @@ InfluxDBClient influx_client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_DB_NAME, INFLU
 // sensoring implementation, returns timestamp of next event in UL
 long sensoringTask();
 // fetch manual watering overrides from server, write to running.Json, set thirsty
-void checkOverrides();
+// hour_changed: true if Phase 1 detected a new hour (enables scheduled+override combination)
+void checkOverrides(bool hour_changed, int current_hour, int current_day);
 
 //######################################################################################################################
 //----------------------------------------------------------------------------------------------------------------------
@@ -102,6 +103,7 @@ void setup() {
   delay(1);
   // Init LogFire early with Serial-only — HTTP enabled after WiFi connects
   LogFire.begin(DEVICE_NAME, "0.0.0.0");
+  LogFire.mirrorSerial(true);
   LogFire.localOnly(true);
   LogFire.log("setup start", 1);
 
@@ -253,6 +255,7 @@ void loop(){
     HWHelper.disablePeripherals();
     HWHelper.system_sleep();
 #ifndef OFFLINE_TEST
+    Serial.flush();
     unsigned long sleepTarget = millis() + measure_intervall;
     while (millis() < sleepTarget) {
       delayMicroseconds(500);
@@ -270,14 +273,19 @@ void loop(){
     HWHelper.wakeModemSleep();
     LogFire.log("sync: config update h=" + String(now.tm_hour), 1);
     if (HWHelper.syncConfig()) LogFire.log("sync: config error", 2);
-    checkOverrides();
 #else
     LogFire.log("OFFLINE_TEST: skipping syncConfig", 0);
 #endif
     last_hour = now.tm_hour;
     if (switches.getIrrigationSystemSwitch()) thirsty = true;
-    if (!thirsty) HWHelper.disableWiFi();
   }
+
+#ifndef OFFLINE_TEST
+  // Override check every wake (~10 min), not just on hour change
+  if (WiFi.status() != WL_CONNECTED) HWHelper.wakeModemSleep();
+  checkOverrides(hour_changed, now.tm_hour, now.tm_mday);
+  if (!thirsty) HWHelper.disableWiFi();
+#endif
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Phase 3: SENSE — if datalogging on and interval elapsed, read sensors
@@ -346,6 +354,7 @@ void loop(){
             thirsty = false;
             still_watering = false;
           } else {
+            Serial.flush();
             esp_light_sleep_start();
           }
         }
@@ -371,6 +380,7 @@ void loop(){
 
   HWHelper.system_sleep();
 #ifndef OFFLINE_TEST
+  Serial.flush();
   unsigned long sleepTarget = millis() + measure_intervall;
   while (millis() < sleepTarget) {
     delayMicroseconds(500);
@@ -445,7 +455,7 @@ long sensoringTask(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // override — fetch manual watering requests, write to running.Json, let Phase 4 handle it
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void checkOverrides() {
+void checkOverrides(bool hour_changed, int current_hour, int current_day) {
   // Fetch overrideConfig from server
   String webPath = String(WEB_PREFIX) + "?deviceName=" + DEVICE_NAME + "&fileType=overrideConfig";
   DynamicJsonDocument overrideDoc = HWHelper.getJSONConfig(SERVER, NODERED_PORT, webPath.c_str());
@@ -501,9 +511,44 @@ void checkOverrides() {
       continue;
     }
 
-    runDoc[key]["dty"] = duration;
+    // If this wake is also a scheduled hour that hasn't fired yet, combine both amounts.
+    // "Same time" = hour_changed is true AND the group's timetable includes this hour.
+    // Any other wake = override amount only.
+    int combined = duration;
+    if (hour_changed && groups.containsKey(key)) {
+      JsonObject gdata = groups[key];
+      uint32_t timetable = gdata["wt"].as<uint32_t>();
+      if ((timetable & (1u << current_hour)) != 0) {
+        bool already_watered = false;
+        if (!runDoc.isNull() && runDoc.containsKey(key)) {
+          JsonVariant upVar = runDoc[key]["up"];
+          if (upVar.is<JsonArray>()) {
+            JsonArray up = upVar.as<JsonArray>();
+            if (up.size() >= 2 && up[0].as<int>() == current_hour && up[1].as<int>() == current_day)
+              already_watered = true;
+          }
+        }
+        if (!already_watered) {
+          float wm = gdata.containsKey("wm") ? constrain(gdata["wm"].as<float>(), 0.0f, 2.0f) : 1.0f;
+          int scheduled = max(0, (int)(gdata["pw"].as<int>() * wm));
+          combined += scheduled;
+          // Stamp the hour so the scheduled path doesn't re-fire this hour
+          runDoc[key].remove("up");
+          JsonArray up_arr = runDoc[key].createNestedArray("up");
+          up_arr.add(current_hour);
+          up_arr.add(current_day);
+          LogFire.log("override: queued " + key + " ovr=" + String(duration) + "s sched=" + String(scheduled) + "s total=" + String(combined) + "s", 1);
+        } else {
+          LogFire.log("override: queued " + key + " " + String(duration) + "s (sched already ran)", 1);
+        }
+      } else {
+        LogFire.log("override: queued " + key + " " + String(duration) + "s", 1);
+      }
+    } else {
+      LogFire.log("override: queued " + key + " " + String(duration) + "s", 1);
+    }
+    runDoc[key]["dty"] = combined;
     runDoc[key]["ovr"] = 1;
-    LogFire.log("override: queued " + key + " " + String(duration) + "s", 1);
     hasValid = true;
   }
 

@@ -101,64 +101,27 @@ int IrrigationController::readyToWater() {
 // INPUT: currentHour int of full hour
 //        currentDay int of day of month
 
-  // check if group is set
-  if(!this->is_set){ //return 0 if the group is not set
-    #ifdef DEBUG
-    Serial.print(F("Group '"));
-    Serial.print(this->name); Serial.println(F("' not set"));
-    #endif
-    return 0;
-  }
+  if (!this->is_set) return 0;
+  if (this->watering == 0) return 0;
 
-  // check if there is something to do (probably repeating call)
-  if (this->watering == 0) {
-    #ifdef DEBUG
-    Serial.print(F("Group '"));
-    Serial.print(this->name); 
-    Serial.println(F("' nothing to do (old call?)"));
-    #endif
-    return 0; // done or nothing for this time
-  }
-
-  // get the current time in milliseconds
-  unsigned long currentMillis = millis();
-
-  // Accessing the elements of driver_pins using a range-based for loop
+  // Check each driver pin is valid and past cooldown
   for (const auto& pinValue : this->driver_pins) {
-      // Check each pin
-      if (pinValue > static_cast<int>(max_groups)) {
-          #ifdef DEBUG
-          Serial.print(F("Selected pin not configured: "));
-          Serial.println(pinValue);
-          #endif
-          return 0; // Pin not configured
-      }
-
-      // Check for cooldown of the pin
-      if (millis() - controller_pins[pinValue].getLastActivation() < DRIVER_COOLDOWN) {
-          #ifdef DEBUG
-          Serial.print(F("Selected pin needs cooldown, skipping. Last activation (in sec): "));
-          Serial.println(static_cast<int>((millis() - controller_pins[pinValue].getLastActivation()) / 1000));
-          #endif
-          return -1; // Pin needs cooldown
-      }
+    if (pinValue > static_cast<int>(max_groups)) {
+      LogFire.log("group \"" + String(this->name) + "\": pin " + String(pinValue) + " exceeds max_groups, aborting", 3);
+      return 0;
+    }
+    if (millis() - controller_pins[pinValue].getLastActivation() < DRIVER_COOLDOWN) {
+      int waited = (int)((millis() - controller_pins[pinValue].getLastActivation()) / 1000);
+      LogFire.log("group \"" + String(this->name) + "\": cooldown pin=" + String(pinValue) + " waited=" + String(waited) + "s", 0);
+      return -1;
+    }
   }
 
-  // check if there is enough water time left
-  if (this->watering <= 0) {
-    return 0; // group done, info handled in watering_task_handler
-  }
+  if (this->watering <= 0) return 0;
 
-  // calculate the remaining watering time, return seconds using min function
   int remainingTime = min(this->watering, max_active_time_sec);
-  remainingTime = max(remainingTime, (int)0); //avoid values beyond 0
-
-  // return the remaining time which the pins should be active
-  #ifdef DEBUG
-  Serial.println();
-  Serial.print("watering time: "); Serial.println(remainingTime);
-  #endif
-  return remainingTime; // return active time
+  remainingTime = max(remainingTime, (int)0);
+  return remainingTime;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -203,9 +166,7 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
 
   // verify instance safety
   if (driver_pins.empty()) {
-    #ifdef DEBUG
-    Serial.print(F("Error: while init class vector (pp - plant pins)"));
-    #endif
+    LogFire.log("init: group \"" + String(this->name) + "\" has no driver pins (pp), resetting", 3);
     IrrigationController::reset();
     return 0;
   }
@@ -218,80 +179,55 @@ bool IrrigationController::loadScheduleConfig(const JsonPair& groupPair) {
 // Verify Configfile
 bool IrrigationController::verifyScheduleConfig(const JsonPair& groupPair) {
   JsonObject groupData = groupPair.value();
+  const char* gkey = groupPair.key().c_str();
 
-  // Verify the group name and ensure it's not an empty string
   if (!groupData.containsKey("pn") || !groupData["pn"].is<String>() || groupData["pn"].as<String>().length() == 0) {
-    #ifdef DEBUG
-    Serial.println(F("Group name 'pn' is missing, not a string, or is empty."));
-    #endif
+    LogFire.log("verify: group[" + String(gkey) + "] 'pn' missing/empty", 2);
     return false;
   }
 
-  // Verify the schedule set flag
   if (!groupData.containsKey("ps") || !groupData["ps"].is<int>()) {
-    #ifdef DEBUG
-    Serial.println(F("Schedule set flag 'ps' is missing or not a boolean."));
-    #endif
+    LogFire.log("verify: group[" + String(gkey) + "] 'ps' missing/invalid", 2);
     return false;
   }
 
-  // Verify the timetable
   if (!groupData.containsKey("pw") || !groupData["pw"].is<uint32_t>()) {
-    #ifdef DEBUG
-    Serial.println(F("Timetable 'pw' is missing or not an unsigned 32-bit integer."));
-    #endif
+    LogFire.log("verify: group[" + String(gkey) + "] 'pw' missing/invalid", 2);
     return false;
   }
 
-  // Verify the water time
   if (!groupData.containsKey("wt") || !groupData["wt"].is<uint32_t>()) {
-    #ifdef DEBUG
-    Serial.println(F("Water time 'wt' is missing or not a 32-bit integer."));
-    #endif
+    LogFire.log("verify: group[" + String(gkey) + "] 'wt' missing/invalid", 2);
     return false;
   }
 
-  // Verify the driver pins array, if all elements are convertible to an int, and if the array is not empty
   if (!groupData.containsKey("pp") || !groupData["pp"].is<JsonArray>()) {
-    #ifdef DEBUG
-    Serial.println(F("Driver pins 'pp' are missing or not an array."));
-    #endif
+    LogFire.log("verify: group[" + String(gkey) + "] 'pp' missing/not array", 2);
     return false;
   } else {
     JsonArray pinsArray = groupData["pp"].as<JsonArray>();
     if (pinsArray.size() == 0) {
-      #ifdef DEBUG
-      Serial.println(F("Driver pins array 'pp' is empty."));
-      #endif
+      LogFire.log("verify: group[" + String(gkey) + "] 'pp' array empty", 2);
       return false;
     }
     for (JsonVariant pin : pinsArray) {
       if (!pin.is<int>()) {
-        #ifdef DEBUG
-        Serial.println(F("An element in the driver pins array 'pp' is not convertible to an int."));
-        #endif
+        LogFire.log("verify: group[" + String(gkey) + "] 'pp' non-int element", 2);
         return false;
       }
     }
   }
 
-  // Verify the plant size
   if (!groupData.containsKey("pls") || !groupData["pls"].is<float>()) {
-    #ifdef DEBUG
-    Serial.println(F("Plant size 'pls' is missing or not a 16-bit integer."));
-    #endif
+    LogFire.log("verify: group[" + String(gkey) + "] 'pls' missing/invalid", 2);
     return false;
   }
 
-  // Verify the pot size
   if (!groupData.containsKey("pts") || !groupData["pts"].is<float>()) {
-    #ifdef DEBUG
-    Serial.println(F("Pot size 'pts' is missing or not a 16-bit integer."));
-    #endif
+    LogFire.log("verify: group[" + String(gkey) + "] 'pts' missing/invalid", 2);
     return false;
   }
 
-  // If all checks pass, return true
   return true;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -300,20 +236,14 @@ bool IrrigationController::verifyScheduleConfig(const JsonPair& groupPair) {
 // Returns true if the file was updated successfully, false if the file path is invalid or if there is an error reading or writing the file.
 bool IrrigationController::saveScheduleConfig(const char path[PATH_LENGTH], const char grp_name[MAX_GROUP_LENGTH]) {
   DynamicJsonDocument jsonDoc = HWHelper.readConfigFile(path); // read the config file
-  // check jsonDoc
   if (jsonDoc.isNull()) {
-    #ifdef DEBUG
-    Serial.println(F("Warning: Json config not saved!"));
-    #endif
+    LogFire.log("saveScheduleConfig: read failed for " + String(path), 3);
     return false;
   }
 
-  // check name
   if (!jsonDoc.containsKey(grp_name)) {
-  #ifdef DEBUG
-  Serial.println(F("Warning: No group not found!"));
-  #endif
-  return false;
+    LogFire.log("saveScheduleConfig: group \"" + String(grp_name) + "\" not found in " + String(path), 2);
+    return false;
   }
 
   // Update the values in the configuration file with the values of the member variables
@@ -363,16 +293,10 @@ void IrrigationController::activate(int time_s) {
   time_s = max(0, time_s);
   time_s = min(time_s, max_active_time_sec);
 
-  #ifdef DEBUG
-  Serial.print(F("uint time:")); Serial.println(time_s);
-  #endif
-
   unsigned long time_ms = (unsigned long)time_s * 1000UL;
   if (time_ms > (unsigned long)max_active_time_sec * 1000UL){
     time_ms = (unsigned long)max_active_time_sec * 1000UL;
-    #ifdef DEBUG
-    Serial.println(F("time warning: time exceeds sec"));
-    #endif
+    LogFire.log("activate: time clamped to max " + String(max_active_time_sec) + "s", 1);
   }
 
   // seting shiftregister to 0
@@ -384,11 +308,7 @@ void IrrigationController::activate(int time_s) {
       value |= (1 << pin);  // Set the bit at the pin number to 1 using bitwise OR
   }
 
-  #ifdef DEBUG
-  Serial.print(F("Watering group: "));
-  Serial.println(this->name); Serial.print(F("time: ")); Serial.println(time_ms);
-  Serial.print(F("shiftout value: ")); Serial.println(value);
-  #endif
+  LogFire.log("activate: group \"" + String(this->name) + "\" shiftout=0b" + String(value, BIN) + " time=" + String(time_ms) + "ms", 0);
 
   // activate pins
   HWHelper.shiftvalue(value, max_groups, INVERT_SHIFTOUT);
@@ -429,117 +349,52 @@ int IrrigationController::watering_task_handler(const struct tm& localTime) {
   // call this function every iteration of the watering loop to advance the group's watering state
   byte hour = localTime.tm_hour, day = localTime.tm_mday;
 
-  // if not set return early
   if(!this->is_set){
-    #ifdef DEBUG
-    Serial.print(F("Group '")); Serial.print(this->name); Serial.println(F("' not set!"));
-    #endif
+    LogFire.log("group \"" + String(this->name) + "\": not configured, skip", 0);
     return 0;
   }
 
-  // Manual override: bypass timetable gate so it fires outside scheduled hours too.
-  // But if this is also a scheduled hour that hasn't been watered yet, add the scheduled
-  // amount on top so the override is purely additive — it never silently skips the schedule.
+  // Manual override: combination with scheduled is handled at detection time (checkOverrides),
+  // not here. watering already holds the correct combined or override-only duration.
   if (this->override_mode) {
-    bool correcthour = (this->timetable & (1 << hour)) != 0;
-    bool timechange = (this->lastDay != day) || (this->lastHour != hour);
-    if (correcthour && timechange) {
-      this->lastHour = hour;
-      this->lastDay = day;
-      int scheduled = (int)(this->water_time * this->weather_multiplier);
-      if (scheduled < 0) scheduled = 0;
-      this->watering += scheduled;
-      LogFire.log("group \"" + String(this->name) + "\": override + scheduled +" + String(scheduled) + "s -> " + String(this->watering) + "s total", 1);
-    } else {
-      LogFire.log("group \"" + String(this->name) + "\": override remaining=" + String(this->watering) + "s", 1);
-    }
+    LogFire.log("group \"" + String(this->name) + "\": override=" + String(this->watering) + "s", 1);
   } else {
     //lastDay = 0; lastHour = 0; // TESTING/DEBUGING
     // check if group is set for this hour
     bool correcthour = (this->timetable & (1 << hour)) != 0;
     if(!correcthour){
       LogFire.log("group \"" + String(this->name) + "\": skip (not scheduled h=" + String(hour) + ")", 0);
-      #ifdef DEBUG
-      Serial.print(F("Group '"));
-      Serial.print(this->name); Serial.println(F("' nothing to do this time"));
-  Serial.print("TODO: timetable = "); Serial.println(this->timetable);
-      #endif
-      return 0; // nothing to do this time
+      return 0;
     }
 
     // look for new hour and update runtimevariables
     bool timechange = (this->lastDay != day) || (this->lastHour != hour);
     if(timechange){
-      #ifdef DEBUG
-      Serial.print(F("Group '"));
-      Serial.print(this->name); Serial.println(F("' hour change detected"));
-      #endif
-      // set new update timestamp
       this->lastDay = day;
       this->lastHour = hour;
 
-      // apply weather multiplier to base watering duration
       this->watering = (int)(this->water_time * this->weather_multiplier);
       if (this->watering < 0) this->watering = 0;
       LogFire.log("group \"" + String(this->name) + "\": wm=" + String(this->weather_multiplier, 2) + " base=" + String(this->water_time) + "s -> " + String(this->watering) + "s", 1);
-      #ifdef DEBUG
-      Serial.print(F("Weather multiplier: ")); Serial.println(this->weather_multiplier);
-      Serial.print(F("Adjusted watering: ")); Serial.println(this->watering);
-      #endif
     }
   }
 
   // get info if system is allowed to water
   int active_time = readyToWater();
 
-  // check if fnished
   if (active_time == 0) {
-    #ifdef DEBUG
-    Serial.print(F("Group '"));
-    Serial.print(this->name); Serial.println(F("' checked!"));
-    #endif
     return 0;
   }
 
-  // check if it should wait
   if (active_time < 0) {
-    #ifdef DEBUG
-    Serial.print(F("Group '"));
-    Serial.print(this->name); Serial.println(F("' need cooldown!"));
-    #endif
     return 1;
   }
 
-  // handle intended case when system is ready to water
   if (active_time > 0) {
-    // Print info to serial if wanted
-    #ifdef DEBUG
-    Serial.print(F("Watering group: "));
-    Serial.print(key);
-    Serial.print(F(" - With name: "));
-    Serial.println(name);
-    Serial.print(F("driver_pins values: "));
-    for (int pin : driver_pins) {
-      Serial.print(pin);
-      Serial.print(F(", "));
-    }
-    Serial.println();
-    Serial.print(F("Time: ")); Serial.println(active_time);
-    #endif
-
-    #ifdef DEBUG
-    Serial.print(F("Set activationtimestamp to pin: "));
-    #endif
     // update the last activation time of the pins when everything is fine
     for (const auto& pinValue : this->driver_pins) {
         controller_pins[pinValue].setLastActivation();
-        #ifdef DEBUG
-        Serial.print(pinValue); Serial.print(F(" "));
-        #endif
     }
-    #ifdef DEBUG
-    Serial.println();
-    #endif
 
     // update watering variable
     this->watering = this->watering - active_time; // update the water time
@@ -562,20 +417,13 @@ int IrrigationController::watering_task_handler(const struct tm& localTime) {
     // saveScheduleConfig() would just read+checksum+skip — call saveDuty() directly.
     if (this->watering == 0) {
       if (!saveDuty(this->key)){
-        #ifdef DEBUG
-        Serial.println(F("Failed to save duty!"));
-        #endif
+        LogFire.log("group \"" + String(this->name) + "\": saveDuty failed", 3);
       }
     }
   }
 
-  // check if group is done
   if(watering == 0){
     LogFire.log("group \"" + String(this->name) + "\": done", 1);
-    #ifdef DEBUG
-    Serial.print(F("Group '"));
-    Serial.print(name); Serial.println(F("' finished!"));
-    #endif
     return 0;
   }
 
@@ -627,21 +475,18 @@ bool IrrigationController::saveDuty(const char* objkey) {
   // load unning file
   jsonDoc = HWHelper.readConfigFile(RUNTIME_FILE_PATH);
   if (!SPIFFS.exists(RUNTIME_FILE_PATH)) {
-    #ifdef DEBUG
-    Serial.println(F("Info: Created Duty file (Saving)!"));
-    #endif
+    LogFire.log("saveDuty: creating new duty file " + String(RUNTIME_FILE_PATH), 0);
     HWHelper.createFile(RUNTIME_FILE_PATH);
   }
-  if (!jsonDoc.isNull()) {
-    #ifdef DEBUG
-    Serial.println(F("Warning: Duty file was empty (Saving)!"));
-    #endif
+  if (jsonDoc.isNull()) {
+    LogFire.log("saveDuty: duty file empty/unreadable, starting fresh doc", 2);
+    jsonDoc.to<JsonObject>();
   }
 
   // Update or set the "dty" and "up" keys
   jsonDoc[objkey]["dty"] = this->watering;
-  jsonDoc[objkey].remove("up"); // ensure up is replaced
-  JsonArray timestampArr = jsonDoc[objkey]["up"];
+  jsonDoc[objkey].remove("up");
+  JsonArray timestampArr = jsonDoc[objkey].createNestedArray("up");
   timestampArr.add(this->lastHour);
   timestampArr.add(this->lastDay);
 
