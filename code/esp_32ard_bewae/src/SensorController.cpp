@@ -10,6 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "SensorController.h"
+#include "LogFire.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // BasicSensor
@@ -80,9 +81,7 @@ float BasicSensor::bmetemphandler(){
     HWHelper.enableSensor();
     delay(1); // give sensor time to settle
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
-        #ifdef DEBUG
-        Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
-        #endif
+        LogFire.log("sensor: BME280 not found (temp), check wiring", 2);
         return 0;
     }
     float val = 0;
@@ -95,9 +94,7 @@ float BasicSensor::bmehumhandler(){
     HWHelper.enableSensor();
     delay(1); // give sensor time to settle
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
-        #ifdef DEBUG
-        Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
-        #endif
+        LogFire.log("sensor: BME280 not found (hum), check wiring", 2);
         return 0;
     }
     float val = 0;
@@ -110,9 +107,7 @@ float BasicSensor::bmepresshandler(){
     HWHelper.enableSensor();
     delay(1); // give sensor time to settle
     if (!bmeModule->begin(BME280_I2C_ADDRESS)) {
-        #ifdef DEBUG
-        Serial.println(F("Warning: Could not find a valid BME280 sensor, check wiring!"));
-        #endif
+        LogFire.log("sensor: BME280 not found (press), check wiring", 2);
         return 0;
     }
     float val = 0;
@@ -146,39 +141,27 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
     if (sensorConfig.containsKey("hl")) {
         high_limit_ = sensorConfig["hl"].as<int>();
     } else {
-        high_limit_ = 0;
-        #ifdef DEBUG
-        Serial.println(F("Error: in sensor config File"));
-        #endif
+        LogFire.log("measuref: 'hl' missing in sensor config", 2);
         return 0;
     }
     if (sensorConfig.containsKey("ll")) {
         low_limit_ = sensorConfig["ll"].as<int>();
     } else {
-        low_limit_ = 0;
-        #ifdef DEBUG
-        Serial.println(F("Error: in sensor config File"));
-        #endif
+        LogFire.log("measuref: 'll' missing in sensor config", 2);
         return 0;
     }
     if (sensorConfig.containsKey("sp")) {
         virtualPin_ = sensorConfig["sp"].as<uint16_t>();
         hardwarePin_ = sensorConfig["sp"].as<uint16_t>();
     } else {
-        virtualPin_ = 0;
-        hardwarePin_ = 0;
-        #ifdef DEBUG
-        Serial.println(F("Error: in sensor config File"));
-        #endif
+        LogFire.log("measuref: 'sp' missing in sensor config", 2);
         return 0;
     }
     if (sensorConfig.containsKey("sm")) {
         String mode = sensorConfig["sm"];
         if (mode == String("analog")) {
             if (!HWHelper.checkAnalogPin(hardwarePin_)) {
-                #ifdef DEBUG
-                Serial.println(F("Error: Invalid analog pin, skipping measurement!"));
-                #endif
+                LogFire.log("measuref: invalid analog pin " + String(hardwarePin_), 2);
                 return 0;
             }
             measurmentraw = analoghandler(hardwarePin_);
@@ -193,36 +176,22 @@ float BasicSensor::measuref(HelperBase* helper, const JsonObject& sensorConfig) 
         } else if (mode == String("soiltemp")) {
             measurmentraw = onewirehandler();
         } else {
-        // code for unknown mode
-            #ifdef DEBUG
-            Serial.print(F("Error: Unknown measuring mode '"));
-            Serial.print(mode);
-            Serial.println("'");
+            LogFire.log("measuref: unknown mode '" + mode + "'", 2);
             return 0;
-            #endif
         }
     }
     // check if rel measurement is needed
     if ((high_limit_ != 0) && (low_limit_ != 0)) {
         float temp = (float)measurmentraw;
         float result_;
-        temp = measurmentraw + 0.5; // cast remporary float to int and round
-        result_ = constrain(temp, low_limit_, high_limit_); //x within borders else x = border value; (example 1221 wet; 3176 dry [in mV])
-                                                        //avoid using other functions inside the brackets of constrain
+        temp = measurmentraw + 0.5;
+        result_ = constrain(temp, low_limit_, high_limit_);
         measurmentPub = map(result_, low_limit_, high_limit_, 1000, 0) / 10;
-        #ifdef DEBUG
-        Serial.print(F("Reading Sensor (relative): ")); Serial.println(sensorConfig["sn"].as<String>());
-        Serial.print(F("raw: ")); Serial.println(measurmentraw);
-        Serial.print(F("return: ")); Serial.println(measurmentPub);
-        #endif
+        LogFire.log("sensor \"" + sensorConfig["sn"].as<String>() + "\": raw=" + String(measurmentraw) + " -> " + String(measurmentPub) + "%", 0);
         return measurmentPub;
     }
     measurmentPub = factor_ * measurmentraw + additive_;
-    #ifdef DEBUG
-    Serial.print(F("Reading Sensor: ")); Serial.println(sensorConfig["sn"].as<String>());
-    Serial.print("raw: "); Serial.println(measurmentraw);
-    Serial.print("return: "); Serial.println(measurmentPub);
-    #endif
+    LogFire.log("sensor \"" + sensorConfig["sn"].as<String>() + "\": raw=" + String(measurmentraw) + " -> " + String(measurmentPub), 0);
 
     // set class variable
     result = measurmentPub;
@@ -236,31 +205,23 @@ SensorData BasicSensor::measurePoint(HelperBase* helper, const String& id, const
     String field_;
 
     // check passed name and field
-    if (sensorConfig.containsKey("sn")) { // get name
+    if (sensorConfig.containsKey("sn")) {
         name_ = sensorConfig["sn"].as<String>();
     }
     else{
-        #ifdef DEBUG
-        Serial.print(F("Warning: No name found in Sensor Configuration, Id:"));
-        Serial.println(id);
-        #endif
+        LogFire.log("measurePoint: 'sn' missing in sensor config id=" + id, 2);
     }
-    if (sensorConfig.containsKey("sf")) { // get field
+    if (sensorConfig.containsKey("sf")) {
         field_ = sensorConfig["sf"].as<String>();
     }
     else{
         field_ = INFLUXDB_FIELD;
-        #ifdef DEBUG
-        Serial.print(F("Warning: Field not found! set to default, Id:"));
-        Serial.println(id);
-        #endif
+        LogFire.log("measurePoint: 'sf' missing in sensor config id=" + id + ", defaulting to " + String(INFLUXDB_FIELD), 1);
     }
 
     // check if sensor is enabled (ss flag)
     if (sensorConfig.containsKey("ss") && sensorConfig["ss"].as<int>() != 1) {
-        #ifdef DEBUG
-        Serial.print(F("Info: Sensor not set, skipping: ")); Serial.println(id);
-        #endif
+        LogFire.log("sensor \"" + id + "\": disabled (ss!=1), skip", 0);
         SensorData dataPoint;
         dataPoint.name = name_;
         dataPoint.field = field_;

@@ -9,6 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "SwitchController.h"
+#include "LogFire.h"
 
 // Constructor
 SwitchController::SwitchController(HelperBase* helper) : helper(helper) {
@@ -36,7 +37,6 @@ SwitchController::SwitchController(HelperBase* helper) : helper(helper) {
     // Check for reading errors
     if (jsonDoc["dn"].isNull()) reading_errors++;
     if (jsonDoc["main"].isNull()) reading_errors++;
-    if (jsonDoc["dmmy"].isNull()) reading_errors++;
     if (jsonDoc["irig"].isNull()) reading_errors++;
     if (jsonDoc["mssr"].isNull()) reading_errors++;
 
@@ -75,12 +75,10 @@ bool SwitchController::saveSwitches() { // save class variables
   // Save the updated config file
   bool success = helper->writeConfigFile(jsonDoc, configPath);
   if (!success) {
-    #ifdef DEBUG
-    Serial.println("Error: could not save switches to config file.");
-    #endif
+    LogFire.log("switches: write to " + String(configPath) + " failed", 3);
     return false;
   }
-  
+
   return true;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -124,9 +122,7 @@ bool SwitchController::updateSwitches(){
       name = jsonDoc["dn"].as<String>();
     }
     else{
-      #ifdef DEBUG
-      Serial.println("Warning: could not find Device name!");
-      #endif
+      LogFire.log("switches: device name missing in deviceConfig", 2);
       name = String("");
     }
 
@@ -134,35 +130,23 @@ bool SwitchController::updateSwitches(){
     placeholder3 = jsonDoc["dmmy"].as<bool>() | false; // placeholder - placeholder ON/OFF
     irrigation_system_switch = jsonDoc["irig"].as<bool>() | false; // irig - irrigation system ON/OFF
     datalogging_switch = jsonDoc["mssr"].as<bool>() | false; // mssr - measurement ON/OFF
-    
+
     // Check for reading errors
     if (jsonDoc["dn"].isNull()) reading_errors++;
     if (jsonDoc["main"].isNull()) reading_errors++;
-    if (jsonDoc["dmmy"].isNull()) reading_errors++;
     if (jsonDoc["irig"].isNull()) reading_errors++;
     if (jsonDoc["mssr"].isNull()) reading_errors++;
 
     if (reading_errors > 0) {
-      #ifdef DEBUG
-      Serial.print(F("WARNING: Switching Class config file could not be read correctly! Some set to 'false', count: "));
-      Serial.println(reading_errors);
-      Serial.print("Path: "); Serial.println(sensorPath);
-      #endif
+      LogFire.log("switches: " + String(reading_errors) + " field(s) missing in " + String(sensorPath) + ", defaulted to false", 2);
       return false;
     }
-    return true; // ALL Good
+    return true;
   }
   else {
-    #ifdef DEBUG
-    Serial.println(F("WARNING: Switching Class could not be initialized! All States are set to 'false'."));
-    Serial.print(F("Tried to read: ")); Serial.println(sensorPath);
-    #endif
+    LogFire.log("switches: could not read " + String(sensorPath) + ", all switches forced false", 3);
     return false;
   }
-  #ifdef DEBUG
-  Serial.println(F("Critical Error: Switching Class!"));
-  #endif
-  return false; // default false return, should never be reached anyway!
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

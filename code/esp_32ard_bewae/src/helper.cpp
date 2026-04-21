@@ -16,6 +16,7 @@
 #include <WiFi.h>
 
 #include <Helper.h>
+#include "LogFire.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  HELPER     functions
@@ -72,20 +73,15 @@ void HelperBase::set_time(byte second, byte minute, byte hour, byte dayOfWeek, b
 //Function: sets the time on the rtc module (iic)
 bool HelperBase::setTime(struct tm timeinfo)
 {
-  // check timeinfo
   if(!verifyTM(timeinfo)){
-    #ifdef DEBUG
-    Serial.println(F("ERROR: Time not valid!"));
-    #endif
+    LogFire.log("setTime: invalid tm struct", 3);
     return false;
   }
 
-  // check connection
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
   byte status = Wire.endTransmission();
   if (status != 0) {
-    // Fehler: DS3231 nicht verbunden
-    Serial.println(F("ERROR: DS3231 not connected"));
+    LogFire.log("setTime: DS3231 not connected", 3);
     return false;
   }
   delay(2);
@@ -102,10 +98,7 @@ bool HelperBase::setTime(struct tm timeinfo)
   status = Wire.endTransmission();
 
   if (status != 0) {
-    // Fehler beim Schreiben zur DS3231
-    #ifdef DEBUG
-    Serial.println(F("Error: While writting DS3231"));
-    #endif
+    LogFire.log("setTime: DS3231 write failed", 3);
     return false;
   }
   return true;
@@ -128,9 +121,7 @@ bool HelperBase::readTime(struct tm* timeinfo)
   timeinfo->tm_year = 125;
   return true;
 #endif
-  #ifdef DEBUG
-  Serial.println("readTime function started");
-  #endif
+  LogFire.log("readTime function started", 0);
   bool status = false;
   memset(timeinfo, 0, sizeof(struct tm)); // set all values to zero
 
@@ -138,28 +129,19 @@ bool HelperBase::readTime(struct tm* timeinfo)
   status = verifyTM(*timeinfo);
 
   // read time
-  if (status) { // verify rtc
-    #ifdef DEBUG
-    Serial.print(F("RTC time: "));
-    Serial.println(timestamp(*timeinfo).c_str());
-    #endif
+  if (status) {
+    LogFire.log("RTC time: " + timestamp(*timeinfo), 1);
     return true;
   }
   *timeinfo = readTimeNTP();
   status = verifyTM(*timeinfo);
-  // read time
-  if (status) { // verify NTP
-    #ifdef DEBUG
-    Serial.print(F("NTP time: "));
-    Serial.println(timestamp(*timeinfo).c_str());
-    #endif
+  if (status) {
+    LogFire.log("NTP time: " + timestamp(*timeinfo), 1);
     return true;
   }
 
-  #ifdef DEBUG
-  Serial.println(F("Error: TIME WARNING! Neither NTP nor RTC working!"));
-  #endif
-  return false; // bad
+  LogFire.log("readTime: neither NTP nor RTC working", 3);
+  return false;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -178,23 +160,17 @@ struct tm HelperBase::readTimeRTC()
   Wire.write(0); // set DS3231 register pointer to 00h
   byte status = Wire.endTransmission(); // check if the transmission was successful
 
-  // catch error case
   int i = 0;
   while(status != 0){
-    //loop as long as the rtc module is unavailable!
-    #ifdef DEBUG
-    Serial.print(F(". "));
-    #endif
-    Wire.beginTransmission(DS3231_I2C_ADDRESS); // init
-    status = Wire.endTransmission(); // check
-    if (i == static_cast<int>(5)) HWHelper.enablePeripherals(); // reactivate power
-    if (i > static_cast<int>(10)) break; // break loop
-    delay(100); // give time
+    Wire.beginTransmission(DS3231_I2C_ADDRESS);
+    status = Wire.endTransmission();
+    if (i == static_cast<int>(5)) HWHelper.enablePeripherals();
+    if (i > static_cast<int>(10)) break;
+    delay(100);
     i++;
   }
 
-  // Read time if communication was successful
-  if (status == 0) { // No error
+  if (status == 0) {
     Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
 
     timeinfo.tm_sec = bcd_dec(Wire.read() & 0x7f);
@@ -202,26 +178,11 @@ struct tm HelperBase::readTimeRTC()
     timeinfo.tm_hour = bcd_dec(Wire.read() & 0x3f);
     timeinfo.tm_wday = bcd_dec(Wire.read());
     timeinfo.tm_mday = bcd_dec(Wire.read());
-    timeinfo.tm_mon = bcd_dec(Wire.read()) - 1; // tm_mon is months since January, in the range 0 to 11
-    timeinfo.tm_year = bcd_dec(Wire.read()); // tm_year is years since 1900
-
-    #ifdef DEBUG_SPAM
-    Serial.print(F("RAW: RTC Time read: "));
-    Serial.print(timeinfo.tm_hour); Serial.print(F(":"));
-    Serial.print(timeinfo.tm_min); Serial.print(F(":"));
-    Serial.println(timeinfo.tm_sec);
-    Serial.print(F("RAW: RTC Date read: "));
-    Serial.print(timeinfo.tm_mday); Serial.print(F("/"));
-    Serial.print(timeinfo.tm_mon + 1); Serial.print(F("/"));
-    Serial.println(timeinfo.tm_year + 1900);
-    #endif
-    #ifdef DEBUG
-    Serial.println(F("RTC read: OK!"));
-    #endif
-  } else { // Error occurred
-    #ifdef DEBUG
-    Serial.println(F("Warning: DS3231 not connected"));
-    #endif
+    timeinfo.tm_mon = bcd_dec(Wire.read()) - 1;
+    timeinfo.tm_year = bcd_dec(Wire.read());
+    LogFire.log("RTC read: OK", 0);
+  } else {
+    LogFire.log("readTimeRTC: DS3231 not connected", 2);
   }
 
   return timeinfo;
@@ -239,9 +200,7 @@ struct tm HelperBase::readTimeNTP()
 
   struct tm timeinfo = {};  // zero-initialize so verifyTM() catches failures
   if(!getLocalTime(&timeinfo)){
-    #ifdef DEBUG
-    Serial.println(F("Error: Retrieving time via Network!"));
-    #endif
+    LogFire.log("readTimeNTP: failed to get local time", 3);
     return timeinfo;
   }
   return timeinfo;
@@ -249,11 +208,9 @@ struct tm HelperBase::readTimeNTP()
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Function: check if give pin is valid
-bool HelperBase::checkAnalogPin(int pin_check) // check if passed pin is valid
+bool HelperBase::checkAnalogPin(int pin_check)
 {
-  #ifdef DEBUG
-  Serial.println(F("Warning: Empty function! Define a proper function for the inherrited class!"));
-  #endif
+  LogFire.log("checkAnalogPin: base class stub called — override not implemented", 2);
   return 0;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -312,57 +269,27 @@ String HelperBase::timestampNTP(){
 // Returns true if the connection was successful, false if not.
 bool HelperBase::connectWifi(){
   if (WiFi.status() == WL_CONNECTED) {
-    #ifdef DEBUG
-    Serial.println(F("Wifi already connected!"));
-    #endif
+    LogFire.log("Wifi already connected!", 0);
     return true;
   }
-  // Disconnect from any current WiFi connection and set the WiFi mode to station mode.
-  WiFi.disconnect(true);  
+  WiFi.disconnect(true);
   delayMicroseconds(100);
   WiFi.mode(WIFI_STA);
 
-  // Begin the process of connecting to the specified WiFi network.
-  #ifdef DEBUG
-  Serial.println(F("Connecting:"));
-  #endif
-  
+  LogFire.log("Connecting:", 1);
   WiFi.begin(ssid, wifi_password);
 
-  // Initialize a counter to keep track of the number of connection attempts.
   int tries = 0;
-
-  // Loop until the WiFi connection is established or the maximum number of attempts is reached.
   while (WiFi.status() != WL_CONNECTED) {
-    // Wait 1 second before trying again.
     delay(250);
-    //WiFi.begin(ssid, wifi_password);
-    #ifdef DEBUG
-    Serial.print(F(" ."));
-    #endif
-    
-
-    // Increment the counter.
     tries++;
-
-    // If 30 attempts have been made, exit the loop and return false.
     if(tries > 30){
-      #ifdef DEBUG
-      Serial.print(F("Error: Wifi connection could not be established! "));
-      Serial.println(tries);
-      #endif
+      LogFire.log("connectWifi: failed after " + String(tries) + " attempts", 3);
       return false;
     }
   }
 
-  // If the loop exits normally, the WiFi connection was successful. Print the IP address of the device and return true.
-  #ifdef DEBUG
-  Serial.print(F("WiFi connected: "));
-  Serial.print(F("IP: "));
-  Serial.print(WiFi.localIP());
-  Serial.print(F(" RSSI: "));
-  Serial.print(WiFi.RSSI()); Serial.println(" dBm");
-  #endif
+  LogFire.log("WiFi connected: IP: " + WiFi.localIP().toString() + " RSSI: " + String(WiFi.RSSI()) + " dBm", 1);
   return true;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -371,9 +298,7 @@ bool HelperBase::connectWifi(){
 void HelperBase::setModemSleep() {
   WiFi.setSleep(true);
   if (!setCpuFrequencyMhz(80)){
-      #ifdef DEBUG
-      Serial.println(F("Not valid frequency!"));
-      #endif
+      LogFire.log("setModemSleep: 80MHz not supported, using default", 2);
   }
   // Use this if 40Mhz is not supported
   // setCpuFrequencyMhz(80); //(40) also possible
@@ -393,25 +318,18 @@ bool HelperBase::disableWiFi(){
 
 // unused
 void HelperBase::disableBluetooth(){
-  // Quite unusefully, no relevable power consumption
   btStop();
-  #ifdef DEBUG
-  Serial.println(F("Bluetooth stop!"));
-  #endif
+  LogFire.log("Bluetooth stopped", 0);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // waking up system
 void HelperBase::wakeModemSleep() {
   if (WiFi.status() == WL_CONNECTED) {
-    #ifdef DEBUG
-    Serial.println(F("Wifi connection already established"));
-    #endif
+    LogFire.log("Wifi connection already established", 0);
     return;
   }
-  #ifdef DEBUG
-  Serial.println(F("Waking up modem!"));
-  #endif
+  LogFire.log("Waking up modem", 0);
   setCpuFrequencyMhz(240);
   HelperBase::connectWifi();
 }
@@ -425,28 +343,21 @@ DynamicJsonDocument HelperBase::readConfigFile(const char path[PATH_LENGTH]) {
   // create buffer file
   DynamicJsonDocument jsonDoc(CONF_FILE_SIZE); // create JSON doc, if an error occurs it will return an empty jsonDoc
                                      // which can be checked using jsonDoc.isNull()
-  if (path == nullptr) { // check for valid path
-    #ifdef DEBUG
-    Serial.println("Invalid file path");
-    #endif
+  if (path == nullptr) {
+    LogFire.log("readConfigFile: null path", 3);
     return jsonDoc;
   }
 
-  File configFile = SPIFFS.open(path, "r"); // open the config file for reading
-  if (!configFile) { // check if file was opened successfully
-    #ifdef DEBUG
-    Serial.println("Failed to open config file for reading");
-    #endif
+  File configFile = SPIFFS.open(path, "r");
+  if (!configFile) {
+    LogFire.log("readConfigFile: failed to open " + String(path), 2);
     return jsonDoc;
   }
 
-  // Load the JSON data from the config file
   DeserializationError error = deserializeJson(jsonDoc, configFile);
   configFile.close();
-  if (error) { // check for error in parsing JSON data
-    #ifdef DEBUG
-    Serial.println("Failed to parse config file");
-    #endif
+  if (error) {
+    LogFire.log("readConfigFile: parse error in " + String(path), 2);
     jsonDoc.clear();
     return jsonDoc;
   }
@@ -459,23 +370,14 @@ DynamicJsonDocument HelperBase::readConfigFile(const char path[PATH_LENGTH]) {
 // Writes the specified DynamicJsonDocument to the file at the specified file path as a JSON file.
 // Returns true if the file was written successfully, false if the file path is invalid or if there is an error writing the file.
 bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PATH_LENGTH]) {
-  if (path == nullptr) { // check for valid path, a function could possibly use this and set a nullptr as path
-    #ifdef DEBUG
-    Serial.println(F("Path nullptr not allowed!"));
-    #endif
+  if (path == nullptr) {
+    LogFire.log("writeConfigFile: null path", 3);
     return false;
   }
-  //Serial.print("Free heap memory: ");
-  //Serial.println(ESP.getFreeHeap());
-  // open old file
   DynamicJsonDocument oldFile_buff(CONF_FILE_SIZE);
   oldFile_buff = readConfigFile(path);
-  // Check if doc is empty
   if (oldFile_buff.isNull()) {
-    #ifdef DEBUG
-    Serial.print(F("Warning: Failed to read file or empty JSON object, path: "));
-    Serial.println(path);
-    #endif
+    LogFire.log("writeConfigFile: no existing file at " + String(path) + ", creating", 1);
   }
   // calculate old hash value
   //String oldhash = calculateJSONHash(oldFile_buff);
@@ -514,76 +416,47 @@ bool HelperBase::writeConfigFile(DynamicJsonDocument jsonDoc, const char path[PA
 
   // check if file has changed or if old file does not have a checksum
   if(!changed_hash && valid_hash){
-    #ifdef DEBUG
-    Serial.print(F("Not Saving file: File unchanged and checksum present! Path:"));
-    Serial.println(path);
-    #endif
+    LogFire.log("Not Saving file: File unchanged and checksum present! Path:" + String(path), 0);
     return true;
   }
 
-  // open new file to save changes
-  fs::File newFile = SPIFFS.open(path, "w"); // open the config file for writing
-  if (!newFile) { // check if file was opened successfully
-    #ifdef DEBUG
-    Serial.print(F("Error: Failed to open config file for writing, path:"));
-    Serial.println(path);
-    #endif
+  fs::File newFile = SPIFFS.open(path, "w");
+  if (!newFile) {
+    LogFire.log("writeConfigFile: failed to open for writing " + String(path), 3);
     newFile.close();
-    return false; // error occured
+    return false;
   }
-  // Write the JSON data to the config file
   if (serializeJson(jsonDoc, newFile) == 0) {
-    #ifdef DEBUG
-    Serial.print(F("Failed to write to file, path:"));
-    Serial.println(path);
-    #endif
+    LogFire.log("writeConfigFile: serialize failed for " + String(path), 3);
     newFile.close();
     return false;
   }
   newFile.close();
-  #ifdef DEBUG
-  Serial.print(F("Updated: ")); Serial.println(path);
-  #endif
-  return true; // all good
+  LogFire.log("Updated: " + String(path), 1);
+  return true;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 // send data to influxdb, return true when everything is ok
 bool HelperBase::pubInfluxData(InfluxDBClient* influx_client, String sensor_name, String field_name, float value) {
-  #ifdef DEBUG
-  Serial.print(F("Publishing sensor: ")); Serial.println(sensor_name);
-  Serial.print(F("Field: ")); Serial.println(field_name);
-  #endif
+  LogFire.log("influx: publish sensor=" + sensor_name + " field=" + field_name + " val=" + String(value), 0);
 
   bool cond = HelperBase::connectWifi();
   if (!cond) {
-    // if no connection is possible exit early
-    #ifdef DEBUG
-    Serial.print(F("Error in Wifi connection."));
-    #endif
+    LogFire.log("influx: WiFi unavailable, skipping publish", 3);
     return false;
   }
 
   Point point(sensor_name);
-  point.addField(field_name, value);  // Add temperature field to the Point object
+  point.addField(field_name, value);
 
-  // Write the Point object to InfluxDB
   if (!influx_client->writePoint(point)) {
-    #ifdef DEBUG
-    Serial.print(F("InfluxDB write failed: "));
-    Serial.println(influx_client->getLastErrorMessage());  // Print error message if write operation is unsuccessful
-    #endif
+    LogFire.log("influx: write failed: " + influx_client->getLastErrorMessage(), 3);
     return false;
   }
-  else{
-    #ifdef DEBUG
-    Serial.println(F("InfluxDB points sent"));
-    #endif
-    return true;
-  }
-  // default (should never be reached)
-  return false;
+  LogFire.log("influx: write OK", 1);
+  return true;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -614,31 +487,20 @@ DynamicJsonDocument HelperBase::getJsonDoc(const char* filepath, const char* key
   DynamicJsonDocument doc(CONF_FILE_SIZE);
   doc = readConfigFile(filepath);
 
-  // Check if doc is empty
   if (doc.isNull()) {
-    Serial.println(F("Warning: Failed to read file or empty JSON object."));
+    LogFire.log("getJsonDoc: failed to read " + String(filepath), 2);
     return doc;
   }
 
-  // Access the key object if key is provided, else return the whole doc
   if (key != nullptr) {
     doc = doc[key];
-
-    #ifdef DEBUG_SPAM
-    String jsonString;
-    Serial.println(F("JsonDoc:"));
-    serializeJson(doc, Serial);
-    Serial.println();
-    #endif
-    
-    // Check if key exists in the JSON object
     if (doc.isNull()) {
-      #ifdef DEBUG
-      Serial.println(F("Warning: Key not found in JSON object."));
-      #endif
+      LogFire.log("getJsonDoc: key \"" + String(key) + "\" not found in " + String(filepath), 2);
     }
   }
-  Serial.print("OBJ RETURN: "); serializeJson(doc, Serial); Serial.println();
+  String objStr;
+  serializeJson(doc, objStr);
+  LogFire.log("OBJ RETURN: " + objStr, 1);
   return doc;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -663,9 +525,7 @@ DynamicJsonDocument HelperBase::getJSONConfig(const char* server, int serverPort
       DeserializationError error = deserializeJson(jsonConfdata, databuffer);
       bool empty = false;
       if (!(databuffer != String(""))) {
-        #ifdef DEBUG
-        Serial.println(F("Warning: retrieved file empty!"));
-        #endif
+        LogFire.log("getJSONConfig: empty response from " + serverAddress, 2);
         empty = true;
       }
       // NOTE: Network-level checksum verification is not used here because ArduinoJson and
@@ -675,25 +535,19 @@ DynamicJsonDocument HelperBase::getJSONConfig(const char* server, int serverPort
 
       // check problems if all good return data
       if ((bool)error || empty) {
-        #ifdef DEBUG
-        Serial.println(F("Error: Problem when parsing JSON data"));
-        #endif
+        LogFire.log("getJSONConfig: parse error from " + serverAddress, 2);
       } else {
         // correct return
         return jsonConfdata;
       }
 
     } else {
-      #ifdef DEBUG
-      Serial.println(String("Warning: Sending request to server went wrong (") + serverAddress + ")");
-      #endif
+      LogFire.log("getJSONConfig: HTTP " + String(httpCode) + " from " + serverAddress, 2);
     }
     http.end();
     retries++;
   }
-  #ifdef DEBUG
-  Serial.println(F("Info: An error occurred while retrieving the JSON data! Exiting, returned empty doc."));
-  #endif
+  LogFire.log("getJSONConfig: all retries failed, returning empty doc", 2);
   DynamicJsonDocument empty(CONF_FILE_SIZE);
   return empty;
 }
@@ -714,14 +568,10 @@ bool HelperBase::postJSON(const char* server, int serverPort, const char* server
     if (httpCode == HTTP_CODE_OK) {
       return true;
     }
-    #ifdef DEBUG
-    Serial.println(String("Warning: POST failed (") + serverAddress + ") code=" + String(httpCode));
-    #endif
+    LogFire.log("postJSON: HTTP " + String(httpCode) + " from " + serverAddress, 2);
     retries++;
   }
-  #ifdef DEBUG
-  Serial.println(F("Error: POST failed after retries"));
-  #endif
+  LogFire.log("postJSON: all retries failed", 3);
   return false;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -754,12 +604,8 @@ String HelperBase::sha256(String content) {
 // This function verifies the integrity of received JSON data by comparing its checksum with a calculated checksum.
 bool HelperBase::verifyChecksum(DynamicJsonDocument& JSONdata) {
   if(!JSONdata.containsKey("checksum")){
-    // generate hash if not contained
-    String calculatedChecksum = calculateJSONHash(JSONdata);
-    #ifdef DEBUG
-    Serial.println(F("Warning: File could not be verified. No 'checksum' hash found in file!"));
-    #endif
-    return false; // print warning and set true to make it optional
+    LogFire.log("verifyChecksum: no checksum field found", 2);
+    return false;
   }
 
   // Extract the received checksum from the JSON data
@@ -769,9 +615,7 @@ bool HelperBase::verifyChecksum(DynamicJsonDocument& JSONdata) {
 
   // Compare the received checksum with the calculated checksum
   if (receivedChecksum != calculatedChecksum) {
-    #ifdef DEBUG
-    Serial.println(F("Checksum verification failed"));
-    #endif
+    LogFire.log("verifyChecksum: mismatch", 2);
     return false;
   }
 
@@ -823,10 +667,6 @@ String HelperBase::calculateJSONHash(DynamicJsonDocument& JSONdata) {
 // paths get automatically converted to WEB and LOCAL file path (adding Pre-/Suffix where needed)
 // Returns a bool value indicating the success
 bool HelperBase::updateConfig(const char* fileType){
-  #ifdef DEBUG_SPAM
-  Serial.print(F("Updating file: ")); Serial.println(fileType);
-  #endif
-  // Check if the device is connected to WiFi
   if (WiFi.status() == WL_CONNECTED) {
     String fileTypeNoSlash = String(fileType).substring(1); // Remove the first character
     String pt1 = String(WEB_PREFIX) + String(F("?deviceName=")) + String(DEVICE_NAME);
@@ -838,9 +678,7 @@ bool HelperBase::updateConfig(const char* fileType){
     //DynamicJsonDocument newdoc = HelperBase::getJSONData(SERVER, SERVER_PORT, path);
     // Check if the retrieved data is not null
     if(newdoc.isNull()){
-      #ifdef DEBUG
-      Serial.println(F("Warning: Problem recieving config file from server!"));
-      #endif
+      LogFire.log("updateConfig: failed to fetch " + String(fileType) + " from server", 2);
       return false;
     }
     // Write the updated JSON data to the config file
@@ -848,9 +686,7 @@ bool HelperBase::updateConfig(const char* fileType){
     return HelperBase::writeConfigFile(newdoc, localPath.c_str());
   }
   else{
-    #ifdef DEBUG
-    Serial.println(F("Error no Wifi connection established"));
-    #endif
+    LogFire.log("updateConfig: no WiFi, skipping " + String(fileType), 3);
     return false;
   }
 }
@@ -864,14 +700,10 @@ bool HelperBase::syncConfig(){
   count += !HelperBase::updateConfig(IRRIG_CONFIG_PATH);
   count += !HelperBase::updateConfig(SENS_CONFIG_PATH);
   if (!count) {
-    #ifdef DEBUG
-    Serial.println(F("Successfully synched Config!"));
-    #endif
+    LogFire.log("Successfully synched Config!", 1);
   }
   else{
-    #ifdef DEBUG
-    Serial.print(F("Warning: Config Synchronisation error: ")); Serial.println(count);
-    #endif
+    LogFire.log("syncConfig: " + String(count) + " file(s) failed to sync", 2);
   }
   return count; // return true if a problem occured
 }
@@ -883,9 +715,7 @@ bool HelperBase::createFile(const char* filePath) {
 
   if (!file) {
     isSuccess = false;
-    #ifdef DEBUG
-    Serial.println(F("Error: Could not create the file."));
-    #endif
+    LogFire.log("createFile: failed to create " + String(filePath), 3);
   }
   
   file.close(); // Close the file to ensure no resources are leaked
@@ -970,22 +800,13 @@ void Helper_config1_Board1v3838::shiftvalue(uint32_t val, uint8_t numBits, bool 
     val = ~val;  // Invert the value if the invert flag is set
   }
 
-  #ifdef DEBUG //_SPAM TEMPORARY
-  Serial.print(F("Shifting '"));
-  Serial.print(val, BIN); Serial.println(F("'"));
-  #endif
-
   // Split the long value into two bytes
   byte highByte = (val >> 8) & 0xFF;
   byte lowByte = val & 0xFF;
 
-  // Shift out the high byte first
   shiftOut(Pins::DATA_SHFT, Pins::SH_CP_SHFT, MSBFIRST, highByte);
-
-  // Then shift out the low byte
   shiftOut(Pins::DATA_SHFT, Pins::SH_CP_SHFT, MSBFIRST, lowByte);
 
-  // Pulse the latch pin to activate the outputs
   digitalWrite(Pins::ST_CP_SHFT, LOW);
   digitalWrite(Pins::ST_CP_SHFT, HIGH);
   digitalWrite(Pins::ST_CP_SHFT, LOW);
@@ -1159,14 +980,11 @@ bool Helper_config1_Board1v3838::checkAnalogPin(int pin_check)
   int arraySize = sizeof(input_pins) / sizeof(input_pins[0]);
   for (int i = 0; i < arraySize; i++) {
     if ((uint8_t)pin_check == (uint8_t)input_pins[i]) {
-      return true; // Valid pin found
+      return true;
     }
   }
-  #ifdef DEBUG
-  Serial.println(F("Invalid pin detected!"));
-  #endif
-  
-  return false; // Pin not found
+  LogFire.log("checkAnalogPin: pin " + String(pin_check) + " not in valid pin list", 2);
+  return false;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1213,23 +1031,12 @@ void Helper_config1_Board5v5::shiftvalue(uint32_t val, uint8_t numBits, bool inv
     val = ~val;  // Invert the value if the invert flag is set
   }
 
-  #ifdef DEBUG //_SPAM TEMPORARY
-  Serial.println();
-  Serial.print(F("Shifting '"));
-  Serial.print(val, BIN); Serial.println(F("'"));
-  #endif
-
-  // Split the long value into two bytes
   byte highByte = (val >> 8) & 0xFF;
   byte lowByte = val & 0xFF;
 
-  // Shift out the high byte first
   shiftOut(Pins::DATA_SHFT, Pins::SH_CP_SHFT, MSBFIRST, highByte);
-
-  // Then shift out the low byte
   shiftOut(Pins::DATA_SHFT, Pins::SH_CP_SHFT, MSBFIRST, lowByte);
 
-  // Pulse the latch pin to activate the outputs
   digitalWrite(Pins::ST_CP_SHFT, LOW);
   digitalWrite(Pins::ST_CP_SHFT, HIGH);
   digitalWrite(Pins::ST_CP_SHFT, LOW);
@@ -1291,18 +1098,11 @@ bool Helper_config1_Board5v5::checkAnalogPin(int pin_check)
 {
   int arraySize = sizeof(input_pins) / sizeof(input_pins[0]);
   for (int i = 0; i < arraySize; i++) {
-    #ifdef DEBUG
-    Serial.print("Pin to check"); Serial.print(pin_check); Serial.print(" pin found: "); Serial.println(input_pins[i]);
-    #endif
     if ((uint8_t)pin_check == (uint8_t)input_pins[i]) {
-      return true; // Valid pin found
+      return true;
     }
   }
-  
-  #ifdef DEBUG
-  Serial.println(F("Invalid pin detected!"));
-  #endif
-  
-  return false; // Pin not
+  LogFire.log("checkAnalogPin: pin " + String(pin_check) + " not in valid pin list", 2);
+  return false;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
