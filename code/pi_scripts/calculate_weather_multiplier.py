@@ -3,7 +3,7 @@
 # Calculates per-group weather-based irrigation multipliers using OpenWeather forecast data.
 # Writes 'wm' field into each plant group in the bewae config JSON.
 #
-# Designed to run via crontab (e.g., 2x daily at 05:00 and 17:00).
+# Designed to run via crontab (2x daily at 06:00 and 18:00).
 #
 # by br-mat (c) 2025
 

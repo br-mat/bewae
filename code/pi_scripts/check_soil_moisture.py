@@ -4,7 +4,7 @@
 # for plant groups whose soil is wet enough (skip watering).
 #
 # Designed to run via crontab 5 minutes after calculate_weather_multiplier.py
-# (e.g., at 05:05 and 17:05).
+# (at 06:05 and 18:05).
 #
 # by br-mat (c) 2025
 

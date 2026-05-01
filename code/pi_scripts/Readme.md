@@ -45,7 +45,7 @@ Fill in before first run. All fields required unless marked optional.
   "location":            "Vienna",
   "nodered_url":         "http://localhost:1880",
   "logfire_url":         "http://localhost:1880",
-  "config_path":         "/home/homepi/bewae/full-config.json",
+  "config_path":         "/home/pi/bewae/full-config.json",
   "baseline_temp":       25,
   "baseline_humidity":   50,
   "baseline_wind":       5,
@@ -78,10 +78,10 @@ Fill in before first run. All fields required unless marked optional.
 ## Cron setup
 
 ```cron
-0  6  * * *  python3 /home/homepi/bewae/calculate_weather_multiplier.py
-0 18  * * *  python3 /home/homepi/bewae/calculate_weather_multiplier.py
-5  6  * * *  python3 /home/homepi/bewae/check_soil_moisture.py
-5 18  * * *  python3 /home/homepi/bewae/check_soil_moisture.py
+0  6  * * *  python3 /home/pi/bewae/calculate_weather_multiplier.py
+0 18  * * *  python3 /home/pi/bewae/calculate_weather_multiplier.py
+5  6  * * *  python3 /home/pi/bewae/check_soil_moisture.py
+5 18  * * *  python3 /home/pi/bewae/check_soil_moisture.py
 ```
 
 ---

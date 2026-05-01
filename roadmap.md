@@ -4,11 +4,10 @@
 
 - **Cron setup on Pi** — write crontab entries for `calculate_weather_multiplier.py` (2x daily) and `check_soil_moisture.py` (5 min after weather)
 - **`_ts` timestamp** — Node-RED save endpoint stamps config with ISO timestamp + counter suffix; ESP32 checks a lightweight endpoint and skips the full config download when unchanged (reduces WiFi uptime per cycle)
-- **Logfire online verification** — flash updated firmware to Pi, confirm HTTP log delivery in Logfire UI
+- **Push devBranch + Pi+WiFi end-to-end test** — override flow and crash recovery on full hardware
 
 ## Future features
 
-- **Manual override** — water a group for a set duration via button on the web page (requires web UI + firmware changes)
 - **Main loop unblocking** — calculate safe watering window to avoid sensor interval conflicts, allowing sensor reads between watering pulses
 - **Docker Compose deployment docs** — document the full Pi deployment (Node-RED in Docker, InfluxDB, Grafana, cron jobs)
 - **Schema docs for full-config.json** — document the server-side config structure
