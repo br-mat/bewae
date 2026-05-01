@@ -9,9 +9,12 @@ code/esp_32ard_bewae/src/connection.h
 # Local project tracking
 TODO.md
 
-code/esp_32ard_bewae/serial_capture.log
+code/esp_32ard_bewae/*.log
 code/esp_32ard_bewae/DEAD_CODE.md
 code/esp_32ard_bewae/ISSUES.md
+
+# Python build artifacts
+__pycache__/
 
 # Local AI-assisted session docs (implemented, archived for reference only)
 archive/
