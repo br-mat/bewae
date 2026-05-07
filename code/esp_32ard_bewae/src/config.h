@@ -25,6 +25,10 @@
 #define WEB_PREFIX "/bewae/get-config"
 #endif
 
+#ifndef WEB_TS_PREFIX
+#define WEB_TS_PREFIX "/bewae/get-ts"
+#endif
+
 #ifndef DEVICE_CONFIG_PATH
 #define DEVICE_CONFIG_PATH "/deviceConfig"
 #endif

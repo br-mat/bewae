@@ -90,6 +90,8 @@ public:
     String calculateJSONHash(DynamicJsonDocument& JSONdata);
     // routine to check and update config file (from raspberrypi server)
     bool updateConfig(const char* fileType);
+    // fetch device-level _ts from server (lightweight, ~50 bytes); empty string on failure
+    String getRemoteTs(const char* deviceName);
     // sync config with server
     bool syncConfig();
     // create empty file

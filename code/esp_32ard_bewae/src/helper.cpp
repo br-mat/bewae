@@ -10,6 +10,7 @@
 //Standard
 #include <Arduino.h>
 #include <Wire.h>
+#include <Preferences.h>
 //external
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
@@ -693,14 +694,54 @@ bool HelperBase::updateConfig(const char* fileType){
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Lightweight: GET /bewae/get-ts?deviceName=X → "" on any failure.
+String HelperBase::getRemoteTs(const char* deviceName) {
+  if (WiFi.status() != WL_CONNECTED) return String("");
+  HTTPClient http;
+  String url = String("http://") + SERVER + ":" + NODERED_PORT
+             + WEB_TS_PREFIX + "?deviceName=" + deviceName;
+  http.begin(url);
+  int httpCode = http.GET();
+  if (httpCode != HTTP_CODE_OK) {
+    LogFire.log("getRemoteTs: HTTP " + String(httpCode), 2);
+    http.end();
+    return String("");
+  }
+  String body = http.getString();
+  http.end();
+  StaticJsonDocument<128> doc;
+  if (deserializeJson(doc, body)) return String("");
+  const char* ts = doc["_ts"];
+  return ts ? String(ts) : String("");
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 bool HelperBase::syncConfig(){
+  // Skip download path: ask server for current device _ts; if it matches the
+  // last successfully synced value (NVS), all 3 slices are already up-to-date.
+  Preferences prefs;
+  String remoteTs = HelperBase::getRemoteTs(DEVICE_NAME);
+  if (remoteTs.length() > 0) {
+    prefs.begin("bewae", true);
+    String localTs = prefs.getString("cfg_ts", "");
+    prefs.end();
+    if (remoteTs == localTs) {
+      LogFire.log("syncConfig: skip (ts " + remoteTs + ")", 0);
+      return false;
+    }
+  }
+
   byte count = 0;
-  //count += HelperBase::updateConfigOLD(CONFIG_FILE_PATH);
   count += !HelperBase::updateConfig(DEVICE_CONFIG_PATH);
   count += !HelperBase::updateConfig(IRRIG_CONFIG_PATH);
   count += !HelperBase::updateConfig(SENS_CONFIG_PATH);
   if (!count) {
     LogFire.log("Successfully synched Config!", 1);
+    if (remoteTs.length() > 0) {
+      prefs.begin("bewae", false);
+      prefs.putString("cfg_ts", remoteTs);
+      prefs.end();
+    }
   }
   else{
     LogFire.log("syncConfig: " + String(count) + " file(s) failed to sync", 2);
