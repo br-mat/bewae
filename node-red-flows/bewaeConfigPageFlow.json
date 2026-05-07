@@ -5,7 +5,13 @@
         "label": "bewae-config",
         "disabled": false,
         "info": "",
-        "env": []
+        "env": [
+            {
+                "name": "BEWAE_TIMEZONE",
+                "type": "str",
+                "value": "Europe/Vienna"
+            }
+        ]
     },
     {
         "id": "rw_c1",
@@ -180,7 +186,7 @@
         "type": "function",
         "z": "rw_tab",
         "name": "merge wm",
-        "func": "const configPath = '/data/bewae/full-config.json';\nlet currentConfig = {};\ntry {\n    currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));\n} catch(e) {\n    node.warn('Could not read existing config: ' + e.message);\n}\n\nconst incoming = msg.payload;\n\nfor (const [deviceName, device] of Object.entries(incoming)) {\n    if (!device || !device.plantConfig) continue;\n    const currentDevice = currentConfig[deviceName];\n    if (!currentDevice || !currentDevice.plantConfig) continue;\n\n    for (const [groupKey, group] of Object.entries(device.plantConfig)) {\n        const currentGroup = currentDevice.plantConfig[groupKey];\n        if (currentGroup && currentGroup.wm !== undefined) {\n            group.wm = currentGroup.wm;\n        }\n    }\n}\n\nmsg.payload = incoming;\nreturn msg;",
+        "func": "function getBewaeTimezone() {\n    var tz = 'Europe/Vienna';\n    try {\n        if (typeof env !== 'undefined' && env.get) {\n            tz = env.get('BEWAE_TIMEZONE') || tz;\n        }\n    } catch (e) {}\n    return tz;\n}\nfunction offsetString(offsetMinutes) {\n    var sign = offsetMinutes >= 0 ? '+' : '-';\n    var abs = Math.abs(offsetMinutes);\n    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };\n    return sign + pad(Math.floor(abs / 60)) + ':' + pad(abs % 60);\n}\nfunction zonedTimestamp(date, timezone) {\n    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };\n    var parts;\n    try {\n        parts = new Intl.DateTimeFormat('en-GB', {\n            timeZone: timezone,\n            year: 'numeric',\n            month: '2-digit',\n            day: '2-digit',\n            hour: '2-digit',\n            minute: '2-digit',\n            second: '2-digit',\n            hourCycle: 'h23'\n        }).formatToParts(date);\n    } catch (e) {\n        timezone = 'Europe/Vienna';\n        parts = new Intl.DateTimeFormat('en-GB', {\n            timeZone: timezone,\n            year: 'numeric',\n            month: '2-digit',\n            day: '2-digit',\n            hour: '2-digit',\n            minute: '2-digit',\n            second: '2-digit',\n            hourCycle: 'h23'\n        }).formatToParts(date);\n    }\n    var p = {};\n    parts.forEach(function(part) {\n        if (part.type !== 'literal') p[part.type] = part.value;\n    });\n    var asUtc = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day),\n                         Number(p.hour), Number(p.minute), Number(p.second));\n    var offsetMinutes = Math.round((asUtc - date.getTime()) / 60000);\n    return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute + ':' + p.second\n         + offsetString(offsetMinutes);\n}\nfunction makeTs(prevTs) {\n    var base = zonedTimestamp(new Date(), getBewaeTimezone());\n    if (typeof prevTs === 'string') {\n        var m = prevTs.match(/^(.+?)(?:~(\\d+))?$/);\n        if (m && m[1] === base) {\n            return base + '~' + (m[2] ? parseInt(m[2], 10) + 1 : 1);\n        }\n    }\n    return base;\n}\nfunction deviceContent(dev) {\n    if (!dev) return '';\n    var copy = Object.assign({}, dev);\n    delete copy._ts;\n    return JSON.stringify(copy);\n}\n\nconst configPath = '/data/bewae/full-config.json';\nlet currentConfig = {};\ntry {\n    currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));\n} catch(e) {\n    node.warn('Could not read existing config: ' + e.message);\n}\n\nconst incoming = msg.payload;\n\nfor (const [deviceName, device] of Object.entries(incoming)) {\n    if (!device || !device.plantConfig) continue;\n    const currentDevice = currentConfig[deviceName];\n\n    if (currentDevice && currentDevice.plantConfig) {\n        for (const [groupKey, group] of Object.entries(device.plantConfig)) {\n            const currentGroup = currentDevice.plantConfig[groupKey];\n            if (currentGroup && currentGroup.wm !== undefined) {\n                group.wm = currentGroup.wm;\n            }\n        }\n    }\n\n    // Bump _ts only if device content actually changed; otherwise keep prior _ts.\n    const prevTs = currentDevice ? currentDevice._ts : undefined;\n    if (currentDevice && deviceContent(device) === deviceContent(currentDevice)) {\n        if (prevTs) device._ts = prevTs;\n    } else {\n        device._ts = makeTs(prevTs);\n    }\n}\n\nmsg.payload = incoming;\nreturn msg;",
         "outputs": 1,
         "timeout": "",
         "noerr": 0,
@@ -398,7 +404,7 @@
         "type": "function",
         "z": "rw_tab",
         "name": "merge wm updates",
-        "func": "var configPath = '/data/bewae/full-config.json';\nvar currentConfig = {};\ntry {\n    currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));\n} catch(e) {\n    node.error('Could not read config: ' + e.message);\n    msg.payload = { error: 'Failed to read config', detail: e.message };\n    msg.statusCode = 500;\n    return msg;\n}\n\nvar wmUpdates = msg.payload;\nvar updated = 0;\nvar deviceNames = Object.keys(wmUpdates);\n\nfor (var i = 0; i < deviceNames.length; i++) {\n    var deviceName = deviceNames[i];\n    var groups = wmUpdates[deviceName];\n    if (!currentConfig[deviceName] || !currentConfig[deviceName].plantConfig) {\n        node.warn('Device not found in config: ' + deviceName);\n        continue;\n    }\n    var groupKeys = Object.keys(groups);\n    for (var j = 0; j < groupKeys.length; j++) {\n        var groupKey = groupKeys[j];\n        if (currentConfig[deviceName].plantConfig[groupKey]) {\n            currentConfig[deviceName].plantConfig[groupKey].wm = groups[groupKey];\n            updated++;\n        } else {\n            node.warn('Group not found: ' + deviceName + '/' + groupKey);\n        }\n    }\n}\n\nmsg.payload = currentConfig;\nmsg.wmUpdated = updated;\nreturn msg;",
+        "func": "function getBewaeTimezone() {\n    var tz = 'Europe/Vienna';\n    try {\n        if (typeof env !== 'undefined' && env.get) {\n            tz = env.get('BEWAE_TIMEZONE') || tz;\n        }\n    } catch (e) {}\n    return tz;\n}\nfunction offsetString(offsetMinutes) {\n    var sign = offsetMinutes >= 0 ? '+' : '-';\n    var abs = Math.abs(offsetMinutes);\n    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };\n    return sign + pad(Math.floor(abs / 60)) + ':' + pad(abs % 60);\n}\nfunction zonedTimestamp(date, timezone) {\n    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };\n    var parts;\n    try {\n        parts = new Intl.DateTimeFormat('en-GB', {\n            timeZone: timezone,\n            year: 'numeric',\n            month: '2-digit',\n            day: '2-digit',\n            hour: '2-digit',\n            minute: '2-digit',\n            second: '2-digit',\n            hourCycle: 'h23'\n        }).formatToParts(date);\n    } catch (e) {\n        timezone = 'Europe/Vienna';\n        parts = new Intl.DateTimeFormat('en-GB', {\n            timeZone: timezone,\n            year: 'numeric',\n            month: '2-digit',\n            day: '2-digit',\n            hour: '2-digit',\n            minute: '2-digit',\n            second: '2-digit',\n            hourCycle: 'h23'\n        }).formatToParts(date);\n    }\n    var p = {};\n    parts.forEach(function(part) {\n        if (part.type !== 'literal') p[part.type] = part.value;\n    });\n    var asUtc = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day),\n                         Number(p.hour), Number(p.minute), Number(p.second));\n    var offsetMinutes = Math.round((asUtc - date.getTime()) / 60000);\n    return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute + ':' + p.second\n         + offsetString(offsetMinutes);\n}\nfunction makeTs(prevTs) {\n    var base = zonedTimestamp(new Date(), getBewaeTimezone());\n    if (typeof prevTs === 'string') {\n        var m = prevTs.match(/^(.+?)(?:~(\\d+))?$/);\n        if (m && m[1] === base) {\n            return base + '~' + (m[2] ? parseInt(m[2], 10) + 1 : 1);\n        }\n    }\n    return base;\n}\nfunction deviceContent(dev) {\n    if (!dev) return '';\n    var copy = Object.assign({}, dev);\n    delete copy._ts;\n    return JSON.stringify(copy);\n}\n\nvar configPath = '/data/bewae/full-config.json';\nvar currentConfig = {};\ntry {\n    currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));\n} catch(e) {\n    node.error('Could not read config: ' + e.message);\n    msg.payload = { error: 'Failed to read config', detail: e.message };\n    msg.statusCode = 500;\n    return msg;\n}\n\nvar wmUpdates = msg.payload;\nvar updated = 0;\nvar changedDevices = {};\nvar deviceNames = Object.keys(wmUpdates);\n\nfor (var i = 0; i < deviceNames.length; i++) {\n    var deviceName = deviceNames[i];\n    var groups = wmUpdates[deviceName];\n    if (!currentConfig[deviceName] || !currentConfig[deviceName].plantConfig) {\n        node.warn('Device not found in config: ' + deviceName);\n        continue;\n    }\n    var groupKeys = Object.keys(groups);\n    for (var j = 0; j < groupKeys.length; j++) {\n        var groupKey = groupKeys[j];\n        if (currentConfig[deviceName].plantConfig[groupKey]) {\n            var oldVal = currentConfig[deviceName].plantConfig[groupKey].wm;\n            var newVal = groups[groupKey];\n            if (oldVal !== newVal) {\n                currentConfig[deviceName].plantConfig[groupKey].wm = newVal;\n                updated++;\n                changedDevices[deviceName] = true;\n            }\n        } else {\n            node.warn('Group not found: ' + deviceName + '/' + groupKey);\n        }\n    }\n}\n\nObject.keys(changedDevices).forEach(function(d) {\n    currentConfig[d]._ts = makeTs(currentConfig[d]._ts);\n});\n\nmsg.payload = currentConfig;\nmsg.wmUpdated = updated;\nreturn msg;",
         "outputs": 1,
         "timeout": "",
         "noerr": 0,
@@ -513,7 +519,7 @@
         "type": "function",
         "z": "rw_tab",
         "name": "clear overrides",
-        "func": "var configPath = '/data/bewae/full-config.json';\nvar currentConfig = {};\ntry {\n    currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));\n} catch(e) {\n    node.error('Could not read config: ' + e.message);\n    msg.payload = { error: 'Failed to read config', detail: e.message };\n    msg.statusCode = 500;\n    return msg;\n}\n\nvar clearRequests = msg.payload;\nvar cleared = 0;\nvar deviceNames = Object.keys(clearRequests);\n\nfor (var i = 0; i < deviceNames.length; i++) {\n    var deviceName = deviceNames[i];\n    var groupKeys = clearRequests[deviceName];\n    if (!currentConfig[deviceName] || !currentConfig[deviceName].overrideConfig) {\n        continue;\n    }\n    if (!Array.isArray(groupKeys)) groupKeys = [groupKeys];\n    for (var j = 0; j < groupKeys.length; j++) {\n        var gk = String(groupKeys[j]);\n        if (currentConfig[deviceName].overrideConfig[gk]) {\n            delete currentConfig[deviceName].overrideConfig[gk];\n            cleared++;\n        }\n    }\n}\n\nmsg.payload = currentConfig;\nmsg.overrideCleared = cleared;\nreturn msg;",
+        "func": "function getBewaeTimezone() {\n    var tz = 'Europe/Vienna';\n    try {\n        if (typeof env !== 'undefined' && env.get) {\n            tz = env.get('BEWAE_TIMEZONE') || tz;\n        }\n    } catch (e) {}\n    return tz;\n}\nfunction offsetString(offsetMinutes) {\n    var sign = offsetMinutes >= 0 ? '+' : '-';\n    var abs = Math.abs(offsetMinutes);\n    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };\n    return sign + pad(Math.floor(abs / 60)) + ':' + pad(abs % 60);\n}\nfunction zonedTimestamp(date, timezone) {\n    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };\n    var parts;\n    try {\n        parts = new Intl.DateTimeFormat('en-GB', {\n            timeZone: timezone,\n            year: 'numeric',\n            month: '2-digit',\n            day: '2-digit',\n            hour: '2-digit',\n            minute: '2-digit',\n            second: '2-digit',\n            hourCycle: 'h23'\n        }).formatToParts(date);\n    } catch (e) {\n        timezone = 'Europe/Vienna';\n        parts = new Intl.DateTimeFormat('en-GB', {\n            timeZone: timezone,\n            year: 'numeric',\n            month: '2-digit',\n            day: '2-digit',\n            hour: '2-digit',\n            minute: '2-digit',\n            second: '2-digit',\n            hourCycle: 'h23'\n        }).formatToParts(date);\n    }\n    var p = {};\n    parts.forEach(function(part) {\n        if (part.type !== 'literal') p[part.type] = part.value;\n    });\n    var asUtc = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day),\n                         Number(p.hour), Number(p.minute), Number(p.second));\n    var offsetMinutes = Math.round((asUtc - date.getTime()) / 60000);\n    return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute + ':' + p.second\n         + offsetString(offsetMinutes);\n}\nfunction makeTs(prevTs) {\n    var base = zonedTimestamp(new Date(), getBewaeTimezone());\n    if (typeof prevTs === 'string') {\n        var m = prevTs.match(/^(.+?)(?:~(\\d+))?$/);\n        if (m && m[1] === base) {\n            return base + '~' + (m[2] ? parseInt(m[2], 10) + 1 : 1);\n        }\n    }\n    return base;\n}\nfunction deviceContent(dev) {\n    if (!dev) return '';\n    var copy = Object.assign({}, dev);\n    delete copy._ts;\n    return JSON.stringify(copy);\n}\n\nvar configPath = '/data/bewae/full-config.json';\nvar currentConfig = {};\ntry {\n    currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));\n} catch(e) {\n    node.error('Could not read config: ' + e.message);\n    msg.payload = { error: 'Failed to read config', detail: e.message };\n    msg.statusCode = 500;\n    return msg;\n}\n\nvar clearRequests = msg.payload;\nvar cleared = 0;\nvar changedDevices = {};\nvar deviceNames = Object.keys(clearRequests);\n\nfor (var i = 0; i < deviceNames.length; i++) {\n    var deviceName = deviceNames[i];\n    var groupKeys = clearRequests[deviceName];\n    if (!currentConfig[deviceName] || !currentConfig[deviceName].overrideConfig) {\n        continue;\n    }\n    if (!Array.isArray(groupKeys)) groupKeys = [groupKeys];\n    for (var j = 0; j < groupKeys.length; j++) {\n        var gk = String(groupKeys[j]);\n        if (currentConfig[deviceName].overrideConfig[gk]) {\n            delete currentConfig[deviceName].overrideConfig[gk];\n            cleared++;\n            changedDevices[deviceName] = true;\n        }\n    }\n}\n\nObject.keys(changedDevices).forEach(function(d) {\n    currentConfig[d]._ts = makeTs(currentConfig[d]._ts);\n});\n\nmsg.payload = currentConfig;\nmsg.overrideCleared = cleared;\nreturn msg;",
         "outputs": 1,
         "timeout": "",
         "noerr": 0,
@@ -597,13 +603,91 @@
         "wires": []
     },
     {
+        "id": "rw_c7",
+        "type": "comment",
+        "z": "rw_tab",
+        "name": "Get TS API (ESP32 lightweight skip-download check)",
+        "info": "",
+        "x": 310,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "rw_get_ts",
+        "type": "http in",
+        "z": "rw_tab",
+        "name": "[get] device ts",
+        "url": "/bewae/get-ts",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 200,
+        "y": 720,
+        "wires": [
+            [
+                "rw_read_ts"
+            ]
+        ]
+    },
+    {
+        "id": "rw_read_ts",
+        "type": "file in",
+        "z": "rw_tab",
+        "name": "read config",
+        "filename": "/data/bewae/full-config.json",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": true,
+        "encoding": "none",
+        "allProps": false,
+        "x": 440,
+        "y": 720,
+        "wires": [
+            [
+                "rw_extract_ts"
+            ]
+        ]
+    },
+    {
+        "id": "rw_extract_ts",
+        "type": "function",
+        "z": "rw_tab",
+        "name": "extract ts",
+        "func": "var deviceName = msg.req.query.deviceName;\ntry {\n    var config = JSON.parse(msg.payload);\n    if (!deviceName || !config[deviceName]) {\n        msg.payload = { _ts: \"\" };\n        return msg;\n    }\n    msg.payload = { _ts: config[deviceName]._ts || \"\" };\n    return msg;\n} catch (e) {\n    msg.payload = { _ts: \"\" };\n    return msg;\n}",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 640,
+        "y": 720,
+        "wires": [
+            [
+                "rw_resp_ts"
+            ]
+        ]
+    },
+    {
+        "id": "rw_resp_ts",
+        "type": "http response",
+        "z": "rw_tab",
+        "name": "return ts",
+        "statusCode": "",
+        "headers": {},
+        "x": 840,
+        "y": 720,
+        "wires": []
+    },
+    {
         "id": "rw_c4",
         "type": "comment",
         "z": "rw_tab",
         "name": "Error Handling",
         "info": "Catches file read/write errors and returns 500.",
         "x": 210,
-        "y": 700,
+        "y": 800,
         "wires": []
     },
     {
@@ -620,11 +704,13 @@
             "rw_wm_merge",
             "rw_wm_write",
             "rw_clr_fn",
-            "rw_clr_write"
+            "rw_clr_write",
+            "rw_read_ts",
+            "rw_extract_ts"
         ],
         "uncaught": false,
         "x": 230,
-        "y": 740,
+        "y": 840,
         "wires": [
             [
                 "rw_fmterr"
@@ -644,7 +730,7 @@
         "finalize": "",
         "libs": [],
         "x": 470,
-        "y": 740,
+        "y": 840,
         "wires": [
             [
                 "rw_resp_err"
@@ -659,7 +745,7 @@
         "statusCode": "500",
         "headers": {},
         "x": 670,
-        "y": 740,
+        "y": 840,
         "wires": []
     }
 ]

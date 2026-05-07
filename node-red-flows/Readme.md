@@ -16,8 +16,23 @@ The HTML config page is embedded directly as a template node — no separate fil
 | `/bewae/save-backendconfig-full` | POST | Saves the full config, preserving Pi-computed `wm` values |
 | `/bewae/get-config` | GET | Returns config filtered by `?deviceName=` and/or `?fileType=` (used by ESP32) |
 | `/bewae/update-wm` | POST | Updates weather multiplier values per plant group (called by Pi scripts) |
+| `/bewae/get-ts` | GET | Returns `{ "_ts": "..." }` for `?deviceName=` (used by ESP32 skip-download check) |
 
 **Config file path (Docker):** `/data/bewae/full-config.json` inside the container. Update the `file in` / `file` nodes if your volume is mounted differently.
+
+**Timestamp timezone:** `_ts` values are generated from the flow/tab environment variable `BEWAE_TIMEZONE`.
+The default is `Europe/Vienna`. Values are IANA timezone names, not numeric offsets, so daylight saving time is handled automatically.
+
+Examples:
+
+| City/region | `BEWAE_TIMEZONE` | Example summer offset |
+|---|---|---|
+| Vienna / Berlin / Madrid | `Europe/Vienna` or `Europe/Berlin` or `Europe/Madrid` | `+02:00` |
+| London | `Europe/London` | `+01:00` |
+| New York | `America/New_York` | `-04:00` |
+| UTC | `UTC` | `+00:00` |
+
+Generated timestamps look like `2026-05-07T14:09:31+02:00`. If two writes happen in the same second, a suffix like `~1` is appended.
 
 ---
 
@@ -33,6 +48,12 @@ Reads `bewae-config.html` and generates `bewaeConfigPageFlow.json` with the HTML
 
 ```bash
 python node-red-flows/build_flow.py
+```
+
+To build for a different timestamp timezone:
+
+```bash
+python node-red-flows/build_flow.py --timezone Europe/London
 ```
 
 ---

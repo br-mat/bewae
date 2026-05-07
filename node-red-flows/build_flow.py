@@ -6,12 +6,86 @@ import json
 parser = argparse.ArgumentParser(description='Build bewae Node-RED flow JSON.')
 parser.add_argument('--output', default='node-red-flows/bewaeConfigPageFlow.json',
                     help='Output flow JSON path (default: production file)')
+parser.add_argument('--timezone', default='Europe/Vienna',
+                    help='IANA timezone for _ts values (default: Europe/Vienna)')
 args = parser.parse_args()
 
 with open('node-red-flows/bewae-config.html', 'r', encoding='utf-8') as f:
     html = f.read()
 
-merge_wm_func = """const configPath = '/data/bewae/full-config.json';
+# Shared JS helpers reused across function nodes that stamp _ts.
+ts_helpers_js = """function getBewaeTimezone() {
+    var tz = 'Europe/Vienna';
+    try {
+        if (typeof env !== 'undefined' && env.get) {
+            tz = env.get('BEWAE_TIMEZONE') || tz;
+        }
+    } catch (e) {}
+    return tz;
+}
+function offsetString(offsetMinutes) {
+    var sign = offsetMinutes >= 0 ? '+' : '-';
+    var abs = Math.abs(offsetMinutes);
+    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+    return sign + pad(Math.floor(abs / 60)) + ':' + pad(abs % 60);
+}
+function zonedTimestamp(date, timezone) {
+    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+    var parts;
+    try {
+        parts = new Intl.DateTimeFormat('en-GB', {
+            timeZone: timezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hourCycle: 'h23'
+        }).formatToParts(date);
+    } catch (e) {
+        timezone = 'Europe/Vienna';
+        parts = new Intl.DateTimeFormat('en-GB', {
+            timeZone: timezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hourCycle: 'h23'
+        }).formatToParts(date);
+    }
+    var p = {};
+    parts.forEach(function(part) {
+        if (part.type !== 'literal') p[part.type] = part.value;
+    });
+    var asUtc = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day),
+                         Number(p.hour), Number(p.minute), Number(p.second));
+    var offsetMinutes = Math.round((asUtc - date.getTime()) / 60000);
+    return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute + ':' + p.second
+         + offsetString(offsetMinutes);
+}
+function makeTs(prevTs) {
+    var base = zonedTimestamp(new Date(), getBewaeTimezone());
+    if (typeof prevTs === 'string') {
+        var m = prevTs.match(/^(.+?)(?:~(\\d+))?$/);
+        if (m && m[1] === base) {
+            return base + '~' + (m[2] ? parseInt(m[2], 10) + 1 : 1);
+        }
+    }
+    return base;
+}
+function deviceContent(dev) {
+    if (!dev) return '';
+    var copy = Object.assign({}, dev);
+    delete copy._ts;
+    return JSON.stringify(copy);
+}"""
+
+merge_wm_func = ts_helpers_js + """
+
+const configPath = '/data/bewae/full-config.json';
 let currentConfig = {};
 try {
     currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -24,13 +98,22 @@ const incoming = msg.payload;
 for (const [deviceName, device] of Object.entries(incoming)) {
     if (!device || !device.plantConfig) continue;
     const currentDevice = currentConfig[deviceName];
-    if (!currentDevice || !currentDevice.plantConfig) continue;
 
-    for (const [groupKey, group] of Object.entries(device.plantConfig)) {
-        const currentGroup = currentDevice.plantConfig[groupKey];
-        if (currentGroup && currentGroup.wm !== undefined) {
-            group.wm = currentGroup.wm;
+    if (currentDevice && currentDevice.plantConfig) {
+        for (const [groupKey, group] of Object.entries(device.plantConfig)) {
+            const currentGroup = currentDevice.plantConfig[groupKey];
+            if (currentGroup && currentGroup.wm !== undefined) {
+                group.wm = currentGroup.wm;
+            }
         }
+    }
+
+    // Bump _ts only if device content actually changed; otherwise keep prior _ts.
+    const prevTs = currentDevice ? currentDevice._ts : undefined;
+    if (currentDevice && deviceContent(device) === deviceContent(currentDevice)) {
+        if (prevTs) device._ts = prevTs;
+    } else {
+        device._ts = makeTs(prevTs);
     }
 }
 
@@ -76,7 +159,9 @@ try {
     return returnEmpty();
 }"""
 
-update_wm_func = """var configPath = '/data/bewae/full-config.json';
+update_wm_func = ts_helpers_js + """
+
+var configPath = '/data/bewae/full-config.json';
 var currentConfig = {};
 try {
     currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -89,6 +174,7 @@ try {
 
 var wmUpdates = msg.payload;
 var updated = 0;
+var changedDevices = {};
 var deviceNames = Object.keys(wmUpdates);
 
 for (var i = 0; i < deviceNames.length; i++) {
@@ -102,19 +188,30 @@ for (var i = 0; i < deviceNames.length; i++) {
     for (var j = 0; j < groupKeys.length; j++) {
         var groupKey = groupKeys[j];
         if (currentConfig[deviceName].plantConfig[groupKey]) {
-            currentConfig[deviceName].plantConfig[groupKey].wm = groups[groupKey];
-            updated++;
+            var oldVal = currentConfig[deviceName].plantConfig[groupKey].wm;
+            var newVal = groups[groupKey];
+            if (oldVal !== newVal) {
+                currentConfig[deviceName].plantConfig[groupKey].wm = newVal;
+                updated++;
+                changedDevices[deviceName] = true;
+            }
         } else {
             node.warn('Group not found: ' + deviceName + '/' + groupKey);
         }
     }
 }
 
+Object.keys(changedDevices).forEach(function(d) {
+    currentConfig[d]._ts = makeTs(currentConfig[d]._ts);
+});
+
 msg.payload = currentConfig;
 msg.wmUpdated = updated;
 return msg;"""
 
-clear_override_func = """var configPath = '/data/bewae/full-config.json';
+clear_override_func = ts_helpers_js + """
+
+var configPath = '/data/bewae/full-config.json';
 var currentConfig = {};
 try {
     currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -127,6 +224,7 @@ try {
 
 var clearRequests = msg.payload;
 var cleared = 0;
+var changedDevices = {};
 var deviceNames = Object.keys(clearRequests);
 
 for (var i = 0; i < deviceNames.length; i++) {
@@ -141,13 +239,32 @@ for (var i = 0; i < deviceNames.length; i++) {
         if (currentConfig[deviceName].overrideConfig[gk]) {
             delete currentConfig[deviceName].overrideConfig[gk];
             cleared++;
+            changedDevices[deviceName] = true;
         }
     }
 }
 
+Object.keys(changedDevices).forEach(function(d) {
+    currentConfig[d]._ts = makeTs(currentConfig[d]._ts);
+});
+
 msg.payload = currentConfig;
 msg.overrideCleared = cleared;
 return msg;"""
+
+get_ts_func = """var deviceName = msg.req.query.deviceName;
+try {
+    var config = JSON.parse(msg.payload);
+    if (!deviceName || !config[deviceName]) {
+        msg.payload = { _ts: "" };
+        return msg;
+    }
+    msg.payload = { _ts: config[deviceName]._ts || "" };
+    return msg;
+} catch (e) {
+    msg.payload = { _ts: "" };
+    return msg;
+}"""
 
 error_func = 'msg.payload = {\n    error: "Config file operation failed",\n    detail: msg.error ? msg.error.message : "Unknown error"\n};\nmsg.statusCode = 500;\nreturn msg;'
 
@@ -168,7 +285,9 @@ test_data = json.dumps({
 TAB = "rw_tab"
 
 flow = [
-    {"id": TAB, "type": "tab", "label": "bewae-config", "disabled": False, "info": "", "env": []},
+    {"id": TAB, "type": "tab", "label": "bewae-config", "disabled": False, "info": "", "env": [
+        {"name": "BEWAE_TIMEZONE", "type": "str", "value": args.timezone}
+    ]},
 
     # --- Config Page ---
     {"id": "rw_c1", "type": "comment", "z": TAB, "name": "Config Page (template-embedded)", "info": "", "x": 300, "y": 60, "wires": []},
@@ -220,11 +339,18 @@ flow = [
     {"id": "rw_clr_resp", "type": "http response", "z": TAB, "name": "200 OK", "statusCode": "200", "headers": {}, "x": 960, "y": 600, "wires": []},
     {"id": "rw_clr_dbg", "type": "debug", "z": TAB, "name": "debug CLR", "active": False, "tosidebar": True, "console": False, "tostatus": False, "complete": "true", "statusVal": "", "statusType": "auto", "x": 960, "y": 640, "wires": []},
 
+    # --- Get TS API (ESP32 lightweight skip-download check) ---
+    {"id": "rw_c7", "type": "comment", "z": TAB, "name": "Get TS API (ESP32 lightweight skip-download check)", "info": "", "x": 310, "y": 680, "wires": []},
+    {"id": "rw_get_ts", "type": "http in", "z": TAB, "name": "[get] device ts", "url": "/bewae/get-ts", "method": "get", "upload": False, "swaggerDoc": "", "x": 200, "y": 720, "wires": [["rw_read_ts"]]},
+    {"id": "rw_read_ts", "type": "file in", "z": TAB, "name": "read config", "filename": "/data/bewae/full-config.json", "filenameType": "str", "format": "utf8", "chunk": False, "sendError": True, "encoding": "none", "allProps": False, "x": 440, "y": 720, "wires": [["rw_extract_ts"]]},
+    {"id": "rw_extract_ts", "type": "function", "z": TAB, "name": "extract ts", "func": get_ts_func, "outputs": 1, "timeout": "", "noerr": 0, "initialize": "", "finalize": "", "libs": [], "x": 640, "y": 720, "wires": [["rw_resp_ts"]]},
+    {"id": "rw_resp_ts", "type": "http response", "z": TAB, "name": "return ts", "statusCode": "", "headers": {}, "x": 840, "y": 720, "wires": []},
+
     # --- Error handling ---
-    {"id": "rw_c4", "type": "comment", "z": TAB, "name": "Error Handling", "info": "Catches file read/write errors and returns 500.", "x": 210, "y": 700, "wires": []},
-    {"id": "rw_catch", "type": "catch", "z": TAB, "name": "catch file errors", "scope": ["rw_read1", "rw_merge", "rw_write", "rw_read2", "rw_filt", "rw_wm_merge", "rw_wm_write", "rw_clr_fn", "rw_clr_write"], "uncaught": False, "x": 230, "y": 740, "wires": [["rw_fmterr"]]},
-    {"id": "rw_fmterr", "type": "function", "z": TAB, "name": "format error", "func": error_func, "outputs": 1, "timeout": "", "noerr": 0, "initialize": "", "finalize": "", "libs": [], "x": 470, "y": 740, "wires": [["rw_resp_err"]]},
-    {"id": "rw_resp_err", "type": "http response", "z": TAB, "name": "error 500", "statusCode": "500", "headers": {}, "x": 670, "y": 740, "wires": []},
+    {"id": "rw_c4", "type": "comment", "z": TAB, "name": "Error Handling", "info": "Catches file read/write errors and returns 500.", "x": 210, "y": 800, "wires": []},
+    {"id": "rw_catch", "type": "catch", "z": TAB, "name": "catch file errors", "scope": ["rw_read1", "rw_merge", "rw_write", "rw_read2", "rw_filt", "rw_wm_merge", "rw_wm_write", "rw_clr_fn", "rw_clr_write", "rw_read_ts", "rw_extract_ts"], "uncaught": False, "x": 230, "y": 840, "wires": [["rw_fmterr"]]},
+    {"id": "rw_fmterr", "type": "function", "z": TAB, "name": "format error", "func": error_func, "outputs": 1, "timeout": "", "noerr": 0, "initialize": "", "finalize": "", "libs": [], "x": 470, "y": 840, "wires": [["rw_resp_err"]]},
+    {"id": "rw_resp_err", "type": "http response", "z": TAB, "name": "error 500", "statusCode": "500", "headers": {}, "x": 670, "y": 840, "wires": []},
 ]
 
 with open(args.output, 'w', encoding='utf-8') as f:
