@@ -72,7 +72,7 @@ def main():
     logger = setup_logger()
     try:
         # Load the configuration
-        with open('/path/to/pi_scripts/monitoring_config.json') as f:
+        with open('/path/to/pi_scripts/config.json') as f:
             config = json.load(f)
         # Initialize InfluxDB client with environment variables
         client = InfluxDBClient(url=config["server"]+config["port"], token=config["db_token"], org=config["db_org"])

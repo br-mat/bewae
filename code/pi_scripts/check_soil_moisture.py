@@ -4,7 +4,7 @@
 # for plant groups whose soil is wet enough (skip watering).
 #
 # Designed to run via crontab 5 minutes after calculate_weather_multiplier.py
-# (at 06:05 and 18:05).
+# (once daily at 06:05).
 #
 # by br-mat (c) 2025
 
@@ -88,12 +88,6 @@ def main():
     try:
         # Load configs
         config = load_config()
-
-        # Attach Logfire remote logging if configured
-        logfire_url = config.get("logfire_url")
-        if logfire_url:
-            from weather_utils import LogfireHandler
-            logger.addHandler(LogfireHandler(logfire_url, "bewae-moisture"))
 
         nodered_url = config.get("nodered_url", "http://localhost:1880")
         wet_threshold = config.get("wet_threshold", DEFAULT_WET_THRESHOLD)

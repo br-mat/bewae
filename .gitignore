@@ -5,6 +5,10 @@ node-red-flows/bewae-config_reworkbuild.html
 
 # Credentials — never commit real values
 code/esp_32ard_bewae/src/connection.h
+code/pi_scripts/config.json
+
+# Local evaporation-model test sandbox (read-only InfluxDB token, plots, scratch)
+code/pi_scripts/evaporation_analysis/
 
 # Local project tracking
 TODO.md

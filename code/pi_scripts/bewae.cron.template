@@ -1,0 +1,18 @@
+# bewae cron jobs - paste into the Pi user's crontab via `crontab -e`
+#
+# Assumptions:
+#   - Scripts live in /home/pi/bewae
+#   - config.json is in the same directory
+#   - python3 is on cron's PATH; use /usr/bin/python3 if needed
+#   - Run as the normal Pi user, not root
+#
+# Verify after install with: crontab -l
+
+# Keep the forecast bucket fresh. OpenWeatherMap free forecast updates every 3h.
+10 */3 * * *  cd /home/pi/bewae && python3 store_weather_forecast.py       >> /home/pi/bewae/cron.log 2>&1
+
+# Calculate one 24h weather multiplier before the morning watering window.
+0  6  * * *  cd /home/pi/bewae && python3 calculate_weather_multiplier.py >> /home/pi/bewae/cron.log 2>&1
+
+# Run soil moisture override after weather multiplier so wet soil can force wm=0.
+5  6  * * *  cd /home/pi/bewae && python3 check_soil_moisture.py          >> /home/pi/bewae/cron.log 2>&1

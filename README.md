@@ -38,7 +38,8 @@ bewae/
 │   ├── calculate_weather_multiplier.py
 │   ├── check_soil_moisture.py
 │   ├── weather_utils.py          # Shared library
-│   └── monitoring_config.JSON    # Credentials and thresholds
+│   ├── config.template.json
+│   └── bewae.cron.template
 ├── node-red-flows/               # Node-RED flows for Raspberry Pi
 │   └── bewaeConfigPageFlow.json  # Web config page (active)
 ├── fzz-layout/                   # PCB designs (Fritzing + Gerber)
@@ -111,11 +112,16 @@ Node-RED runs in Docker. The config file is stored at `/data/bewae/full-config.j
 
 ### 4. Raspberry Pi — Pi scripts
 
-The Python scripts in `code/pi_scripts/` compute weather-based watering multipliers and check soil moisture. They POST results to Node-RED, which updates the config.
+The Python scripts in `code/pi_scripts/` collect forecast data, compute weather-based watering multipliers, and check soil moisture. They POST results to Node-RED, which updates the config.
 
 1. Copy the scripts to the Pi.
-2. Edit `monitoring_config.JSON` — set InfluxDB credentials, OpenWeatherMap API key, location, and Node-RED URL.
-3. Set up cron jobs to run `calculate_weather_multiplier.py` twice daily and `check_soil_moisture.py` 5 minutes after each.
+2. Copy `config.template.json` to `config.json`, then set InfluxDB credentials, OpenWeatherMap API key, forecast bucket access, location, and Node-RED URL.
+3. Use `bewae.cron.template` to set up jobs for `store_weather_forecast.py`, `calculate_weather_multiplier.py`, and `check_soil_moisture.py`.
+
+The current Pi-side bucket split is `environment_forecast` for future
+OpenWeatherMap forecast rows and `bewae` for irrigation/control diagnostics.
+The Python scripts use local file/console logging only; external Heimdall or
+LogFire integration is intentionally kept outside this project.
 
 > See [`code/pi_scripts/Readme.md`](code/pi_scripts/Readme.md) for full config field reference and example crontab entries.
 

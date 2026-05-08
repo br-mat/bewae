@@ -16,7 +16,7 @@ CP = 1.013
 GAMMA = 0.066
 CLEAR_SKY_RADIATION = 0.8
 
-# --- Config defaults matching monitoring_config.JSON ---
+# --- Config defaults matching config.json ---
 CONFIG = {
     "baseline_temp": 25,
     "baseline_humidity": 50,

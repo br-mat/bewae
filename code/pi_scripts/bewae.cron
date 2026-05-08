@@ -1,22 +1,18 @@
-# bewae cron jobs — paste into the Pi user's crontab via `crontab -e`
+# ─────────────────────────────────────────────────────────────────────────────
+# bewae irrigation — Raspberry Pi 5 — /home/homepi/bewae
+# Times are local Pi time (CET/CEST, Europe/Vienna)
+# Uses Heimdall venv: /home/homepi/heimdall/venv
+# Last updated: 2026-05-09
+# ─────────────────────────────────────────────────────────────────────────────
 #
-# Schedule:
-#   06:00, 18:00  →  calculate_weather_multiplier.py  (OWM forecast → wm)
-#   06:05, 18:05  →  check_soil_moisture.py           (sets wm=0 if soil already wet)
-#
-# The 5-minute gap matters: the moisture check must run AFTER the weather
-# multiplier so it can override wm to 0 when the soil is already wet.
-#
-# Assumptions:
-#   - Scripts live in /home/pi/bewae/  (matches monitoring_config.JSON → config_path)
-#   - python3 is on cron's default PATH; if not, replace with /usr/bin/python3
-#   - Run as the `pi` user (NOT root) so file ownership matches the rest of the install
-#   - Remote logging goes to LogFire; local cron.log is a fallback for when the Pi
-#     can't reach Node-RED (boot, network outage). Tail with `tail -f ~/bewae/cron.log`.
-#
-# Verify after install with:  crontab -l
+# Verify after install with: crontab -l
 
-0  6  * * *  cd /home/pi/bewae && python3 calculate_weather_multiplier.py >> /home/pi/bewae/cron.log 2>&1
-0 18  * * *  cd /home/pi/bewae && python3 calculate_weather_multiplier.py >> /home/pi/bewae/cron.log 2>&1
-5  6  * * *  cd /home/pi/bewae && python3 check_soil_moisture.py          >> /home/pi/bewae/cron.log 2>&1
-5 18  * * *  cd /home/pi/bewae && python3 check_soil_moisture.py          >> /home/pi/bewae/cron.log 2>&1
+# ── Environment ──────────────────────────────────────────────────────────────
+# Weather forecast - 5 days ahead, 3-hour steps
+10 */3 * * *  cd /home/homepi/bewae && /home/homepi/heimdall/venv/bin/python3 store_weather_forecast.py       >> /home/homepi/bewae/cron.log 2>&1
+
+# ── Irrigation ───────────────────────────────────────────────────────────────
+# Weather multiplier - once daily from next 24h forecast
+0  6  * * *  cd /home/homepi/bewae && /home/homepi/heimdall/venv/bin/python3 calculate_weather_multiplier.py >> /home/homepi/bewae/cron.log 2>&1
+# Soil moisture override - runs after weather multiplier so wet soil can force wm=0
+5  6  * * *  cd /home/homepi/bewae && /home/homepi/heimdall/venv/bin/python3 check_soil_moisture.py          >> /home/homepi/bewae/cron.log 2>&1

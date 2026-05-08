@@ -1,0 +1,32 @@
+{
+  "db_org": "your-influxdb-org",
+  "db_token": "YOUR_BEWAE_BUCKET_RW_TOKEN",
+  "server": "http://192.168.1.x",
+  "port": ":8086",
+  "bucket": "bewae",
+
+  "weatherAPI": "YOUR_OPENWEATHERMAP_API_KEY",
+  "lat": "47.07",
+  "lon": "15.44",
+  "location": "Graz",
+
+  "bucket_env_forecast": "environment_forecast",
+  "db_token_env_forecast": "YOUR_FORECAST_BUCKET_RW_TOKEN",
+  "forecast_location": "Graz",
+  "forecast_source": "openweathermap",
+  "forecast_max_age_hours": 4,
+
+  "baseline_temp": 25,
+  "baseline_humidity": 50,
+  "baseline_wind": 5,
+  "baseline_cloud_cover": 30,
+  "rain_threshold_mm": 5,
+  "rain_hard_cutoff_mm": 15,
+  "multiplier_max": 2.0,
+
+  "nodered_url": "http://localhost:1880",
+  "config_path": "/home/pi/bewae/full-config.json",
+
+  "wet_threshold": 75,
+  "sensor_measurement": "sensor_data"
+}

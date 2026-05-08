@@ -1,233 +1,159 @@
 #!/usr/bin/env python3
-# calculate_weather_multiplier.py
-# Calculates per-group weather-based irrigation multipliers using OpenWeather forecast data.
-# Writes 'wm' field into each plant group in the bewae config JSON.
-#
-# Designed to run via crontab (2x daily at 06:00 and 18:00).
-#
-# by br-mat (c) 2025
+"""Calculate V3 weather-based irrigation multipliers from stored forecast data.
 
-import math
+V3 uses a Penman-Monteith reference ET0 ratio over the next 24 hours:
+
+    wm = clamp(drying_ratio * rain_factor * (pls / 100), 0, multiplier_max)
+
+The Node-RED endpoints and ESP-facing wm wire format are unchanged.
+Designed to run via crontab once daily at 06:00.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
 import sys
-import os
+import time
 
+from estimate_water_loss import reference_et0
 from weather_utils import (
     setup_logger,
     load_config,
-    fetch_forecast,
+    fetch_forecast_blocks_from_influx,
     load_irrigation_config_http,
     save_wm_http,
     publish_to_influxdb,
 )
 
-# Physical constants for Penman-Monteith ET calculation
-CP = 1.013       # specific heat of air [MJ/(kg·°C)]
-GAMMA = 0.066    # psychrometric constant [kPa/°C]
-
-# Clear-sky solar radiation estimate [MJ/m²/hour] for mid-latitudes summer
-# This is a simplified constant; could be refined with latitude/day-of-year
-CLEAR_SKY_RADIATION = 0.8  # approximate average daytime value
 
 logger = setup_logger("weather_multiplier", "weather_multiplier.log")
 
 
-def extract_forecast_24h(forecast_list):
-    """
-    Extract the next 24 hours of forecast data from the API response.
-    The free API returns 3-hour blocks, so 8 blocks = 24 hours.
-
-    Returns list of dicts with standardized keys.
-    """
-    blocks = forecast_list[:8]  # first 8 entries = next 24h
-    result = []
-    for block in blocks:
-        main = block.get("main", {})
-        wind = block.get("wind", {})
-        clouds = block.get("clouds", {})
-        rain = block.get("rain", {})
-
-        result.append({
-            "temp": main.get("temp", 20.0),           # °C (API returns metric)
-            "humidity": main.get("humidity", 50.0),    # %
-            "pressure": main.get("pressure", 1013) / 10.0,  # hPa -> kPa
-            "wind_speed": wind.get("speed", 2.0),      # m/s (already in m/s!)
-            "cloud_cover": clouds.get("all", 50.0),    # %
-            "rain_3h": rain.get("3h", 0.0),            # mm in 3h window
-        })
-
-    return result
+def clamp(value, minimum, maximum):
+    return max(minimum, min(value, maximum))
 
 
-def estimate_radiation(cloud_cover_pct):
-    """
-    Estimate net radiation using cloud cover as a proxy for UV index.
-    Rn = clear_sky_radiation * (1 - cloud_cover * 0.75)
-
-    Returns radiation in MJ/m²/hour (simplified).
-    """
-    cloud_fraction = cloud_cover_pct / 100.0
-    return CLEAR_SKY_RADIATION * (1.0 - cloud_fraction * 0.75)
-
-
-def soil_evaporation_rate(wind_ms, temp_c, humidity_pct, pressure_kpa, cloud_cover_pct, area_m2):
-    """
-    Calculate soil evaporation rate using adapted Penman-Monteith equation.
-    Wind speed is already in m/s (no conversion needed).
-
-    Args:
-        wind_ms: wind speed in m/s
-        temp_c: temperature in °C
-        humidity_pct: relative humidity in %
-        pressure_kpa: atmospheric pressure in kPa
-        cloud_cover_pct: cloud cover in %
-        area_m2: soil area in m²
-
-    Returns:
-        Evaporation rate (arbitrary units, consistent for ratio comparison)
-    """
-    # Guard against division by zero
-    if wind_ms < 0.1:
-        wind_ms = 0.1
-    if temp_c < -40:
-        temp_c = -40
-
-    # Saturation vapor pressure terms
-    e_s_term = math.exp(17.27 * temp_c / (temp_c + 237.3))
-    delta = 4098 * (0.6108 * e_s_term) / ((temp_c + 237.3) ** 2)
-
-    # Net radiation from cloud cover proxy
-    Rn = estimate_radiation(cloud_cover_pct)
-
-    # Air density via ideal gas law
-    rho_a = pressure_kpa / (0.287 * (temp_c + 273.15))
-
-    # Vapor pressures
-    es = 0.6108 * e_s_term
-    ea = humidity_pct * es / 100.0
-
-    # Aerodynamic resistance (simplified)
-    ra = 208.0 / wind_ms
-
-    # Penman-Monteith ET
-    ET = (delta * Rn + rho_a * CP * (es - ea) / ra) / (delta + GAMMA)
-    ET = ET * area_m2
-
-    return max(ET, 0.0)  # ET should never be negative
-
-
-def calculate_et_for_block(block, soil_area=0.03):
-    """
-    Calculate evapotranspiration for a single 3-hour forecast block.
-    Uses soil evaporation as the primary ET indicator.
-    """
-    return soil_evaporation_rate(
+def drying_score_v3(block, lat, lon):
+    """Reference ET0 for one forecast block."""
+    return reference_et0(
         wind_ms=block["wind_speed"],
-        temp_c=block["temp"],
-        humidity_pct=block["humidity"],
-        pressure_kpa=block["pressure"],
-        cloud_cover_pct=block["cloud_cover"],
-        area_m2=soil_area,
+        temp=block["temp"],
+        humidity=block["humidity"],
+        pressure=block["pressure"] / 10.0,
+        cloud_cover=block["cloud_cover"],
+        when_utc=block["time"],
+        lat_deg=lat,
+        lon_deg=lon,
     )
 
 
-def calculate_baseline_et(config, soil_area=0.03):
-    """
-    Calculate the baseline ET for a 'normal' reference day using config values.
-    This represents a typical summer day that the user's base watering duration is calibrated for.
-    """
-    baseline_temp = config.get("baseline_temp", 25)
-    baseline_humidity = config.get("baseline_humidity", 50)
-    baseline_wind = config.get("baseline_wind", 5)
-    baseline_pressure = 101.3  # standard atmospheric pressure in kPa
-    baseline_cloud_cover = 30  # partly cloudy
+def baseline_drying_sum_v3(blocks, config, lat, lon):
+    """Baseline ET0 over the same forecast timestamps as the actual weather."""
+    baseline_temp = float(config.get("baseline_temp", 25.0))
+    baseline_humidity = float(config.get("baseline_humidity", 50.0))
+    baseline_wind = float(config.get("baseline_wind", 5.0))
+    baseline_cloud_cover = float(config.get("baseline_cloud_cover", 30.0))
 
-    # 8 identical blocks (24h at 3h intervals) for baseline
-    et_per_block = soil_evaporation_rate(
-        wind_ms=baseline_wind,
-        temp_c=baseline_temp,
-        humidity_pct=baseline_humidity,
-        pressure_kpa=baseline_pressure,
-        cloud_cover_pct=baseline_cloud_cover,
-        area_m2=soil_area,
+    return sum(
+        reference_et0(
+            wind_ms=baseline_wind,
+            temp=baseline_temp,
+            humidity=baseline_humidity,
+            pressure=block["pressure"] / 10.0,
+            cloud_cover=baseline_cloud_cover,
+            when_utc=block["time"],
+            lat_deg=lat,
+            lon_deg=lon,
+        )
+        for block in blocks
     )
-    return et_per_block * 8  # 24h total
 
 
-def calculate_rain_factor(total_rain_mm, threshold_mm, hard_cutoff_mm):
+def calculate_rain_factor(rain_mm, threshold_mm, hard_cutoff_mm):
     """
     Combined rain logic:
-    - Gradual reduction for light rain
-    - Hard cutoff above heavy rain threshold
-
-    Returns factor between 0.0 and 1.0.
+    - no reduction when no rain is forecast
+    - linear reduction for light rain
+    - hard cutoff above the heavy-rain threshold
     """
-    if total_rain_mm >= hard_cutoff_mm:
-        return 0.0
-
-    if total_rain_mm <= 0:
+    if rain_mm <= 0:
         return 1.0
 
-    # Gradual reduction: linear from 1.0 at 0mm to 0.0 at threshold
-    factor = max(0.0, 1.0 - (total_rain_mm / threshold_mm))
-    return factor
+    if hard_cutoff_mm > 0 and rain_mm >= hard_cutoff_mm:
+        return 0.0
+
+    if threshold_mm <= 0:
+        return 0.0
+
+    return max(0.0, 1.0 - rain_mm / threshold_mm)
 
 
-def calculate_base_weather_factor(forecast_blocks, config):
+def compute_factors(blocks, config, lat, lon):
     """
-    Calculate the base weather factor from forecast data.
-    This is the ET ratio (actual/baseline) modified by rain.
+    Calculate aggregate V3 weather factors for the next forecast blocks.
 
-    Returns (base_factor, total_rain_mm) tuple.
+    Returns a dict with actual/baseline drying sums, drying_ratio, rain values,
+    rain_factor, and base_factor.
     """
-    # Sum ET across all 24h forecast blocks
-    actual_et = sum(calculate_et_for_block(block) for block in forecast_blocks)
+    if not blocks:
+        raise ValueError("No forecast blocks available")
 
-    # Calculate baseline ET
-    baseline_et = calculate_baseline_et(config)
+    actual_sum = sum(drying_score_v3(block, lat, lon) for block in blocks)
+    baseline_sum = baseline_drying_sum_v3(blocks, config, lat, lon)
 
-    # Avoid division by zero
-    if baseline_et <= 0:
-        logger.warning("Baseline ET is zero or negative, using factor 1.0")
-        et_ratio = 1.0
+    if baseline_sum <= 0:
+        logger.warning("Baseline drying sum is zero or negative; using ratio 1.0")
+        drying_ratio = 1.0
     else:
-        et_ratio = actual_et / baseline_et
+        drying_ratio = actual_sum / baseline_sum
 
-    # Sum rain across 24h
-    total_rain_mm = sum(block["rain_3h"] for block in forecast_blocks)
-
-    # Apply combined rain logic
-    rain_threshold = config.get("rain_threshold_mm", 5)
-    rain_hard_cutoff = config.get("rain_hard_cutoff_mm", 15)
-    rain_factor = calculate_rain_factor(total_rain_mm, rain_threshold, rain_hard_cutoff)
-
-    base_factor = et_ratio * rain_factor
-
-    logger.info(
-        f"ET actual={actual_et:.3f}, baseline={baseline_et:.3f}, ratio={et_ratio:.2f}, "
-        f"rain={total_rain_mm:.1f}mm, rain_factor={rain_factor:.2f}, base_factor={base_factor:.2f}"
+    total_rain_mm = sum(block["rain_3h"] for block in blocks)
+    effective_rain_mm = sum(
+        block["rain_3h"] * (0.5 + 0.5 * block.get("pop", 1.0))
+        for block in blocks
     )
 
-    return base_factor, et_ratio, rain_factor, total_rain_mm
+    rain_threshold = float(config.get("rain_threshold_mm", 5.0))
+    rain_hard_cutoff = float(config.get("rain_hard_cutoff_mm", 15.0))
+    rain_factor = calculate_rain_factor(
+        effective_rain_mm, rain_threshold, rain_hard_cutoff
+    )
+    base_factor = drying_ratio * rain_factor
+
+    logger.info(
+        f"V3 actual_sum={actual_sum:.4f}, baseline_sum={baseline_sum:.4f}, "
+        f"drying_ratio={drying_ratio:.3f}, rain={total_rain_mm:.1f}mm, "
+        f"effective_rain={effective_rain_mm:.1f}mm, "
+        f"rain_factor={rain_factor:.2f}, base_factor={base_factor:.2f}"
+    )
+
+    return {
+        "actual_sum": actual_sum,
+        "baseline_sum": baseline_sum,
+        "drying_ratio": drying_ratio,
+        "rain_mm": total_rain_mm,
+        "effective_rain_mm": effective_rain_mm,
+        "rain_factor": rain_factor,
+        "base_factor": base_factor,
+    }
 
 
-def apply_multipliers_to_config(irrig_config, base_factor, et_ratio, multiplier_max):
+def _group_pls(group_data):
+    try:
+        pls = float(group_data.get("pls", 100.0))
+    except (TypeError, ValueError):
+        pls = 100.0
+    return clamp(pls, 0.0, 100.0)
+
+
+def apply_multipliers_to_config(irrig_config, base_factor, drying_ratio, multiplier_max):
     """
-    Calculate weather multiplier for each plant group.
-    For each group: wm = clamp(factor * kc, 0.0, multiplier_max)
+    Calculate per-group wm values.
 
-    If a group has ignore_rain=True, the rain factor is skipped and only
-    ET ratio is used (plant is under a roof, rain doesn't reach it).
-
-    Args:
-        irrig_config: the full config dict (device -> {plantConfig, ...})
-        base_factor: the base weather factor (et_ratio * rain_factor)
-        et_ratio: ET ratio without rain reduction
-        multiplier_max: maximum allowed multiplier
-
-    Returns:
-        tuple of (wm_results, wm_updates)
-        - wm_results: {group_name: wm_value} for logging/InfluxDB
-        - wm_updates: {device_name: {group_key: wm_value}} for API POST
+    V3 no longer reads kc. The only plant-coupling input is pls, interpreted as
+    a 0-100 percent plant-size/demand slider. Missing or invalid pls defaults
+    to 100, while pls=0 intentionally skips watering for that group.
     """
     wm_results = {}
     wm_updates = {}
@@ -235,45 +161,36 @@ def apply_multipliers_to_config(irrig_config, base_factor, et_ratio, multiplier_
     for device_name, device_config in irrig_config.items():
         if not isinstance(device_config, dict):
             continue
+
         plant_config = device_config.get("plantConfig", {})
         if not isinstance(plant_config, dict):
             continue
 
         for group_key, group_data in plant_config.items():
-            if not isinstance(group_data, dict):
-                continue
-            # Skip non-group entries (e.g., "checksum")
-            if "pn" not in group_data:
+            if not isinstance(group_data, dict) or "pn" not in group_data:
                 continue
 
-            kc = group_data.get("kc", 1.0)
-            ignore_rain = group_data.get("ignore_rain", False)
-
-            if ignore_rain:
-                # Plant under roof: only ET matters, rain doesn't reach it
-                wm = et_ratio * kc
-            else:
-                # Normal plant: full factor including rain reduction
-                wm = base_factor * kc
-
-            wm = max(0.0, min(wm, multiplier_max))
-            wm = round(wm, 2)
+            pls = _group_pls(group_data)
+            plant_factor = pls / 100.0
+            ignore_rain = bool(group_data.get("ignore_rain", False))
+            weather_factor = drying_ratio if ignore_rain else base_factor
+            wm = round(clamp(weather_factor * plant_factor, 0.0, multiplier_max), 2)
 
             group_name = group_data.get("pn", group_key)
             wm_results[group_name] = wm
-
-            if device_name not in wm_updates:
-                wm_updates[device_name] = {}
-            wm_updates[device_name][group_key] = wm
+            wm_updates.setdefault(device_name, {})[group_key] = wm
 
             rain_note = " (ignore_rain)" if ignore_rain else ""
-            logger.info(f"  Group '{group_name}': kc={kc}, wm={wm}{rain_note}")
+            logger.info(
+                f"  {device_name}.{group_key} '{group_name}': "
+                f"pls={pls:.0f}%, plant_factor={plant_factor:.2f}, wm={wm}{rain_note}"
+            )
 
     return wm_results, wm_updates
 
 
 def build_fallback_updates(irrig_config):
-    """Build wm=1.0 updates for all groups (safe fallback on error)."""
+    """Build wm=1.0 updates for all groups as a safe fallback on live errors."""
     wm_updates = {}
     for device_name, device_config in irrig_config.items():
         if not isinstance(device_config, dict):
@@ -283,57 +200,98 @@ def build_fallback_updates(irrig_config):
             continue
         for group_key, group_data in plant_config.items():
             if isinstance(group_data, dict) and "pn" in group_data:
-                if device_name not in wm_updates:
-                    wm_updates[device_name] = {}
-                wm_updates[device_name][group_key] = 1.0
+                wm_updates.setdefault(device_name, {})[group_key] = 1.0
     return wm_updates
 
 
-def main():
+def print_dry_run_report(blocks, factors, wm_results, wm_updates):
+    print("\n" + "=" * 72)
+    print("  DRY RUN - no Node-RED POST, no InfluxDB write")
+    print("=" * 72)
+    print(f"\n  Forecast window  : {blocks[0]['time']}  ->  {blocks[-1]['time']}")
+    print(f"  Blocks used      : {len(blocks)} (next {len(blocks) * 3}h)")
+    issued_at = blocks[-1].get("issued_at_unix", 0.0)
+    if issued_at:
+        print(
+            "  Forecast issued  : "
+            f"{time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(issued_at))}"
+        )
+
+    print("\n  --- Aggregate factors ---")
+    print(f"  drying_ratio     : {factors['drying_ratio']:.3f}")
+    print(f"  rain_mm          : {factors['rain_mm']:.2f}")
+    print(f"  effective_rain   : {factors['effective_rain_mm']:.2f}")
+    print(f"  rain_factor      : {factors['rain_factor']:.2f}")
+    print(f"  base_factor      : {factors['base_factor']:.2f}")
+
+    print("\n  --- Per-group wm (would be POSTed) ---")
+    if not wm_results:
+        print("    (no groups found in irrigation config)")
+    else:
+        for name, wm in wm_results.items():
+            print(f"    {name:<24} -> {wm:.2f}")
+
+    print("\n  --- Wire-format payload (POST body) ---")
+    print(json.dumps(wm_updates, indent=2))
+    print()
+
+
+def main(dry_run=False):
     nodered_url = None
     irrig_config = None
 
     try:
-        # Load configs
         config = load_config()
 
-        # Attach Logfire remote logging if configured
-        logfire_url = config.get("logfire_url")
-        if logfire_url:
-            from weather_utils import LogfireHandler
-            logger.addHandler(LogfireHandler(logfire_url, "bewae-weather"))
-
         nodered_url = config.get("nodered_url", "http://localhost:1880")
-        multiplier_max = config.get("multiplier_max", 2.0)
+        multiplier_max = float(config.get("multiplier_max", 2.0))
+        lat = float(config["lat"])
+        lon = float(config["lon"])
 
-        logger.info("Fetching weather forecast...")
-        forecast_list = fetch_forecast(config["lat"], config["lon"], config["weatherAPI"])
+        logger.info("Fetching forecast from InfluxDB...")
+        blocks = fetch_forecast_blocks_from_influx(config, limit=8)
+        if not blocks:
+            raise ValueError("Empty or stale forecast response from InfluxDB")
+        logger.info(f"Got {len(blocks)} forecast blocks")
 
-        if not forecast_list:
-            raise ValueError("Empty forecast response from API")
+        factors = compute_factors(blocks, config, lat, lon)
 
-        # Extract and process 24h forecast
-        forecast_blocks = extract_forecast_24h(forecast_list)
-        logger.info(f"Got {len(forecast_blocks)} forecast blocks")
-
-        # Calculate base weather factor
-        base_factor, et_ratio, rain_factor, total_rain_mm = calculate_base_weather_factor(forecast_blocks, config)
-
-        # Load irrigation config via HTTP and calculate multipliers
+        logger.info(f"Loading irrigation config from {nodered_url}...")
         irrig_config = load_irrigation_config_http(nodered_url)
-        wm_results, wm_updates = apply_multipliers_to_config(irrig_config, base_factor, et_ratio, multiplier_max)
+        wm_results, wm_updates = apply_multipliers_to_config(
+            irrig_config,
+            factors["base_factor"],
+            factors["drying_ratio"],
+            multiplier_max,
+        )
 
-        # POST wm updates to Node-RED
+        if dry_run:
+            print_dry_run_report(blocks, factors, wm_results, wm_updates)
+            logger.info("Dry-run complete; no side effects.")
+            return
+
         save_wm_http(nodered_url, wm_updates)
         logger.info("WM updates posted to Node-RED successfully")
 
-        # Publish to InfluxDB (optional, best-effort)
         try:
-            fields = {"base_factor": base_factor, "et_ratio": et_ratio, "rain_factor": rain_factor, "rain_mm": total_rain_mm}
+            fields = {
+                "base_factor": factors["base_factor"],
+                "drying_ratio": factors["drying_ratio"],
+                "rain_factor": factors["rain_factor"],
+                "rain_mm": factors["rain_mm"],
+                "effective_rain_mm": factors["effective_rain_mm"],
+                "actual_sum": factors["actual_sum"],
+                "baseline_sum": factors["baseline_sum"],
+            }
             fields.update({f"wm_{name}": wm for name, wm in wm_results.items()})
             publish_to_influxdb(
                 measurement="weather_multiplier",
-                tags={"location": config.get("location", "unknown")},
+                tags={
+                    "location": config.get(
+                        "forecast_location", config.get("location", "unknown")
+                    ),
+                    "model": "v3",
+                },
                 fields=fields,
                 config=config,
             )
@@ -344,8 +302,7 @@ def main():
     except Exception as e:
         logger.error(f"Error calculating weather multiplier: {e}", exc_info=True)
 
-        # Safe fallback: try to POST wm=1.0 for all groups
-        if nodered_url and irrig_config:
+        if not dry_run and nodered_url and irrig_config:
             try:
                 fallback_updates = build_fallback_updates(irrig_config)
                 if fallback_updates:
@@ -358,4 +315,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="V3 weather multiplier using forecast ET0 ratio"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Compute and print only. Do not POST to Node-RED or write InfluxDB.",
+    )
+    args = parser.parse_args()
+    main(dry_run=args.dry_run)
